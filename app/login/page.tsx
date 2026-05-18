@@ -2,6 +2,50 @@
 
 import { useActionState } from "react";
 import { login, type LoginState } from "./actions";
+import { Button } from "@/components/ui/Button";
+import { Input, Label, FieldError } from "@/components/ui/Input";
+
+// Decorative starfield SVG — scattered dots evoking stardrops without being literal
+function Starfield() {
+  // Hand-picked positions so the layout doesn't shift every render
+  const stars = [
+    { x: 12, y: 18, r: 1.5, o: 0.4 },
+    { x: 28, y: 8, r: 1, o: 0.3 },
+    { x: 48, y: 22, r: 2, o: 0.5 },
+    { x: 72, y: 14, r: 1.2, o: 0.35 },
+    { x: 88, y: 28, r: 1.8, o: 0.45 },
+    { x: 8, y: 42, r: 1, o: 0.3 },
+    { x: 38, y: 52, r: 1.5, o: 0.4 },
+    { x: 62, y: 48, r: 1, o: 0.3 },
+    { x: 92, y: 60, r: 2, o: 0.5 },
+    { x: 16, y: 72, r: 1.3, o: 0.35 },
+    { x: 44, y: 84, r: 1.6, o: 0.4 },
+    { x: 78, y: 78, r: 1.1, o: 0.32 },
+    { x: 22, y: 92, r: 0.9, o: 0.28 },
+    { x: 58, y: 12, r: 0.8, o: 0.25 },
+    { x: 84, y: 92, r: 1.4, o: 0.4 },
+  ];
+  return (
+    <svg
+      className="absolute inset-0 w-full h-full"
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="none"
+      viewBox="0 0 100 100"
+      aria-hidden
+    >
+      {stars.map((s, i) => (
+        <circle
+          key={i}
+          cx={s.x}
+          cy={s.y}
+          r={s.r}
+          fill="#d56f3e"
+          opacity={s.o}
+        />
+      ))}
+    </svg>
+  );
+}
 
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState<LoginState, FormData>(
@@ -10,23 +54,22 @@ export default function LoginPage() {
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cream-100 px-4">
-      <div className="w-full max-w-sm">
-        <div className="bg-cream-50 rounded-cozy shadow-cozy-lg p-8">
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
+      <Starfield />
+
+      <div className="relative w-full max-w-sm animate-fade-in-up">
+        <div className="bg-cream-50/95 backdrop-blur-sm rounded-cozy-lg shadow-cozy-lg border border-wood-100/70 p-9">
           <div className="text-center mb-8">
-            <h1 className="font-serif text-3xl text-terracotta-700">Stardrop</h1>
-            <p className="text-sm text-wood-600 mt-1">Game Design</p>
+            <h1 className="font-display text-4xl text-terracotta-700 leading-none">
+              Stardrop
+            </h1>
+            <p className="label-eyebrow mt-3">Game Design · Ms. Shinn</p>
           </div>
 
           <form action={formAction} className="space-y-4">
             <div>
-              <label
-                htmlFor="username"
-                className="block text-sm font-medium text-wood-700 mb-1"
-              >
-                Username
-              </label>
-              <input
+              <Label htmlFor="username">Username</Label>
+              <Input
                 id="username"
                 name="username"
                 type="text"
@@ -35,44 +78,35 @@ export default function LoginPage() {
                 autoCapitalize="off"
                 autoCorrect="off"
                 spellCheck={false}
-                className="w-full px-3 py-2 rounded-cozy border border-wood-200 bg-white text-wood-900 focus:outline-none focus:ring-2 focus:ring-terracotta-300 focus:border-terracotta-400 transition"
+                placeholder="firstinitiallastname"
               />
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-wood-700 mb-1"
-              >
-                Password
-              </label>
-              <input
+              <Label htmlFor="password">Password</Label>
+              <Input
                 id="password"
                 name="password"
                 type="password"
                 required
                 autoComplete="current-password"
-                className="w-full px-3 py-2 rounded-cozy border border-wood-200 bg-white text-wood-900 focus:outline-none focus:ring-2 focus:ring-terracotta-300 focus:border-terracotta-400 transition"
               />
             </div>
 
-            {state?.error && (
-              <p className="text-sm text-terracotta-800 bg-terracotta-50 border border-terracotta-200 rounded-cozy px-3 py-2">
-                {state.error}
-              </p>
-            )}
+            {state?.error && <FieldError>{state.error}</FieldError>}
 
-            <button
+            <Button
               type="submit"
               disabled={isPending}
-              className="w-full py-2 rounded-cozy bg-terracotta-500 text-white font-medium hover:bg-terracotta-600 active:bg-terracotta-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              size="lg"
+              className="w-full"
             >
-              {isPending ? "Signing in..." : "Sign in"}
-            </button>
+              {isPending ? "Signing in…" : "Sign in"}
+            </Button>
           </form>
         </div>
 
-        <p className="text-center text-xs text-wood-500 mt-4">
+        <p className="text-center text-xs text-wood-500 mt-5">
           Forgot your password? Ask Ms. Shinn.
         </p>
       </div>

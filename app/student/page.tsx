@@ -1,36 +1,45 @@
+import { Sparkles } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
-import { logout } from "../login/actions";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function StudentDashboard() {
   const user = await requireStudent();
 
   return (
-    <div className="min-h-screen bg-cream-100 p-8">
-      <div className="max-w-4xl mx-auto">
-        <header className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="font-serif text-3xl text-terracotta-700">Stardrop</h1>
-            <p className="text-sm text-wood-600 mt-1">Hi, {user.first_name}!</p>
-          </div>
-          <form action={logout}>
-            <button
-              type="submit"
-              className="text-sm text-wood-600 hover:text-terracotta-700 transition"
-            >
-              Sign out
-            </button>
-          </form>
-        </header>
+    <>
+      <PageHeader
+        eyebrow="Dashboard"
+        title={`Hi, ${user.first_name}!`}
+        description="Welcome to Game Design. Your daily plan, lessons, and assignments will live here."
+      />
 
-        <div className="bg-cream-50 rounded-cozy shadow-cozy p-6">
-          <h2 className="font-serif text-xl text-wood-800 mb-2">
-            Welcome to Game Design
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+        <Card className="md:col-span-2 bg-honey-50 border-honey-200">
+          <p className="label-eyebrow text-honey-700">Today</p>
+          <h2 className="font-display text-xl text-wood-900 mt-1">
+            Class hasn&apos;t started yet
           </h2>
-          <p className="text-wood-600">
-            Coming soon: your daily plan, what's due, lessons, and grades.
-          </p>
-        </div>
+          <CardDescription>
+            Once the semester kicks off in August, your daily plan and what&apos;s
+            due will show up here automatically.
+          </CardDescription>
+        </Card>
+        <Card>
+          <p className="label-eyebrow">Pending</p>
+          <p className="font-display text-3xl text-wood-900 mt-1">0</p>
+          <p className="text-xs text-wood-500 mt-0.5">No assignments yet</p>
+        </Card>
       </div>
-    </div>
+
+      <Card>
+        <EmptyState
+          icon={Sparkles}
+          title="More coming soon"
+          description="Lessons, assignments, grades, discussions, and your daily plan are being built. The site will fill in as Ms. Shinn adds content."
+        />
+      </Card>
+    </>
   );
 }

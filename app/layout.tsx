@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
-import { Lora, Inter_Tight } from "next/font/google";
+import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
-const lora = Lora({
+const fraunces = Fraunces({
   subsets: ["latin"],
-  variable: "--font-lora",
+  variable: "--font-fraunces",
   display: "swap",
+  axes: ["SOFT", "opsz"],
 });
 
-const interTight = Inter_Tight({
+const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  variable: "--font-inter-tight",
+  variable: "--font-jakarta",
   display: "swap",
 });
 
@@ -25,9 +26,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${lora.variable} ${interTight.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${jakarta.variable}`}>
       <body className="font-sans antialiased text-wood-900 bg-cream-100">
-        {children}
+        <div className="min-h-screen bg-paper bg-repeat">{children}</div>
       </body>
     </html>
   );

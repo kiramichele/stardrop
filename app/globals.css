@@ -1,10 +1,171 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
+@theme {
+  /* =============================================================
+     Colors
+     ============================================================= */
+  --color-terracotta-50: #fdf6f1;
+  --color-terracotta-100: #fae9dd;
+  --color-terracotta-200: #f4d0b6;
+  --color-terracotta-300: #ecb087;
+  --color-terracotta-400: #e28d5c;
+  --color-terracotta-500: #d56f3e;
+  --color-terracotta-600: #c25831;
+  --color-terracotta-700: #a1442b;
+  --color-terracotta-800: #823829;
+  --color-terracotta-900: #6b3025;
+
+  --color-sage-50: #f4f7f2;
+  --color-sage-100: #e5ede0;
+  --color-sage-200: #cadbc1;
+  --color-sage-300: #a4c197;
+  --color-sage-400: #7ca36e;
+  --color-sage-500: #5d8753;
+  --color-sage-600: #476c40;
+  --color-sage-700: #395735;
+  --color-sage-800: #2f472d;
+  --color-sage-900: #283b27;
+
+  --color-cream-50: #fefcf8;
+  --color-cream-100: #fbf6ea;
+  --color-cream-200: #f6ecd1;
+  --color-cream-300: #efdfb1;
+  --color-cream-400: #e6cd87;
+  --color-cream-500: #dbb961;
+
+  --color-wood-50: #faf6f1;
+  --color-wood-100: #f1e8db;
+  --color-wood-200: #e1cfb3;
+  --color-wood-300: #cdb088;
+  --color-wood-400: #b89066;
+  --color-wood-500: #a17651;
+  --color-wood-600: #876043;
+  --color-wood-700: #6e4d39;
+  --color-wood-800: #5b4030;
+  --color-wood-900: #4c362a;
+
+  --color-honey-50: #fef9ec;
+  --color-honey-100: #fcefc8;
+  --color-honey-200: #f8de8c;
+  --color-honey-300: #f3c558;
+  --color-honey-400: #eeac34;
+  --color-honey-500: #d68a1d;
+  --color-honey-600: #b66916;
+  --color-honey-700: #914d15;
+  --color-honey-800: #783e18;
+  --color-honey-900: #643418;
+
+  /* =============================================================
+     Fonts — wired to next/font CSS variables
+     ============================================================= */
+  --font-display: var(--font-fraunces), "Fraunces", Georgia, serif;
+  --font-sans: var(--font-jakarta), "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* =============================================================
+     Radius
+     ============================================================= */
+  --radius-cozy: 0.625rem;
+  --radius-cozy-lg: 0.875rem;
+
+  /* =============================================================
+     Shadows
+     ============================================================= */
+  --shadow-soft: 0 1px 2px rgba(107, 48, 37, 0.04), 0 1px 1px rgba(107, 48, 37, 0.03);
+  --shadow-cozy: 0 1px 3px rgba(107, 48, 37, 0.06), 0 4px 12px rgba(107, 48, 37, 0.04);
+  --shadow-cozy-lg: 0 2px 6px rgba(107, 48, 37, 0.06), 0 12px 28px rgba(107, 48, 37, 0.08);
+  --shadow-focus-warm: 0 0 0 3px rgba(213, 111, 62, 0.18);
+
+  /* =============================================================
+     Tracking
+     ============================================================= */
+  --tracking-wide-label: 0.08em;
+
+  /* =============================================================
+     Animations
+     ============================================================= */
+  --animate-fade-in: fadeIn 240ms ease-out;
+  --animate-fade-in-up: fadeInUp 320ms ease-out;
+
+  /* =============================================================
+     Paper texture background image
+     ============================================================= */
+  --background-image-paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.27 0 0 0 0 0.16 0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* =============================================================
+   Keyframes
+   ============================================================= */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =============================================================
+   Base styles — using CSS vars directly to avoid @apply scoping
+   ============================================================= */
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  *:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--color-cream-100),
+      0 0 0 4px var(--color-terracotta-400);
+  }
+
+  h1, h2, h3, h4 {
+    font-feature-settings: "ss01" on, "ss02" on;
+    font-variation-settings: "SOFT" 50, "opsz" 32;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-wood-200);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-wood-300);
+  }
+}
+
+/* =============================================================
+   Custom utilities
+   ============================================================= */
+@layer utilities {
+  .nav-active-underline {
+    position: relative;
+  }
+  .nav-active-underline::after {
+    content: "";
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.25rem;
+    height: 2px;
+    background-color: var(--color-terracotta-400);
+    border-radius: 9999px;
+  }
+
+  .label-eyebrow {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--tracking-wide-label);
+    color: var(--color-wood-500);
   }
 }
