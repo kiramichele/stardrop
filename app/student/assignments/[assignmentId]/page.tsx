@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 import { CodeAssignmentEditor } from "@/components/assignments/CodeAssignmentEditor";
+import { InteractiveHtmlAssignment } from "@/components/assignments/InteractiveHtmlAssignment";
 
 export default async function StudentAssignmentPage({
   params,
@@ -63,7 +64,6 @@ export default async function StudentAssignmentPage({
         description={dueText ? `Due ${dueText}` : undefined}
       />
 
-      {/* Grade banner if graded */}
       {grade && (
         <Card className="mb-6 bg-sage-50 border-sage-200">
           <div className="flex items-start gap-4">
@@ -97,14 +97,26 @@ export default async function StudentAssignmentPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          {assignment.type === "code" ? (
+          {assignment.type === "code" && (
             <CodeAssignmentEditor
               assignmentId={assignment.id}
               initialContent={submission?.content ?? ""}
               initialStatus={submission?.status ?? "draft"}
               initialSubmissionId={submission?.id ?? null}
             />
-          ) : (
+          )}
+
+          {assignment.type === "interactive_html" && assignment.interactive_html_url && (
+            <InteractiveHtmlAssignment
+              assignmentId={assignment.id}
+              htmlUrl={assignment.interactive_html_url}
+              initialData={submission?.structured_data ?? null}
+              initialStatus={submission?.status ?? "draft"}
+              initialSubmissionId={submission?.id ?? null}
+            />
+          )}
+
+          {!["code", "interactive_html"].includes(assignment.type) && (
             <Card>
               <p className="text-sm text-wood-600 text-center py-6">
                 This assignment type is still being built. Check back soon!

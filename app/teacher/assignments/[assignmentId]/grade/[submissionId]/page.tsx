@@ -1,16 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import {
   getSubmissionForGrading,
   getSubmissionEvents,
   computeLateness,
+  computeAutoGrade,
+  type AssignmentType,
 } from "@/lib/assignments";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { SubmissionStatusBadge } from "@/components/assignments/Badges";
 import { PasteTimeline } from "@/components/assignments/PasteTimeline";
 import { GradingForm } from "@/components/assignments/GradingForm";
+import { InteractiveResponseView } from "@/components/assignments/InteractiveResponseView";
 
 export default async function GradeSubmissionPage({
   params,
@@ -20,8 +23,6 @@ export default async function GradeSubmissionPage({
   const { assignmentId, submissionId } = await params;
   const submission = await getSubmissionForGrading(submissionId);
   if (!submission) notFound();
-
-  const events = await getSubmissionEvents(submissionId);
 
   const student = Array.isArray(submission.users)
     ? submission.users[0]
@@ -38,7 +39,18 @@ export default async function GradeSubmissionPage({
     assignment?.due_date
   );
 
+  const assignmentType = assignment?.type as AssignmentType | undefined;
   const content = submission.content ?? "";
+  const structuredData = submission.structured_data;
+
+  const showPasteTimeline = assignmentType === "code";
+  const events = showPasteTimeline ? await getSubmissionEvents(submissionId) : [];
+
+  // Auto-grade only for interactive HTML with score data
+  const autoGrade =
+    assignmentType === "interactive_html"
+      ? computeAutoGrade(structuredData, assignment?.points ?? 100)
+      : null;
 
   return (
     <>
@@ -73,7 +85,6 @@ export default async function GradeSubmissionPage({
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Code + instructions */}
         <div className="lg:col-span-2 space-y-4">
           {assignment?.instructions && (
             <Card>
@@ -84,23 +95,52 @@ export default async function GradeSubmissionPage({
             </Card>
           )}
 
-          <div>
-            <p className="label-eyebrow mb-2">Submission</p>
-            {content.trim().length === 0 ? (
-              <Card>
-                <p className="text-sm text-wood-500 italic text-center py-4">
-                  No content submitted yet.
-                </p>
-              </Card>
-            ) : (
-              <pre className="bg-cream-50 border border-wood-200 rounded-cozy-lg p-4 overflow-x-auto text-sm font-mono text-wood-900 shadow-cozy">
-                {content}
-              </pre>
-            )}
-          </div>
+          {assignmentType === "code" && (
+            <div>
+              <p className="label-eyebrow mb-2">Submission</p>
+              {content.trim().length === 0 ? (
+                <Card>
+                  <p className="text-sm text-wood-500 italic text-center py-4">
+                    No content submitted yet.
+                  </p>
+                </Card>
+              ) : (
+                <pre className="bg-cream-50 border border-wood-200 rounded-cozy-lg p-4 overflow-x-auto text-sm font-mono text-wood-900 shadow-cozy">
+                  {content}
+                </pre>
+              )}
+            </div>
+          )}
+
+          {assignmentType === "interactive_html" && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <p className="label-eyebrow">Responses</p>
+                {assignment?.interactive_html_url && (
+                  <a
+                    href={assignment.interactive_html_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-terracotta-700 hover:text-terracotta-800"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    View the activity
+                  </a>
+                )}
+              </div>
+              {!structuredData ? (
+                <Card>
+                  <p className="text-sm text-wood-500 italic text-center py-4">
+                    Student hasn&apos;t saved any data yet.
+                  </p>
+                </Card>
+              ) : (
+                <InteractiveResponseView structuredData={structuredData} />
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Grading + paste timeline */}
         <div className="space-y-4">
           <Card>
             <h3 className="font-display text-lg text-wood-900 mb-4">
@@ -112,18 +152,21 @@ export default async function GradeSubmissionPage({
               initialScore={grade?.score ?? null}
               initialFeedback={grade?.feedback ?? null}
               alreadyGraded={!!grade}
+              autoGrade={autoGrade}
             />
           </Card>
 
-          <Card>
-            <h3 className="font-display text-lg text-wood-900 mb-4">
-              Paste tracking
-            </h3>
-            <PasteTimeline
-              events={events}
-              totalContentLength={content.length}
-            />
-          </Card>
+          {showPasteTimeline && (
+            <Card>
+              <h3 className="font-display text-lg text-wood-900 mb-4">
+                Paste tracking
+              </h3>
+              <PasteTimeline
+                events={events}
+                totalContentLength={content.length}
+              />
+            </Card>
+          )}
         </div>
       </div>
     </>

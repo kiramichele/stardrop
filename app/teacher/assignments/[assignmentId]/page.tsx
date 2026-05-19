@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, Award, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Award, Users, FileCode2, Download, ExternalLink } from "lucide-react";
 import {
   getAssignment,
   getSubmissionsForAssignment,
@@ -10,12 +10,16 @@ import {
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input, Label, Textarea } from "@/components/ui/Input";
+import { Input, Label, Textarea, FieldHint } from "@/components/ui/Input";
 import {
   AssignmentTypeBadge,
   SubmissionStatusBadge,
 } from "@/components/assignments/Badges";
-import { updateAssignment, deleteAssignment } from "../actions";
+import {
+  updateAssignment,
+  deleteAssignment,
+  uploadInteractiveHtml,
+} from "../actions";
 
 export default async function AssignmentDetailPage({
   params,
@@ -33,8 +37,8 @@ export default async function AssignmentDetailPage({
 
   const updateAction = updateAssignment.bind(null, assignmentId);
   const deleteAction = deleteAssignment.bind(null, assignmentId);
+  const uploadHtmlAction = uploadInteractiveHtml.bind(null, assignmentId);
 
-  // Pre-format due_date for datetime-local input
   const dueLocal = assignment.due_date
     ? new Date(assignment.due_date).toISOString().slice(0, 16)
     : "";
@@ -43,6 +47,9 @@ export default async function AssignmentDetailPage({
     (s) => s.status === "submitted" || s.status === "graded"
   ).length;
   const gradedCount = submissions.filter((s) => s.status === "graded").length;
+
+  const isInteractive = assignment.type === "interactive_html";
+  const hasInteractiveHtml = !!assignment.interactive_html_url;
 
   return (
     <>
@@ -68,6 +75,33 @@ export default async function AssignmentDetailPage({
           </span>
         }
       />
+
+      {/* Warning if interactive_html with no upload */}
+      {isInteractive && !hasInteractiveHtml && (
+        <Card className="mb-6 bg-honey-50 border-honey-200">
+          <div className="flex items-start gap-3">
+            <FileCode2 className="w-5 h-5 text-honey-700 flex-shrink-0 mt-0.5" strokeWidth={1.75} />
+            <div>
+              <p className="font-display text-base text-honey-900">
+                Upload the interactive HTML file
+              </p>
+              <p className="text-sm text-honey-800">
+                Students can&apos;t see this assignment until you upload its
+                HTML file (in the settings panel on the right). Need a starting
+                point?{" "}
+                <a
+                  href="/interactive-html-template.html"
+                  download
+                  className="underline font-medium hover:text-honey-900"
+                >
+                  Download the template
+                </a>
+                .
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Submissions column */}
@@ -167,6 +201,59 @@ export default async function AssignmentDetailPage({
 
         {/* Settings column */}
         <div className="space-y-4">
+          {isInteractive && (
+            <Card>
+              <h3 className="font-display text-lg text-wood-900 mb-1">
+                Interactive HTML
+              </h3>
+              <p className="text-xs text-wood-500 mb-3">
+                {hasInteractiveHtml
+                  ? "File uploaded. Re-uploading replaces it."
+                  : "Upload the activity file to make this assignment visible to students."}
+              </p>
+              <form action={uploadHtmlAction} className="space-y-3">
+                <div className="flex items-start gap-2 p-2 rounded-cozy border border-dashed border-wood-300 bg-cream-50">
+                  <FileCode2
+                    className="w-5 h-5 text-wood-400 flex-shrink-0 mt-0.5"
+                    strokeWidth={1.5}
+                  />
+                  <Input
+                    id="html_file"
+                    name="html_file"
+                    type="file"
+                    accept=".html,text/html"
+                    required
+                    className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded-cozy file:border-0 file:bg-terracotta-100 file:text-terracotta-800 file:text-xs file:font-medium hover:file:bg-terracotta-200 file:cursor-pointer"
+                  />
+                </div>
+                <Button type="submit" size="sm" className="w-full">
+                  Upload HTML
+                </Button>
+              </form>
+
+              {hasInteractiveHtml && assignment.interactive_html_url && (
+                <a
+                  href={assignment.interactive_html_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs text-terracotta-700 hover:text-terracotta-800 transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Preview in new tab
+                </a>
+              )}
+
+              <a
+                href="/interactive-html-template.html"
+                download
+                className="mt-3 inline-flex items-center gap-1.5 text-xs text-wood-600 hover:text-terracotta-700 transition-colors ml-4"
+              >
+                <Download className="w-3 h-3" />
+                Template
+              </a>
+            </Card>
+          )}
+
           <Card>
             <h3 className="font-display text-lg text-wood-900 mb-4">
               Settings
@@ -223,6 +310,12 @@ export default async function AssignmentDetailPage({
                   Published (visible to students)
                 </Label>
               </div>
+              {isInteractive && !hasInteractiveHtml && (
+                <FieldHint>
+                  Students won&apos;t see this even when published until the
+                  HTML file is uploaded above.
+                </FieldHint>
+              )}
               <Button type="submit" size="sm" className="w-full">
                 Save changes
               </Button>

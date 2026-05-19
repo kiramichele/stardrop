@@ -3,10 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireTeacher } from "@/lib/auth";
 import type { AssignmentType } from "@/lib/assignments";
 
-const VALID_TYPES: AssignmentType[] = ["code", "written", "discussion", "upload"];
+const VALID_TYPES: AssignmentType[] = [
+  "code",
+  "interactive_html",
+  "short_answer",
+  "discussion",
+  "unity_upload",
+  "check_in",
+];
 
 export async function createAssignment(formData: FormData) {
   await requireTeacher();
@@ -76,6 +84,11 @@ export async function updateAssignment(
 export async function deleteAssignment(assignmentId: string) {
   await requireTeacher();
   const supabase = await createClient();
+
+  // Delete storage file if any (best effort)
+  const admin = createAdminClient();
+  await admin.storage.from("lessons").remove([`assignments/${assignmentId}.html`]);
+
   const { error } = await supabase
     .from("assignments")
     .delete()
@@ -84,6 +97,45 @@ export async function deleteAssignment(assignmentId: string) {
 
   revalidatePath("/teacher/assignments");
   redirect("/teacher/assignments");
+}
+
+// =============================================================
+// Interactive HTML upload
+// =============================================================
+
+export async function uploadInteractiveHtml(
+  assignmentId: string,
+  formData: FormData
+) {
+  await requireTeacher();
+  const file = formData.get("html_file") as File | null;
+  if (!file || file.size === 0) throw new Error("No file provided");
+  if (!file.name.toLowerCase().endsWith(".html")) {
+    throw new Error("File must be an .html file");
+  }
+
+  const admin = createAdminClient();
+  const path = `assignments/${assignmentId}.html`;
+
+  const { error: uploadError } = await admin.storage
+    .from("lessons")
+    .upload(path, file, {
+      cacheControl: "60",
+      upsert: true,
+      contentType: "text/html",
+    });
+  if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+
+  const { data: urlData } = admin.storage.from("lessons").getPublicUrl(path);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("assignments")
+    .update({ interactive_html_url: urlData.publicUrl })
+    .eq("id", assignmentId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/teacher/assignments/${assignmentId}`);
 }
 
 // =============================================================
@@ -102,16 +154,19 @@ export async function saveGrade(submissionId: string, formData: FormData) {
 
   const supabase = await createClient();
 
-  // Upsert the grade
   const { error: gradeError } = await supabase
     .from("grades")
     .upsert(
-      { submission_id: submissionId, score, feedback, graded_at: new Date().toISOString() },
+      {
+        submission_id: submissionId,
+        score,
+        feedback,
+        graded_at: new Date().toISOString(),
+      },
       { onConflict: "submission_id" }
     );
   if (gradeError) throw new Error(gradeError.message);
 
-  // Flip submission status to graded
   const { data: sub, error: subError } = await supabase
     .from("submissions")
     .update({ status: "graded" })

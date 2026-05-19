@@ -3,10 +3,22 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireStudent } from "@/lib/auth";
+import type { Database, Json } from "@/types/database";
+
+type SubmissionUpdate = Database["public"]["Tables"]["submissions"]["Update"];
+
+/**
+ * Payload for save/submit — supports both code (content) and
+ * interactive HTML / structured types (structured_data).
+ */
+export type DraftPayload = {
+  content?: string;
+  structured_data?: Json | null;
+};
 
 /**
  * Ensure a submission row exists for this student + assignment.
- * Returns the submission id and current status.
+ * Returns the submission id, status, content, and structured_data.
  */
 export async function ensureSubmission(assignmentId: string) {
   const user = await requireStudent();
@@ -14,7 +26,7 @@ export async function ensureSubmission(assignmentId: string) {
 
   const { data: existing } = await supabase
     .from("submissions")
-    .select("id, status, content")
+    .select("id, status, content, structured_data")
     .eq("assignment_id", assignmentId)
     .eq("user_id", user.id)
     .maybeSingle();
@@ -24,7 +36,7 @@ export async function ensureSubmission(assignmentId: string) {
   const { data: created, error } = await supabase
     .from("submissions")
     .insert({ assignment_id: assignmentId, user_id: user.id, status: "draft" })
-    .select("id, status, content")
+    .select("id, status, content, structured_data")
     .single();
 
   if (error || !created) {
@@ -33,14 +45,22 @@ export async function ensureSubmission(assignmentId: string) {
   return created;
 }
 
+function buildUpdate(payload: DraftPayload): SubmissionUpdate {
+  const update: SubmissionUpdate = {};
+  if (payload.content !== undefined) update.content = payload.content;
+  if (payload.structured_data !== undefined) {
+    update.structured_data = payload.structured_data;
+  }
+  return update;
+}
+
 /**
  * Save draft content. Allowed unless submission is graded.
  */
-export async function saveDraft(submissionId: string, content: string) {
+export async function saveDraft(submissionId: string, payload: DraftPayload) {
   const user = await requireStudent();
   const supabase = await createClient();
 
-  // Verify ownership and not-graded
   const { data: sub } = await supabase
     .from("submissions")
     .select("id, user_id, status")
@@ -54,9 +74,12 @@ export async function saveDraft(submissionId: string, content: string) {
     return { ok: false, error: "Submission already graded — can't edit." };
   }
 
+  const update = buildUpdate(payload);
+  if (Object.keys(update).length === 0) return { ok: true };
+
   const { error } = await supabase
     .from("submissions")
-    .update({ content })
+    .update(update)
     .eq("id", submissionId);
 
   if (error) return { ok: false, error: error.message };
@@ -66,7 +89,10 @@ export async function saveDraft(submissionId: string, content: string) {
 /**
  * Submit (or re-submit). Sets status='submitted', stamps submitted_at on first submit.
  */
-export async function submitAssignment(submissionId: string, content: string) {
+export async function submitAssignment(
+  submissionId: string,
+  payload: DraftPayload
+) {
   const user = await requireStudent();
   const supabase = await createClient();
 
@@ -83,15 +109,10 @@ export async function submitAssignment(submissionId: string, content: string) {
     return { ok: false, error: "Submission already graded — can't edit." };
   }
 
-  const update: {
-    content: string;
-    status: "submitted";
-    submitted_at?: string;
-  } = {
-    content,
+  const update: SubmissionUpdate = {
+    ...buildUpdate(payload),
     status: "submitted",
   };
-  // Stamp submitted_at only on first submit; resubmits keep the original
   if (!sub.submitted_at) {
     update.submitted_at = new Date().toISOString();
   }
@@ -119,7 +140,6 @@ export async function logPasteEvent(
   const user = await requireStudent();
   const supabase = await createClient();
 
-  // Verify ownership (cheap)
   const { data: sub } = await supabase
     .from("submissions")
     .select("user_id")

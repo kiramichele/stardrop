@@ -1,16 +1,23 @@
 import { createClient } from "@/lib/supabase/server";
 
-export type AssignmentType = "code" | "written" | "discussion" | "upload";
+export type AssignmentType =
+  | "code"
+  | "interactive_html"
+  | "short_answer"
+  | "discussion"
+  | "unity_upload"
+  | "check_in";
 
 export const ASSIGNMENT_TYPE_LABELS: Record<AssignmentType, string> = {
   code: "Code (Unity C#)",
-  written: "Written response",
+  interactive_html: "Interactive HTML / Quiz",
+  short_answer: "Short answer",
   discussion: "Discussion post",
-  upload: "File upload",
+  unity_upload: "Unity project upload",
+  check_in: "Check-in",
 };
 
-// Types currently fully implemented end-to-end
-export const SUPPORTED_TYPES: AssignmentType[] = ["code"];
+export const SUPPORTED_TYPES: AssignmentType[] = ["code", "interactive_html"];
 
 export type Assignment = {
   id: string;
@@ -73,6 +80,77 @@ export function computeLateness(
   return { isLate: true, daysLate };
 }
 
+export function isAssignmentReady(a: {
+  type: string;
+  interactive_html_url?: string | null;
+}) {
+  if (a.type === "interactive_html" && !a.interactive_html_url) return false;
+  return true;
+}
+
+// =============================================================
+// Auto-grade computation for interactive HTML assignments
+// =============================================================
+export type AutoGrade = {
+  autoPoints: number;       // points earned from auto-graded questions
+  maxAutoPoints: number;    // max possible from auto-graded questions
+  autoCorrect: number;      // count of auto-graded questions answered correctly
+  autoTotal: number;        // count of auto-graded questions
+  totalQuestions: number;   // count of ALL questions (auto-graded + manual)
+  pointsPerQuestion: number;
+  hasManualQuestions: boolean;
+};
+
+/**
+ * Given the structured_data from an interactive HTML submission and the
+ * assignment's total points, compute the auto-graded portion.
+ *
+ * Returns null if the data doesn't contain a usable score.
+ */
+export function computeAutoGrade(
+  structuredData: unknown,
+  assignmentPoints: number
+): AutoGrade | null {
+  if (!structuredData || typeof structuredData !== "object") return null;
+  const data = structuredData as {
+    score?: { earned?: unknown; max?: unknown };
+    responses?: unknown[];
+  };
+
+  if (
+    !data.score ||
+    typeof data.score.earned !== "number" ||
+    typeof data.score.max !== "number" ||
+    data.score.max <= 0
+  ) {
+    return null;
+  }
+
+  const earned = data.score.earned;
+  const autoTotal = data.score.max;
+
+  // Total questions = full responses array length if available, else
+  // assume score.max covers everything.
+  const totalQuestions = Array.isArray(data.responses)
+    ? data.responses.length
+    : autoTotal;
+  if (totalQuestions <= 0) return null;
+
+  const pointsPerQuestion = assignmentPoints / totalQuestions;
+  // Round to 2 decimals to avoid floating-point ugliness
+  const round = (n: number) => Math.round(n * 100) / 100;
+
+  return {
+    autoPoints: round(pointsPerQuestion * earned),
+    maxAutoPoints: round(pointsPerQuestion * autoTotal),
+    autoCorrect: earned,
+    autoTotal,
+    totalQuestions,
+    pointsPerQuestion: round(pointsPerQuestion),
+    hasManualQuestions: totalQuestions > autoTotal,
+  };
+}
+
 // =============================================================
 // Teacher queries
 // =============================================================
@@ -82,7 +160,7 @@ export async function getAssignmentsForTeacher(classId?: string) {
   let query = supabase
     .from("assignments")
     .select(
-      "id, class_id, title, type, due_date, points, published, created_at, submissions(count), classes(name, period_number)"
+      "id, class_id, title, type, due_date, points, published, interactive_html_url, created_at, submissions(count), classes(name, period_number)"
     )
     .order("created_at", { ascending: false });
   if (classId) query = query.eq("class_id", classId);
@@ -117,7 +195,7 @@ export async function getSubmissionForGrading(submissionId: string) {
   const { data } = await supabase
     .from("submissions")
     .select(
-      "*, users(first_name, last_name, username), assignments(title, type, instructions, points, due_date, class_id), grades(score, feedback, graded_at)"
+      "*, users(first_name, last_name, username), assignments(title, type, instructions, points, due_date, class_id, interactive_html_url), grades(score, feedback, graded_at)"
     )
     .eq("id", submissionId)
     .single();
@@ -144,12 +222,14 @@ export async function getAssignmentsForStudent(userId: string) {
   const { data: assignments } = await supabase
     .from("assignments")
     .select(
-      "id, class_id, title, type, due_date, points, published, classes(name, period_number)"
+      "id, class_id, title, type, due_date, points, published, interactive_html_url, classes(name, period_number)"
     )
     .eq("published", true)
     .order("due_date", { ascending: true, nullsFirst: false });
 
   if (!assignments || assignments.length === 0) return [];
+
+  const readyAssignments = assignments.filter(isAssignmentReady);
 
   const { data: submissions } = await supabase
     .from("submissions")
@@ -157,14 +237,14 @@ export async function getAssignmentsForStudent(userId: string) {
     .eq("user_id", userId)
     .in(
       "assignment_id",
-      assignments.map((a) => a.id)
+      readyAssignments.map((a) => a.id)
     );
 
   const submissionMap = new Map(
     (submissions ?? []).map((s) => [s.assignment_id, s])
   );
 
-  return assignments.map((a) => ({
+  return readyAssignments.map((a) => ({
     ...a,
     submission: submissionMap.get(a.id) ?? null,
   }));
@@ -183,6 +263,7 @@ export async function getAssignmentForStudent(
     .eq("published", true)
     .maybeSingle();
   if (!assignment) return null;
+  if (!isAssignmentReady(assignment)) return null;
 
   const { data: submission } = await supabase
     .from("submissions")

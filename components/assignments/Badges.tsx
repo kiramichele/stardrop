@@ -4,11 +4,13 @@ import {
   MessagesSquare,
   Upload,
   CheckCircle2,
+  Smile,
   Eye,
   EyeOff,
   Clock,
   AlertCircle,
   Award,
+  Sparkles,
 } from "lucide-react";
 import type { AssignmentType } from "@/lib/assignments";
 
@@ -21,9 +23,14 @@ const typeMeta: Record<
     label: "Code",
     tint: "bg-terracotta-100 text-terracotta-800",
   },
-  written: {
+  interactive_html: {
+    icon: Sparkles,
+    label: "Interactive",
+    tint: "bg-honey-100 text-honey-800",
+  },
+  short_answer: {
     icon: FileText,
-    label: "Written",
+    label: "Short answer",
     tint: "bg-sage-100 text-sage-800",
   },
   discussion: {
@@ -31,10 +38,15 @@ const typeMeta: Record<
     label: "Discussion",
     tint: "bg-wood-100 text-wood-800",
   },
-  upload: {
+  unity_upload: {
     icon: Upload,
     label: "Upload",
     tint: "bg-cream-300 text-wood-800",
+  },
+  check_in: {
+    icon: Smile,
+    label: "Check-in",
+    tint: "bg-sage-100 text-sage-800",
   },
 };
 
