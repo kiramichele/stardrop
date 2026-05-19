@@ -2,7 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Award, Eye, MessagesSquare } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
-import { computeLateness, type AssignmentType } from "@/lib/assignments";
+import {
+  computeLateness,
+  parseSubmissionMedia,
+  type AssignmentType,
+} from "@/lib/assignments";
 import {
   getAssignmentForStudent,
   getOtherDiscussionPosts,
@@ -14,6 +18,7 @@ import { CodeAssignmentEditor } from "@/components/assignments/CodeAssignmentEdi
 import { InteractiveHtmlAssignment } from "@/components/assignments/InteractiveHtmlAssignment";
 import { TextAssignmentEditor } from "@/components/assignments/TextAssignmentEditor";
 import { DiscussionFeed } from "@/components/assignments/DiscussionFeed";
+import { UnityUploadAssignment } from "@/components/assignments/UnityUploadAssignment";
 
 export default async function StudentAssignmentPage({
   params,
@@ -193,9 +198,22 @@ export default async function StudentAssignmentPage({
             </>
           )}
 
-          {!["code", "interactive_html", "short_answer", "discussion"].includes(
-            assignment.type
-          ) && (
+          {assignment.type === "unity_upload" && (
+            <UnityUploadAssignment
+              assignmentId={assignment.id}
+              initialMedia={parseSubmissionMedia(submission?.uploaded_files)}
+              initialStatus={submission?.status ?? "draft"}
+              initialSubmissionId={submission?.id ?? null}
+            />
+          )}
+
+          {![
+            "code",
+            "interactive_html",
+            "short_answer",
+            "discussion",
+            "unity_upload",
+          ].includes(assignment.type) && (
             <Card>
               <p className="text-sm text-wood-600 text-center py-6">
                 This assignment type is still being built. Check back soon!

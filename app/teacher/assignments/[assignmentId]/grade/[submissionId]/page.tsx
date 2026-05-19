@@ -5,6 +5,7 @@ import {
   computeLateness,
   computeAutoGrade,
   countWords,
+  parseSubmissionMedia,
   type AssignmentType,
 } from "@/lib/assignments";
 import {
@@ -146,6 +147,63 @@ export default async function GradeSubmissionPage({
               ) : (
                 <InteractiveResponseView structuredData={structuredData} />
               )}
+            </div>
+          )}
+
+          {assignmentType === "unity_upload" && (
+            <div>
+              <p className="label-eyebrow mb-3">Uploaded files</p>
+              {(() => {
+                const files = parseSubmissionMedia(submission.uploaded_files);
+                if (files.length === 0) {
+                  return (
+                    <Card>
+                      <p className="text-sm text-wood-500 italic text-center py-4">
+                        No files submitted yet.
+                      </p>
+                    </Card>
+                  );
+                }
+                return (
+                  <div className="space-y-3">
+                    {files.map((m) => {
+                      const url = `/api/files/submissions/${m.storagePath}`;
+                      return (
+                        <Card key={m.id} padded={false} className="overflow-hidden">
+                          {m.kind === "image" ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={url}
+                              alt=""
+                              className="w-full max-h-[600px] object-contain bg-cream-50"
+                            />
+                          ) : (
+                            <video
+                              src={url}
+                              controls
+                              className="w-full max-h-[600px] bg-black"
+                            />
+                          )}
+                          <div className="px-4 py-2 flex items-center justify-between text-xs text-wood-500">
+                            <span className="capitalize">
+                              {m.kind} · {(m.size / 1024 / 1024).toFixed(2)} MB
+                            </span>
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-terracotta-700 hover:text-terracotta-800"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                              Open in new tab
+                            </a>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           )}
 

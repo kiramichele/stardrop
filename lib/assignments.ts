@@ -26,6 +26,7 @@ export const SUPPORTED_TYPES: AssignmentType[] = [
   "interactive_html",
   "short_answer",
   "discussion",
+  "unity_upload",
 ];
 
 export type Assignment = {
@@ -74,6 +75,31 @@ export type Grade = {
   rubric_scores: unknown;
   graded_at: string;
 };
+
+/**
+ * One file uploaded as part of a unity_upload submission. The full list
+ * lives on `submissions.uploaded_files` (JSONB).
+ */
+export type SubmissionMedia = {
+  id: string;
+  kind: "image" | "video";
+  storagePath: string;
+  mime: string;
+  size: number;
+  createdAt: string;
+};
+
+/** Safely narrows the JSONB uploaded_files column to a typed array. */
+export function parseSubmissionMedia(value: unknown): SubmissionMedia[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (item): item is SubmissionMedia =>
+      typeof item === "object" &&
+      item !== null &&
+      typeof (item as SubmissionMedia).id === "string" &&
+      typeof (item as SubmissionMedia).storagePath === "string"
+  );
+}
 
 // =============================================================
 // Helpers
