@@ -19,7 +19,7 @@ const SELECTS = {
   submissionsList:
     "id, user_id, status, submitted_at, updated_at, users(first_name, last_name, username), grades(score, graded_at)",
   submissionForGrading:
-    "*, users(first_name, last_name, username), assignments(title, type, instructions, points, due_date, class_id, interactive_html_url, minimum_word_count), grades(score, feedback, graded_at)",
+    "*, users(first_name, last_name, username), assignments(title, type, instructions, points, due_date, class_id, interactive_html_url, minimum_word_count, rubric_id), grades(score, feedback, graded_at, rubric_scores)",
   studentAssignmentsList:
     "id, class_id, title, type, due_date, points, published, interactive_html_url, classes(name, period_number)",
   studentSubmissionsOverlay:

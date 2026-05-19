@@ -12,6 +12,8 @@ import {
   getSubmissionForGrading,
   getSubmissionEvents,
 } from "@/lib/assignments-server";
+import { getRubric } from "@/lib/rubrics-server";
+import { parseRubricScores } from "@/lib/rubrics";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { SubmissionStatusBadge } from "@/components/assignments/Badges";
@@ -54,6 +56,11 @@ export default async function GradeSubmissionPage({
     assignmentType === "interactive_html"
       ? computeAutoGrade(structuredData, assignment?.points ?? 100)
       : null;
+
+  const rubric = assignment?.rubric_id
+    ? await getRubric(assignment.rubric_id)
+    : null;
+  const initialRubricScores = parseRubricScores(grade?.rubric_scores);
 
   const isTextual =
     assignmentType === "short_answer" || assignmentType === "discussion";
@@ -260,6 +267,8 @@ export default async function GradeSubmissionPage({
               initialFeedback={grade?.feedback ?? null}
               alreadyGraded={!!grade}
               autoGrade={autoGrade}
+              rubric={rubric}
+              initialRubricScores={initialRubricScores}
             />
           </Card>
 

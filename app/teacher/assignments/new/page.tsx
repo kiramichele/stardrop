@@ -7,6 +7,8 @@ import {
   SUPPORTED_TYPES,
   type AssignmentType,
 } from "@/lib/assignments";
+import { getRubricsForTeacher } from "@/lib/rubrics-server";
+import { rubricMaxPoints } from "@/lib/rubrics";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -29,6 +31,7 @@ export default async function NewAssignmentPage() {
   if (!classes || classes.length === 0) redirect("/teacher/classes");
 
   const allTypes = Object.keys(ASSIGNMENT_TYPE_LABELS) as AssignmentType[];
+  const rubrics = await getRubricsForTeacher();
 
   return (
     <>
@@ -138,6 +141,32 @@ export default async function NewAssignmentPage() {
             <FieldHint>
               Only applies to Short answer and Discussion. Submit is disabled
               until the student hits the threshold. Leave blank for no minimum.
+            </FieldHint>
+          </div>
+
+          <div>
+            <Label htmlFor="rubric_id">
+              Rubric{" "}
+              <span className="text-wood-500 font-normal">(optional)</span>
+            </Label>
+            <Select id="rubric_id" name="rubric_id" defaultValue="">
+              <option value="">No rubric (single score)</option>
+              {rubrics.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name} — {rubricMaxPoints(r.criteria)} pts
+                </option>
+              ))}
+            </Select>
+            <FieldHint>
+              When a rubric is attached, grading shows a score input per
+              criterion and auto-sums the total.{" "}
+              <Link
+                href="/teacher/rubrics"
+                className="text-terracotta-700 hover:text-terracotta-800 underline"
+                target="_blank"
+              >
+                Manage rubrics
+              </Link>
             </FieldHint>
           </div>
 

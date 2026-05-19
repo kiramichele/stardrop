@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireTeacher } from "@/lib/auth";
 import type { AssignmentType } from "@/lib/assignments";
+import type { Json } from "@/types/database";
 
 const VALID_TYPES: AssignmentType[] = [
   "code",
@@ -34,6 +35,8 @@ export async function createAssignment(formData: FormData) {
   const pointsRaw = formData.get("points")?.toString();
   const lessonId = formData.get("lesson_id")?.toString() || null;
   const minWordsRaw = formData.get("minimum_word_count")?.toString();
+  const rubricIdRaw = formData.get("rubric_id")?.toString();
+  const rubricId = rubricIdRaw && rubricIdRaw !== "" ? rubricIdRaw : null;
 
   if (!classId) throw new Error("Class required");
   if (!title) throw new Error("Title required");
@@ -55,6 +58,7 @@ export async function createAssignment(formData: FormData) {
       due_date: dueDate,
       points,
       minimum_word_count: minimumWordCount,
+      rubric_id: rubricId,
     })
     .select("id")
     .single();
@@ -76,6 +80,8 @@ export async function updateAssignment(
   const pointsRaw = formData.get("points")?.toString();
   const published = formData.get("published") === "on";
   const minWordsRaw = formData.get("minimum_word_count")?.toString();
+  const rubricIdRaw = formData.get("rubric_id")?.toString();
+  const rubricId = rubricIdRaw && rubricIdRaw !== "" ? rubricIdRaw : null;
 
   if (!title) throw new Error("Title required");
   const points = pointsRaw ? Number.parseInt(pointsRaw, 10) : 100;
@@ -92,6 +98,7 @@ export async function updateAssignment(
       points,
       published,
       minimum_word_count: minimumWordCount,
+      rubric_id: rubricId,
     })
     .eq("id", assignmentId);
   if (error) throw new Error(error.message);
@@ -168,10 +175,29 @@ export async function saveGrade(submissionId: string, formData: FormData) {
 
   const scoreRaw = formData.get("score")?.toString();
   const feedback = formData.get("feedback")?.toString().trim() || null;
+  const rubricScoresRaw = formData.get("rubric_scores_json")?.toString();
 
   if (!scoreRaw) throw new Error("Score required");
   const score = Number.parseFloat(scoreRaw);
   if (Number.isNaN(score)) throw new Error("Score must be a number");
+
+  // When the assignment has an attached rubric, the GradingForm posts a JSON
+  // map of criterion_id -> earned_points alongside the auto-summed score.
+  let rubricScores: Record<string, number> | null = null;
+  if (rubricScoresRaw) {
+    try {
+      const parsed = JSON.parse(rubricScoresRaw);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const clean: Record<string, number> = {};
+        for (const [k, v] of Object.entries(parsed)) {
+          if (typeof v === "number" && Number.isFinite(v)) clean[k] = v;
+        }
+        rubricScores = clean;
+      }
+    } catch {
+      // ignore malformed payload — fall back to score-only grade
+    }
+  }
 
   const supabase = await createClient();
 
@@ -183,6 +209,7 @@ export async function saveGrade(submissionId: string, formData: FormData) {
         score,
         feedback,
         graded_at: new Date().toISOString(),
+        rubric_scores: rubricScores as unknown as Json,
       },
       { onConflict: "submission_id" }
     );

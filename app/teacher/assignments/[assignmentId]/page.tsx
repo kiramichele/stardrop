@@ -17,11 +17,13 @@ import {
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Input, Label, Textarea, FieldHint } from "@/components/ui/Input";
+import { Input, Label, Textarea, Select, FieldHint } from "@/components/ui/Input";
 import {
   AssignmentTypeBadge,
   SubmissionStatusBadge,
 } from "@/components/assignments/Badges";
+import { getRubricsForTeacher } from "@/lib/rubrics-server";
+import { rubricMaxPoints } from "@/lib/rubrics";
 import {
   updateAssignment,
   deleteAssignment,
@@ -38,6 +40,7 @@ export default async function AssignmentDetailPage({
   if (!assignment) notFound();
 
   const submissions = await getSubmissionsForAssignment(assignmentId);
+  const rubrics = await getRubricsForTeacher();
   const klass = Array.isArray(assignment.classes)
     ? assignment.classes[0]
     : assignment.classes;
@@ -324,6 +327,34 @@ export default async function AssignmentDetailPage({
                   <FieldHint>Leave blank for no minimum.</FieldHint>
                 </div>
               )}
+              <div>
+                <Label htmlFor="rubric_id">
+                  Rubric{" "}
+                  <span className="text-wood-500 font-normal">(optional)</span>
+                </Label>
+                <Select
+                  id="rubric_id"
+                  name="rubric_id"
+                  defaultValue={assignment.rubric_id ?? ""}
+                >
+                  <option value="">No rubric (single score)</option>
+                  {rubrics.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} — {rubricMaxPoints(r.criteria)} pts
+                    </option>
+                  ))}
+                </Select>
+                <FieldHint>
+                  Per-criterion scoring during grading.{" "}
+                  <Link
+                    href="/teacher/rubrics"
+                    className="text-terracotta-700 hover:text-terracotta-800 underline"
+                    target="_blank"
+                  >
+                    Manage rubrics
+                  </Link>
+                </FieldHint>
+              </div>
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
