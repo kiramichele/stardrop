@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, FileCode2 } from "lucide-react";
 import { requireTeacher } from "@/lib/auth";
 import { getLesson } from "@/lib/lessons";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -20,17 +21,33 @@ export default async function TeacherLessonPage({
   const lesson = await getLesson(lessonId);
   if (!lesson) notFound();
 
+  const PROXY_PREFIX = "/api/files/lessons/";
   let htmlContent: string | null = null;
   let fetchStatus: number | null = null;
   let fetchError: string | null = null;
   if (lesson.html_url) {
-    try {
-      const res = await fetch(lesson.html_url, { cache: "no-store" });
-      fetchStatus = res.status;
-      if (res.ok) htmlContent = await res.text();
-      else fetchError = `HTTP ${res.status}`;
-    } catch (e) {
-      fetchError = e instanceof Error ? e.message : String(e);
+    if (lesson.html_url.startsWith(PROXY_PREFIX)) {
+      // Proxy URL — read directly from storage (avoids self-round-trip
+      // through our own API route, which server-side fetch can't reach
+      // anyway because the URL is relative)
+      const storagePath = lesson.html_url.slice(PROXY_PREFIX.length);
+      const { data, error } = await createAdminClient()
+        .storage.from("lessons")
+        .download(storagePath);
+      if (error) fetchError = error.message;
+      else if (data) {
+        htmlContent = await data.text();
+        fetchStatus = 200;
+      }
+    } else {
+      try {
+        const res = await fetch(lesson.html_url, { cache: "no-store" });
+        fetchStatus = res.status;
+        if (res.ok) htmlContent = await res.text();
+        else fetchError = `HTTP ${res.status}`;
+      } catch (e) {
+        fetchError = e instanceof Error ? e.message : String(e);
+      }
     }
   }
 

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { getLessonForStudent } from "@/lib/lessons";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { LessonViewer } from "@/components/lessons/LessonViewer";
 import { markLessonComplete } from "@/app/teacher/lessons/actions";
@@ -20,12 +21,21 @@ export default async function StudentLessonPage({
   const { lesson, unit, completed, locked } = result;
   const markComplete = markLessonComplete.bind(null, lessonId);
 
+  const PROXY_PREFIX = "/api/files/lessons/";
   let htmlContent: string | null = null;
   if (!locked && lesson.html_url) {
-    try {
-      const res = await fetch(lesson.html_url, { cache: "no-store" });
-      if (res.ok) htmlContent = await res.text();
-    } catch {}
+    if (lesson.html_url.startsWith(PROXY_PREFIX)) {
+      const storagePath = lesson.html_url.slice(PROXY_PREFIX.length);
+      const { data } = await createAdminClient()
+        .storage.from("lessons")
+        .download(storagePath);
+      if (data) htmlContent = await data.text();
+    } else {
+      try {
+        const res = await fetch(lesson.html_url, { cache: "no-store" });
+        if (res.ok) htmlContent = await res.text();
+      } catch {}
+    }
   }
 
   return (
