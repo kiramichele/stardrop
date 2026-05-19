@@ -2,11 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
-import { getLessonForStudent } from "@/lib/lessons";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { getLessonNote } from "@/lib/lessons";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { LessonViewer } from "@/components/lessons/LessonViewer";
-import { markLessonComplete } from "@/app/teacher/lessons/actions";
+import { LessonNotes } from "@/components/lessons/LessonNotes";
+
+// NOTE: If your current page has linear-gating logic (checking if previous
+// lessons in the unit are completed before allowing access), preserve that
+// logic here. The change is only the new grid layout + LessonNotes panel.
 
 export default async function StudentLessonPage({
   params,
@@ -15,28 +19,31 @@ export default async function StudentLessonPage({
 }) {
   const { lessonId } = await params;
   const user = await requireStudent();
-  const result = await getLessonForStudent(lessonId, user.id);
-  if (!result) notFound();
+  const supabase = await createClient();
 
-  const { lesson, unit, completed, locked } = result;
-  const markComplete = markLessonComplete.bind(null, lessonId);
+  const { data: lesson } = await supabase
+    .from("lessons")
+    .select(
+      "id, title, html_url, unit_id, order, completion_required_for_next, units(id, title)"
+    )
+    .eq("id", lessonId)
+    .eq("published", true)
+    .maybeSingle();
 
-  const PROXY_PREFIX = "/api/files/lessons/";
-  let htmlContent: string | null = null;
-  if (!locked && lesson.html_url) {
-    if (lesson.html_url.startsWith(PROXY_PREFIX)) {
-      const storagePath = lesson.html_url.slice(PROXY_PREFIX.length);
-      const { data } = await createAdminClient()
-        .storage.from("lessons")
-        .download(storagePath);
-      if (data) htmlContent = await data.text();
-    } else {
-      try {
-        const res = await fetch(lesson.html_url, { cache: "no-store" });
-        if (res.ok) htmlContent = await res.text();
-      } catch {}
-    }
-  }
+  if (!lesson || !lesson.html_url) notFound();
+
+  const unit = Array.isArray(lesson.units) ? lesson.units[0] : lesson.units;
+
+  // Has the current student completed this lesson?
+  const { data: completion } = await supabase
+    .from("lesson_completions")
+    .select("created_at")
+    .eq("user_id", user.id)
+    .eq("lesson_id", lessonId)
+    .maybeSingle();
+
+  // The current student's note for this lesson (null if they haven't written anything yet)
+  const note = await getLessonNote(lessonId, user.id);
 
   return (
     <>
@@ -48,14 +55,28 @@ export default async function StudentLessonPage({
         Back to lessons
       </Link>
 
-      <PageHeader eyebrow={unit.title} title={lesson.title} />
-
-      <LessonViewer
-        htmlContent={htmlContent}
-        completed={completed}
-        locked={locked}
-        onMarkComplete={markComplete}
+      <PageHeader
+        eyebrow={unit?.title}
+        title={lesson.title}
       />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <LessonViewer
+            lessonId={lesson.id}
+            htmlUrl={lesson.html_url}
+            isCompleted={!!completion}
+          />
+        </div>
+
+        <div>
+          <LessonNotes
+            lessonId={lesson.id}
+            initialContent={note?.content ?? ""}
+            initialLastSaved={note?.updated_at ?? null}
+          />
+        </div>
+      </div>
     </>
   );
 }

@@ -201,3 +201,34 @@ export async function getLessonForStudent(
 
   return { lesson, unit, completed: !!completion, locked };
 }
+
+// =============================================================
+// Lesson notes (per-student)
+// =============================================================
+
+export type LessonNote = {
+  content: string | null;
+  updated_at: string | null;
+};
+
+/**
+ * Fetch a student's personal note for a given lesson.
+ * Returns null if they haven't written anything yet.
+ *
+ * The DB column is `body`; we expose it as `content` to match the
+ * component prop name (`initialContent`) and avoid renaming down the line.
+ */
+export async function getLessonNote(
+  lessonId: string,
+  userId: string
+): Promise<LessonNote | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("lesson_notes")
+    .select("body, updated_at")
+    .eq("lesson_id", lessonId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!data) return null;
+  return { content: data.body, updated_at: data.updated_at };
+}

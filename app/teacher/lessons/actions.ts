@@ -202,3 +202,37 @@ export async function markLessonComplete(lessonId: string) {
   revalidatePath("/student/lessons");
   revalidatePath(`/student/lessons/${lessonId}`);
 }
+
+// =============================================================
+// Student: lesson notes
+// (Lives in /teacher/ alongside markLessonComplete for the same
+// reason — student actions related to the lessons feature. Future
+// cleanup: split into a real app/student/lessons/actions.ts.)
+// =============================================================
+
+/**
+ * Save (or update) the current student's note for a lesson.
+ * Upserts on the (user_id, lesson_id) unique constraint.
+ *
+ * DB column is `body`; the parameter is named `content` to match
+ * the UI-facing terminology.
+ */
+export async function saveLessonNote(lessonId: string, content: string) {
+  const user = await requireStudent();
+  const supabase = await createClient();
+
+  const { error } = await supabase.from("lesson_notes").upsert(
+    {
+      user_id: user.id,
+      lesson_id: lessonId,
+      body: content,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,lesson_id" }
+  );
+
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/student/lessons/${lessonId}`);
+  return { ok: true };
+}
