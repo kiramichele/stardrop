@@ -231,7 +231,7 @@ export function InteractiveHtmlAssignment({
         <iframe
           ref={iframeRef}
           src={htmlUrl}
-          sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+          sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-same-origin"
           className="w-full block border-0 bg-white"
           style={{ height: "70vh" }}
           title="Interactive activity"
