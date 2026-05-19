@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Award } from "lucide-react";
+import { ArrowLeft, Award, Eye, MessagesSquare } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import {
   getAssignmentForStudent,
+  getOtherDiscussionPosts,
   computeLateness,
   type AssignmentType,
 } from "@/lib/assignments";
@@ -12,6 +13,8 @@ import { Card } from "@/components/ui/Card";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 import { CodeAssignmentEditor } from "@/components/assignments/CodeAssignmentEditor";
 import { InteractiveHtmlAssignment } from "@/components/assignments/InteractiveHtmlAssignment";
+import { TextAssignmentEditor } from "@/components/assignments/TextAssignmentEditor";
+import { DiscussionFeed } from "@/components/assignments/DiscussionFeed";
 
 export default async function StudentAssignmentPage({
   params,
@@ -42,6 +45,15 @@ export default async function StudentAssignmentPage({
         minute: "2-digit",
       })
     : null;
+
+  // For discussions: only fetch others' posts once the current student has submitted
+  const hasSubmittedDiscussion =
+    assignment.type === "discussion" &&
+    (submission?.status === "submitted" || submission?.status === "graded");
+
+  const otherPosts = hasSubmittedDiscussion
+    ? await getOtherDiscussionPosts(assignment.id, user.id)
+    : [];
 
   return (
     <>
@@ -96,7 +108,7 @@ export default async function StudentAssignmentPage({
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-6">
           {assignment.type === "code" && (
             <CodeAssignmentEditor
               assignmentId={assignment.id}
@@ -106,17 +118,85 @@ export default async function StudentAssignmentPage({
             />
           )}
 
-          {assignment.type === "interactive_html" && assignment.interactive_html_url && (
-            <InteractiveHtmlAssignment
+          {assignment.type === "interactive_html" &&
+            assignment.interactive_html_url && (
+              <InteractiveHtmlAssignment
+                assignmentId={assignment.id}
+                htmlUrl={assignment.interactive_html_url}
+                initialData={submission?.structured_data ?? null}
+                initialStatus={submission?.status ?? "draft"}
+                initialSubmissionId={submission?.id ?? null}
+              />
+            )}
+
+          {assignment.type === "short_answer" && (
+            <TextAssignmentEditor
               assignmentId={assignment.id}
-              htmlUrl={assignment.interactive_html_url}
-              initialData={submission?.structured_data ?? null}
+              initialContent={submission?.content ?? ""}
               initialStatus={submission?.status ?? "draft"}
               initialSubmissionId={submission?.id ?? null}
+              minimumWordCount={assignment.minimum_word_count}
+              placeholder="Type your answer here…"
             />
           )}
 
-          {!["code", "interactive_html"].includes(assignment.type) && (
+          {assignment.type === "discussion" && (
+            <>
+              <TextAssignmentEditor
+                assignmentId={assignment.id}
+                initialContent={submission?.content ?? ""}
+                initialStatus={submission?.status ?? "draft"}
+                initialSubmissionId={submission?.id ?? null}
+                minimumWordCount={assignment.minimum_word_count}
+                placeholder="Share your thoughts with the class…"
+                visibilityWarning="Your post will be visible to classmates in this section once you submit it."
+              />
+
+              <div className="pt-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <MessagesSquare
+                    className="w-4 h-4 text-wood-600"
+                    strokeWidth={1.75}
+                  />
+                  <h2 className="font-display text-xl text-wood-800">
+                    Classmates&apos; posts
+                  </h2>
+                  {hasSubmittedDiscussion && (
+                    <span className="label-eyebrow text-wood-500">
+                      ({otherPosts.length})
+                    </span>
+                  )}
+                </div>
+
+                {!hasSubmittedDiscussion ? (
+                  <Card className="bg-cream-100 border-wood-200">
+                    <div className="flex items-start gap-3">
+                      <Eye
+                        className="w-5 h-5 text-wood-500 flex-shrink-0 mt-0.5"
+                        strokeWidth={1.5}
+                      />
+                      <div>
+                        <p className="text-sm text-wood-700 font-medium">
+                          Submit your post first to see classmates&apos;
+                          responses
+                        </p>
+                        <p className="text-xs text-wood-500 mt-1">
+                          This keeps everyone&apos;s thinking original — no
+                          peeking until you&apos;ve shared yours.
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                ) : (
+                  <DiscussionFeed posts={otherPosts} />
+                )}
+              </div>
+            </>
+          )}
+
+          {!["code", "interactive_html", "short_answer", "discussion"].includes(
+            assignment.type
+          ) && (
             <Card>
               <p className="text-sm text-wood-600 text-center py-6">
                 This assignment type is still being built. Check back soon!
@@ -132,6 +212,13 @@ export default async function StudentAssignmentPage({
               <p className="text-sm text-wood-700 whitespace-pre-wrap">
                 {assignment.instructions}
               </p>
+              {assignment.minimum_word_count &&
+                (assignment.type === "short_answer" ||
+                  assignment.type === "discussion") && (
+                  <p className="text-xs text-honey-700 mt-3 pt-3 border-t border-wood-100">
+                    Minimum {assignment.minimum_word_count} words.
+                  </p>
+                )}
             </Card>
           ) : (
             <Card>

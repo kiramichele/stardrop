@@ -26,7 +26,6 @@ export default async function NewAssignmentPage() {
     .select("id, name, period_number")
     .order("period_number", { ascending: true, nullsFirst: false });
 
-  // If there are no classes, the assignment form has no target — redirect to classes
   if (!classes || classes.length === 0) redirect("/teacher/classes");
 
   const allTypes = Object.keys(ASSIGNMENT_TYPE_LABELS) as AssignmentType[];
@@ -78,8 +77,8 @@ export default async function NewAssignmentPage() {
               })}
             </Select>
             <FieldHint>
-              Only Code is available for now. Other types arrive in upcoming
-              sessions.
+              Code, Interactive HTML, Short answer, and Discussion are
+              available. Unity upload and Check-in are coming.
             </FieldHint>
           </div>
 
@@ -90,7 +89,7 @@ export default async function NewAssignmentPage() {
               name="title"
               type="text"
               required
-              placeholder="e.g. Lab 1 — Player movement script"
+              placeholder="e.g. Reflection — What is a game?"
               autoFocus
             />
           </div>
@@ -122,6 +121,24 @@ export default async function NewAssignmentPage() {
                 defaultValue={100}
               />
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="minimum_word_count">
+              Minimum word count{" "}
+              <span className="text-wood-500 font-normal">(optional)</span>
+            </Label>
+            <Input
+              id="minimum_word_count"
+              name="minimum_word_count"
+              type="number"
+              min="1"
+              placeholder="e.g. 100"
+            />
+            <FieldHint>
+              Only applies to Short answer and Discussion. Submit is disabled
+              until the student hits the threshold. Leave blank for no minimum.
+            </FieldHint>
           </div>
 
           <div className="flex items-center justify-end gap-3 pt-2 border-t border-wood-100">

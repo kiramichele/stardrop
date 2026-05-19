@@ -17,7 +17,12 @@ export const ASSIGNMENT_TYPE_LABELS: Record<AssignmentType, string> = {
   check_in: "Check-in",
 };
 
-export const SUPPORTED_TYPES: AssignmentType[] = ["code", "interactive_html"];
+export const SUPPORTED_TYPES: AssignmentType[] = [
+  "code",
+  "interactive_html",
+  "short_answer",
+  "discussion",
+];
 
 export type Assignment = {
   id: string;
@@ -31,6 +36,7 @@ export type Assignment = {
   rubric_id: string | null;
   published: boolean;
   interactive_html_url: string | null;
+  minimum_word_count: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -66,7 +72,35 @@ export type Grade = {
 };
 
 // =============================================================
-// Lateness helper
+// PostgREST select strings.
+//
+// Kept as `as const` literals so supabase-js can parse the join
+// shapes at the type level. Inlined select strings have repeatedly
+// been re-wrapped with `+`, which collapses the literal type and
+// breaks the parser (every joined property becomes GenericStringError).
+// Pulling them up here makes that regression structurally hard to
+// reintroduce — there is no `+` to put back.
+// =============================================================
+const SELECTS = {
+  teacherAssignmentsList:
+    "id, class_id, title, type, due_date, points, published, interactive_html_url, created_at, submissions(count), classes(name, period_number)",
+  assignmentWithClass: "*, classes(id, name, period_number)",
+  submissionsList:
+    "id, user_id, status, submitted_at, updated_at, users(first_name, last_name, username), grades(score, graded_at)",
+  submissionForGrading:
+    "*, users(first_name, last_name, username), assignments(title, type, instructions, points, due_date, class_id, interactive_html_url, minimum_word_count), grades(score, feedback, graded_at)",
+  studentAssignmentsList:
+    "id, class_id, title, type, due_date, points, published, interactive_html_url, classes(name, period_number)",
+  studentSubmissionsOverlay:
+    "assignment_id, status, submitted_at, grades(score)",
+  studentAssignment: "*, classes(name, period_number)",
+  studentSubmission: "*, grades(score, feedback, graded_at)",
+  discussionPosts:
+    "id, user_id, content, submitted_at, users(first_name, last_name)",
+} as const;
+
+// =============================================================
+// Helpers
 // =============================================================
 export function computeLateness(
   submittedAt: string | null | undefined,
@@ -88,25 +122,45 @@ export function isAssignmentReady(a: {
   return true;
 }
 
+/**
+ * Count words in a string. Splits on whitespace after trimming.
+ * Empty / whitespace-only string returns 0.
+ */
+export function countWords(text: string | null | undefined): number {
+  if (!text) return 0;
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return 0;
+  return trimmed.split(/\s+/).length;
+}
+
+/**
+ * Get the display name for a student in a discussion context.
+ * "First name + last initial" per Kira's preference.
+ */
+export function displayName(
+  firstName: string | null | undefined,
+  lastName: string | null | undefined
+): string {
+  const first = (firstName ?? "").trim();
+  const last = (lastName ?? "").trim();
+  if (!first && !last) return "Anonymous";
+  if (!last) return first;
+  return `${first} ${last[0].toUpperCase()}.`;
+}
+
 // =============================================================
-// Auto-grade computation for interactive HTML assignments
+// Auto-grade computation (interactive HTML)
 // =============================================================
 export type AutoGrade = {
-  autoPoints: number;       // points earned from auto-graded questions
-  maxAutoPoints: number;    // max possible from auto-graded questions
-  autoCorrect: number;      // count of auto-graded questions answered correctly
-  autoTotal: number;        // count of auto-graded questions
-  totalQuestions: number;   // count of ALL questions (auto-graded + manual)
+  autoPoints: number;
+  maxAutoPoints: number;
+  autoCorrect: number;
+  autoTotal: number;
+  totalQuestions: number;
   pointsPerQuestion: number;
   hasManualQuestions: boolean;
 };
 
-/**
- * Given the structured_data from an interactive HTML submission and the
- * assignment's total points, compute the auto-graded portion.
- *
- * Returns null if the data doesn't contain a usable score.
- */
 export function computeAutoGrade(
   structuredData: unknown,
   assignmentPoints: number
@@ -128,16 +182,12 @@ export function computeAutoGrade(
 
   const earned = data.score.earned;
   const autoTotal = data.score.max;
-
-  // Total questions = full responses array length if available, else
-  // assume score.max covers everything.
   const totalQuestions = Array.isArray(data.responses)
     ? data.responses.length
     : autoTotal;
   if (totalQuestions <= 0) return null;
 
   const pointsPerQuestion = assignmentPoints / totalQuestions;
-  // Round to 2 decimals to avoid floating-point ugliness
   const round = (n: number) => Math.round(n * 100) / 100;
 
   return {
@@ -159,9 +209,7 @@ export async function getAssignmentsForTeacher(classId?: string) {
   const supabase = await createClient();
   let query = supabase
     .from("assignments")
-    .select(
-      "id, class_id, title, type, due_date, points, published, interactive_html_url, created_at, submissions(count), classes(name, period_number)"
-    )
+    .select(SELECTS.teacherAssignmentsList)
     .order("created_at", { ascending: false });
   if (classId) query = query.eq("class_id", classId);
   const { data } = await query;
@@ -172,7 +220,7 @@ export async function getAssignment(assignmentId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("assignments")
-    .select("*, classes(id, name, period_number)")
+    .select(SELECTS.assignmentWithClass)
     .eq("id", assignmentId)
     .single();
   return data;
@@ -182,9 +230,7 @@ export async function getSubmissionsForAssignment(assignmentId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("submissions")
-    .select(
-      "id, user_id, status, submitted_at, updated_at, users(first_name, last_name, username), grades(score, graded_at)"
-    )
+    .select(SELECTS.submissionsList)
     .eq("assignment_id", assignmentId)
     .order("submitted_at", { ascending: false, nullsFirst: false });
   return data ?? [];
@@ -194,9 +240,7 @@ export async function getSubmissionForGrading(submissionId: string) {
   const supabase = await createClient();
   const { data } = await supabase
     .from("submissions")
-    .select(
-      "*, users(first_name, last_name, username), assignments(title, type, instructions, points, due_date, class_id, interactive_html_url), grades(score, feedback, graded_at)"
-    )
+    .select(SELECTS.submissionForGrading)
     .eq("id", submissionId)
     .single();
   return data;
@@ -221,9 +265,7 @@ export async function getAssignmentsForStudent(userId: string) {
 
   const { data: assignments } = await supabase
     .from("assignments")
-    .select(
-      "id, class_id, title, type, due_date, points, published, interactive_html_url, classes(name, period_number)"
-    )
+    .select(SELECTS.studentAssignmentsList)
     .eq("published", true)
     .order("due_date", { ascending: true, nullsFirst: false });
 
@@ -233,7 +275,7 @@ export async function getAssignmentsForStudent(userId: string) {
 
   const { data: submissions } = await supabase
     .from("submissions")
-    .select("assignment_id, status, submitted_at, grades(score)")
+    .select(SELECTS.studentSubmissionsOverlay)
     .eq("user_id", userId)
     .in(
       "assignment_id",
@@ -258,7 +300,7 @@ export async function getAssignmentForStudent(
 
   const { data: assignment } = await supabase
     .from("assignments")
-    .select("*, classes(name, period_number)")
+    .select(SELECTS.studentAssignment)
     .eq("id", assignmentId)
     .eq("published", true)
     .maybeSingle();
@@ -267,10 +309,30 @@ export async function getAssignmentForStudent(
 
   const { data: submission } = await supabase
     .from("submissions")
-    .select("*, grades(score, feedback, graded_at)")
+    .select(SELECTS.studentSubmission)
     .eq("assignment_id", assignmentId)
     .eq("user_id", userId)
     .maybeSingle();
 
   return { assignment, submission };
+}
+
+/**
+ * For discussion assignments: get other students' submitted posts.
+ * Only called after the current student has submitted their own
+ * (enforced in the page that calls this).
+ */
+export async function getOtherDiscussionPosts(
+  assignmentId: string,
+  currentUserId: string
+) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("submissions")
+    .select(SELECTS.discussionPosts)
+    .eq("assignment_id", assignmentId)
+    .neq("user_id", currentUserId)
+    .in("status", ["submitted", "graded"])
+    .order("submitted_at", { ascending: false, nullsFirst: false });
+  return data ?? [];
 }

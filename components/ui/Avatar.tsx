@@ -1,11 +1,13 @@
 interface AvatarProps {
-  firstName: string;
-  lastName: string;
+  firstName: string | null | undefined;
+  lastName: string | null | undefined;
   size?: "sm" | "md";
 }
 
 export function Avatar({ firstName, lastName, size = "md" }: AvatarProps) {
-  const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  const first = (firstName ?? "").charAt(0);
+  const last = (lastName ?? "").charAt(0);
+  const initials = `${first}${last}`.toUpperCase() || "?";
   const sizeClasses = size === "sm" ? "w-7 h-7 text-xs" : "w-9 h-9 text-sm";
 
   return (

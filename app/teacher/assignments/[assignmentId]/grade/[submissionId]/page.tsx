@@ -6,6 +6,7 @@ import {
   getSubmissionEvents,
   computeLateness,
   computeAutoGrade,
+  countWords,
   type AssignmentType,
 } from "@/lib/assignments";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -46,11 +47,17 @@ export default async function GradeSubmissionPage({
   const showPasteTimeline = assignmentType === "code";
   const events = showPasteTimeline ? await getSubmissionEvents(submissionId) : [];
 
-  // Auto-grade only for interactive HTML with score data
   const autoGrade =
     assignmentType === "interactive_html"
       ? computeAutoGrade(structuredData, assignment?.points ?? 100)
       : null;
+
+  const isTextual =
+    assignmentType === "short_answer" || assignmentType === "discussion";
+  const wordCount = isTextual ? countWords(content) : 0;
+  const meetsMinimum =
+    !assignment?.minimum_word_count ||
+    wordCount >= assignment.minimum_word_count;
 
   return (
     <>
@@ -136,6 +143,46 @@ export default async function GradeSubmissionPage({
                 </Card>
               ) : (
                 <InteractiveResponseView structuredData={structuredData} />
+              )}
+            </div>
+          )}
+
+          {isTextual && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="label-eyebrow">
+                  {assignmentType === "discussion" ? "Their post" : "Their answer"}
+                </p>
+                <p className="text-xs text-wood-500">
+                  <span
+                    className={
+                      assignment?.minimum_word_count && !meetsMinimum
+                        ? "text-honey-700 font-medium"
+                        : ""
+                    }
+                  >
+                    {wordCount} {wordCount === 1 ? "word" : "words"}
+                  </span>
+                  {assignment?.minimum_word_count && (
+                    <span className="text-wood-400">
+                      {" "}
+                      / min {assignment.minimum_word_count}
+                    </span>
+                  )}
+                </p>
+              </div>
+              {content.trim().length === 0 ? (
+                <Card>
+                  <p className="text-sm text-wood-500 italic text-center py-4">
+                    No content submitted yet.
+                  </p>
+                </Card>
+              ) : (
+                <Card>
+                  <p className="text-base text-wood-900 whitespace-pre-wrap leading-relaxed">
+                    {content}
+                  </p>
+                </Card>
               )}
             </div>
           )}

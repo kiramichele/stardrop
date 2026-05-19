@@ -16,6 +16,13 @@ const VALID_TYPES: AssignmentType[] = [
   "check_in",
 ];
 
+function parseMinimumWordCount(raw: string | undefined): number | null {
+  if (!raw || raw.trim() === "") return null;
+  const n = Number.parseInt(raw, 10);
+  if (Number.isNaN(n) || n <= 0) return null;
+  return n;
+}
+
 export async function createAssignment(formData: FormData) {
   await requireTeacher();
 
@@ -26,6 +33,7 @@ export async function createAssignment(formData: FormData) {
   const dueDateRaw = formData.get("due_date")?.toString();
   const pointsRaw = formData.get("points")?.toString();
   const lessonId = formData.get("lesson_id")?.toString() || null;
+  const minWordsRaw = formData.get("minimum_word_count")?.toString();
 
   if (!classId) throw new Error("Class required");
   if (!title) throw new Error("Title required");
@@ -33,6 +41,7 @@ export async function createAssignment(formData: FormData) {
 
   const points = pointsRaw ? Number.parseInt(pointsRaw, 10) : 100;
   const dueDate = dueDateRaw ? new Date(dueDateRaw).toISOString() : null;
+  const minimumWordCount = parseMinimumWordCount(minWordsRaw);
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -45,6 +54,7 @@ export async function createAssignment(formData: FormData) {
       instructions,
       due_date: dueDate,
       points,
+      minimum_word_count: minimumWordCount,
     })
     .select("id")
     .single();
@@ -65,15 +75,24 @@ export async function updateAssignment(
   const dueDateRaw = formData.get("due_date")?.toString();
   const pointsRaw = formData.get("points")?.toString();
   const published = formData.get("published") === "on";
+  const minWordsRaw = formData.get("minimum_word_count")?.toString();
 
   if (!title) throw new Error("Title required");
   const points = pointsRaw ? Number.parseInt(pointsRaw, 10) : 100;
   const dueDate = dueDateRaw ? new Date(dueDateRaw).toISOString() : null;
+  const minimumWordCount = parseMinimumWordCount(minWordsRaw);
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("assignments")
-    .update({ title, instructions, due_date: dueDate, points, published })
+    .update({
+      title,
+      instructions,
+      due_date: dueDate,
+      points,
+      published,
+      minimum_word_count: minimumWordCount,
+    })
     .eq("id", assignmentId);
   if (error) throw new Error(error.message);
 
@@ -100,11 +119,6 @@ export async function deleteAssignment(assignmentId: string) {
 
 // =============================================================
 // Interactive HTML upload
-//
-// File is uploaded to Supabase Storage, but the URL we save is
-// our own /api/files/lessons/... proxy route. That makes the
-// iframe load same-origin from stardrop.studio's perspective and
-// sidesteps cross-origin embed restrictions.
 // =============================================================
 
 export async function uploadInteractiveHtml(
@@ -118,9 +132,6 @@ export async function uploadInteractiveHtml(
     throw new Error("File must be an .html file");
   }
 
-  // Re-wrap as a text/html Blob (defense in depth — the proxy controls
-  // Content-Type at serve time anyway, but this also makes the file
-  // viewable correctly if anyone accesses the Supabase URL directly)
   const arrayBuffer = await file.arrayBuffer();
   const htmlBlob = new Blob([arrayBuffer], { type: "text/html" });
 
@@ -136,7 +147,6 @@ export async function uploadInteractiveHtml(
     });
   if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
-  // Save the PROXY URL, not the Supabase URL
   const proxyUrl = `/api/files/lessons/${storagePath}`;
 
   const supabase = await createClient();

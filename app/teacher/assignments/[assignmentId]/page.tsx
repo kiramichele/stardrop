@@ -1,6 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, Award, Users, FileCode2, Download, ExternalLink } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Award,
+  Users,
+  FileCode2,
+  Download,
+  ExternalLink,
+} from "lucide-react";
 import {
   getAssignment,
   getSubmissionsForAssignment,
@@ -50,6 +58,8 @@ export default async function AssignmentDetailPage({
 
   const isInteractive = assignment.type === "interactive_html";
   const hasInteractiveHtml = !!assignment.interactive_html_url;
+  const isTextual =
+    assignment.type === "short_answer" || assignment.type === "discussion";
 
   return (
     <>
@@ -71,16 +81,21 @@ export default async function AssignmentDetailPage({
               {assignment.points} pts
               {assignment.due_date &&
                 ` · due ${new Date(assignment.due_date).toLocaleString()}`}
+              {assignment.minimum_word_count &&
+                isTextual &&
+                ` · min ${assignment.minimum_word_count} words`}
             </span>
           </span>
         }
       />
 
-      {/* Warning if interactive_html with no upload */}
       {isInteractive && !hasInteractiveHtml && (
         <Card className="mb-6 bg-honey-50 border-honey-200">
           <div className="flex items-start gap-3">
-            <FileCode2 className="w-5 h-5 text-honey-700 flex-shrink-0 mt-0.5" strokeWidth={1.75} />
+            <FileCode2
+              className="w-5 h-5 text-honey-700 flex-shrink-0 mt-0.5"
+              strokeWidth={1.75}
+            />
             <div>
               <p className="font-display text-base text-honey-900">
                 Upload the interactive HTML file
@@ -104,7 +119,6 @@ export default async function AssignmentDetailPage({
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Submissions column */}
         <div className="lg:col-span-2 space-y-4">
           <div className="grid grid-cols-3 gap-3">
             <Card padded={false} className="p-4">
@@ -147,9 +161,7 @@ export default async function AssignmentDetailPage({
             <Card padded={false} className="overflow-hidden">
               <ul className="divide-y divide-wood-100">
                 {submissions.map((s) => {
-                  const student = Array.isArray(s.users)
-                    ? s.users[0]
-                    : s.users;
+                  const student = Array.isArray(s.users) ? s.users[0] : s.users;
                   const grade = Array.isArray(s.grades) ? s.grades[0] : s.grades;
                   const { isLate, daysLate } = computeLateness(
                     s.submitted_at,
@@ -199,7 +211,6 @@ export default async function AssignmentDetailPage({
           )}
         </div>
 
-        {/* Settings column */}
         <div className="space-y-4">
           {isInteractive && (
             <Card>
@@ -298,6 +309,22 @@ export default async function AssignmentDetailPage({
                   defaultValue={assignment.points}
                 />
               </div>
+              {isTextual && (
+                <div>
+                  <Label htmlFor="minimum_word_count">
+                    Minimum word count{" "}
+                    <span className="text-wood-500 font-normal">(optional)</span>
+                  </Label>
+                  <Input
+                    id="minimum_word_count"
+                    name="minimum_word_count"
+                    type="number"
+                    min="1"
+                    defaultValue={assignment.minimum_word_count ?? ""}
+                  />
+                  <FieldHint>Leave blank for no minimum.</FieldHint>
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
