@@ -106,7 +106,8 @@ export async function updateLesson(lessonId: string, formData: FormData) {
   await requireTeacher();
   const title = formData.get("title")?.toString().trim();
   const published = formData.get("published") === "on";
-  const completionRequired = formData.get("completion_required_for_next") === "on";
+  const completionRequired =
+    formData.get("completion_required_for_next") === "on";
   const file = formData.get("html_file") as File | null;
   if (!title) throw new Error("Title required");
 
@@ -151,37 +152,37 @@ export async function deleteLesson(lessonId: string) {
 }
 
 /**
- * Upload an HTML file for a lesson. Re-wraps the file as a Blob with
- * explicit text/html MIME type to guarantee correct Content-Type
- * when served, so browsers render it instead of showing source.
+ * Upload a lesson HTML file. Same pattern as interactive HTML:
+ *   - Upload to Supabase Storage with text/html metadata
+ *   - Save the PROXY URL (not the Supabase URL) to the DB
+ *     so the iframe loads same-origin from stardrop.studio
  */
 async function uploadLessonHtml(lessonId: string, file: File) {
   if (!file.name.toLowerCase().endsWith(".html")) {
     throw new Error("Lesson file must be an .html file");
   }
 
-  // Re-wrap as a text/html Blob — see note in assignments/actions.ts
   const arrayBuffer = await file.arrayBuffer();
   const htmlBlob = new Blob([arrayBuffer], { type: "text/html" });
 
   const admin = createAdminClient();
-  const path = `${lessonId}.html`;
+  const storagePath = `${lessonId}.html`;
 
   const { error: uploadError } = await admin.storage
     .from("lessons")
-    .upload(path, htmlBlob, {
+    .upload(storagePath, htmlBlob, {
       cacheControl: "60",
       upsert: true,
       contentType: "text/html",
     });
   if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
-  const { data: urlData } = admin.storage.from("lessons").getPublicUrl(path);
+  const proxyUrl = `/api/files/lessons/${storagePath}`;
 
   const supabase = await createClient();
   await supabase
     .from("lessons")
-    .update({ html_url: urlData.publicUrl })
+    .update({ html_url: proxyUrl })
     .eq("id", lessonId);
 }
 

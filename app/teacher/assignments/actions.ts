@@ -101,11 +101,10 @@ export async function deleteAssignment(assignmentId: string) {
 // =============================================================
 // Interactive HTML upload
 //
-// Re-wrap the uploaded file as a Blob with an explicit text/html
-// MIME type. Without this, Supabase Storage sometimes stores the
-// content type as text/plain or application/octet-stream depending
-// on the browser's File metadata, and browsers show source code
-// instead of rendering the HTML.
+// File is uploaded to Supabase Storage, but the URL we save is
+// our own /api/files/lessons/... proxy route. That makes the
+// iframe load same-origin from stardrop.studio's perspective and
+// sidesteps cross-origin embed restrictions.
 // =============================================================
 
 export async function uploadInteractiveHtml(
@@ -119,28 +118,31 @@ export async function uploadInteractiveHtml(
     throw new Error("File must be an .html file");
   }
 
-  // Re-wrap as a text/html Blob to guarantee correct Content-Type
+  // Re-wrap as a text/html Blob (defense in depth — the proxy controls
+  // Content-Type at serve time anyway, but this also makes the file
+  // viewable correctly if anyone accesses the Supabase URL directly)
   const arrayBuffer = await file.arrayBuffer();
   const htmlBlob = new Blob([arrayBuffer], { type: "text/html" });
 
   const admin = createAdminClient();
-  const path = `assignments/${assignmentId}.html`;
+  const storagePath = `assignments/${assignmentId}.html`;
 
   const { error: uploadError } = await admin.storage
     .from("lessons")
-    .upload(path, htmlBlob, {
+    .upload(storagePath, htmlBlob, {
       cacheControl: "60",
       upsert: true,
       contentType: "text/html",
     });
   if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
 
-  const { data: urlData } = admin.storage.from("lessons").getPublicUrl(path);
+  // Save the PROXY URL, not the Supabase URL
+  const proxyUrl = `/api/files/lessons/${storagePath}`;
 
   const supabase = await createClient();
   const { error } = await supabase
     .from("assignments")
-    .update({ interactive_html_url: urlData.publicUrl })
+    .update({ interactive_html_url: proxyUrl })
     .eq("id", assignmentId);
   if (error) throw new Error(error.message);
 
