@@ -117,9 +117,15 @@ export async function uploadInteractiveHtml(
   const admin = createAdminClient();
   const path = `assignments/${assignmentId}.html`;
 
+  // ArrayBuffer (not File) so storage-js honors contentType. Blob bodies get
+  // FormData-wrapped and the contentType option is silently dropped — the
+  // server then stores whatever the browser put in file.type, which is often
+  // "" or "application/octet-stream", and browsers render those as plain text.
+  const bytes = await file.arrayBuffer();
+
   const { error: uploadError } = await admin.storage
     .from("lessons")
-    .upload(path, file, {
+    .upload(path, bytes, {
       cacheControl: "60",
       upsert: true,
       contentType: "text/html",
