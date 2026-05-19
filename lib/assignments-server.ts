@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isAssignmentReady, type SubmissionEvent } from "@/lib/assignments";
 
 // =============================================================
@@ -154,8 +155,12 @@ export async function getOtherDiscussionPosts(
   assignmentId: string,
   currentUserId: string
 ) {
-  const supabase = await createClient();
-  const { data } = await supabase
+  // Bypass RLS with the admin client: the default user-scoped policy on
+  // `submissions` hides peers' rows from a student, but discussions are
+  // supposed to expose them once the student has submitted their own.
+  // The auth boundary lives in the calling page (`hasSubmittedDiscussion`).
+  const admin = createAdminClient();
+  const { data } = await admin
     .from("submissions")
     .select(SELECTS.discussionPosts)
     .eq("assignment_id", assignmentId)

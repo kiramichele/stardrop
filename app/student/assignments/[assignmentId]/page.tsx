@@ -54,6 +54,17 @@ export default async function StudentAssignmentPage({
     ? await getOtherDiscussionPosts(assignment.id, user.id)
     : [];
 
+  // TEMP DEBUG — remove after we figure out why peer posts aren't showing
+  const debugInfo = {
+    assignmentId: assignment.id,
+    currentUserId: user.id,
+    assignmentType: assignment.type,
+    hasSubmittedDiscussion,
+    submissionStatus: submission?.status ?? null,
+    otherPostsCount: otherPosts.length,
+    otherPosts,
+  };
+
   return (
     <>
       <Link
@@ -63,6 +74,14 @@ export default async function StudentAssignmentPage({
         <ArrowLeft className="w-3.5 h-3.5" />
         Back to assignments
       </Link>
+
+      {/* TEMP DEBUG — remove once peer posts are showing correctly */}
+      <Card className="mb-4 bg-honey-50 border-honey-200">
+        <p className="label-eyebrow mb-2">discussion debug</p>
+        <pre className="text-xs font-mono text-wood-800 whitespace-pre-wrap break-all">
+          {JSON.stringify(debugInfo, null, 2)}
+        </pre>
+      </Card>
 
       <PageHeader
         eyebrow={
