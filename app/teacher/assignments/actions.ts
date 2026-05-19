@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireTeacher, getCurrentUser } from "@/lib/auth";
 import { sendEmail, escapeHtml } from "@/lib/email";
 import { feedbackMessages } from "@/lib/feedback-server";
-import type { AssignmentType } from "@/lib/assignments";
+import { computeAutoGrade, type AssignmentType } from "@/lib/assignments";
 import type { Json } from "@/types/database";
 
 const VALID_TYPES: AssignmentType[] = [
@@ -292,6 +292,240 @@ export async function addFeedbackMessage(
     `/teacher/assignments/${sub.assignment_id}/grade/${submissionId}`
   );
   return { ok: true };
+}
+
+// =============================================================
+// Bulk grading
+// =============================================================
+
+type BulkResult =
+  | { ok: true; graded: number; skipped: number }
+  | { ok: false; error: string };
+
+/**
+ * Grade one submission. Returns true if it was graded, false if skipped
+ * because it already had a grade and `overwrite` was false.
+ */
+async function gradeOne(
+  admin: ReturnType<typeof createAdminClient>,
+  submissionId: string,
+  score: number,
+  overwrite: boolean
+): Promise<boolean> {
+  if (!overwrite) {
+    const { data: existing } = await admin
+      .from("grades")
+      .select("submission_id")
+      .eq("submission_id", submissionId)
+      .maybeSingle();
+    if (existing) return false;
+  }
+  const { error: gradeError } = await admin.from("grades").upsert(
+    {
+      submission_id: submissionId,
+      score,
+      graded_at: new Date().toISOString(),
+    },
+    { onConflict: "submission_id" }
+  );
+  if (gradeError) throw new Error(gradeError.message);
+  await admin
+    .from("submissions")
+    .update({ status: "graded" })
+    .eq("id", submissionId);
+  return true;
+}
+
+export async function autoGradeInteractive(
+  assignmentId: string,
+  overwrite: boolean
+): Promise<BulkResult> {
+  await requireTeacher();
+  const admin = createAdminClient();
+
+  const { data: assignment } = await admin
+    .from("assignments")
+    .select("points, type")
+    .eq("id", assignmentId)
+    .single();
+  if (!assignment) return { ok: false, error: "Assignment not found" };
+  if (assignment.type !== "interactive_html") {
+    return {
+      ok: false,
+      error: "Auto-grade only works on Interactive HTML assignments.",
+    };
+  }
+
+  const { data: submissions } = await admin
+    .from("submissions")
+    .select("id, structured_data")
+    .eq("assignment_id", assignmentId);
+
+  let graded = 0;
+  let skipped = 0;
+  for (const sub of submissions ?? []) {
+    const auto = computeAutoGrade(sub.structured_data, assignment.points);
+    if (!auto) {
+      skipped++;
+      continue;
+    }
+    const did = await gradeOne(admin, sub.id, auto.autoPoints, overwrite);
+    if (did) graded++;
+    else skipped++;
+  }
+
+  revalidatePath(`/teacher/assignments/${assignmentId}`);
+  return { ok: true, graded, skipped };
+}
+
+export async function fullCreditAll(
+  assignmentId: string,
+  overwrite: boolean
+): Promise<BulkResult> {
+  await requireTeacher();
+  const admin = createAdminClient();
+
+  const { data: assignment } = await admin
+    .from("assignments")
+    .select("points")
+    .eq("id", assignmentId)
+    .single();
+  if (!assignment) return { ok: false, error: "Assignment not found" };
+
+  const { data: submissions } = await admin
+    .from("submissions")
+    .select("id")
+    .eq("assignment_id", assignmentId);
+
+  let graded = 0;
+  let skipped = 0;
+  for (const sub of submissions ?? []) {
+    const did = await gradeOne(admin, sub.id, assignment.points, overwrite);
+    if (did) graded++;
+    else skipped++;
+  }
+
+  revalidatePath(`/teacher/assignments/${assignmentId}`);
+  return { ok: true, graded, skipped };
+}
+
+export async function applyScoreToSubmissions(
+  assignmentId: string,
+  submissionIds: string[],
+  score: number,
+  overwrite: boolean
+): Promise<BulkResult> {
+  await requireTeacher();
+  if (submissionIds.length === 0) {
+    return { ok: false, error: "No submissions selected" };
+  }
+  if (!Number.isFinite(score) || score < 0) {
+    return { ok: false, error: "Score must be 0 or higher" };
+  }
+
+  const admin = createAdminClient();
+  let graded = 0;
+  let skipped = 0;
+  for (const id of submissionIds) {
+    const did = await gradeOne(admin, id, score, overwrite);
+    if (did) graded++;
+    else skipped++;
+  }
+
+  revalidatePath(`/teacher/assignments/${assignmentId}`);
+  return { ok: true, graded, skipped };
+}
+
+export async function zeroNonSubmitters(
+  assignmentId: string
+): Promise<{ ok: true; zeroed: number } | { ok: false; error: string }> {
+  await requireTeacher();
+  const admin = createAdminClient();
+
+  const { data: assignment } = await admin
+    .from("assignments")
+    .select("class_id")
+    .eq("id", assignmentId)
+    .single();
+  if (!assignment) return { ok: false, error: "Assignment not found" };
+
+  const { data: enrollments } = await admin
+    .from("enrollments")
+    .select("user_id")
+    .eq("class_id", assignment.class_id);
+  const enrolledIds = (enrollments ?? []).map((e) => e.user_id);
+
+  const { data: submissions } = await admin
+    .from("submissions")
+    .select("id, user_id, status")
+    .eq("assignment_id", assignmentId);
+  const subByUser = new Map(
+    (submissions ?? []).map((s) => [s.user_id, s])
+  );
+
+  let zeroed = 0;
+  for (const userId of enrolledIds) {
+    const existing = subByUser.get(userId);
+    // Leave anyone who actually submitted, or is already graded
+    if (
+      existing &&
+      (existing.status === "submitted" || existing.status === "graded")
+    ) {
+      continue;
+    }
+
+    let submissionId: string;
+    if (existing) {
+      submissionId = existing.id; // a never-submitted draft — grade it 0
+    } else {
+      const { data: created, error } = await admin
+        .from("submissions")
+        .insert({
+          assignment_id: assignmentId,
+          user_id: userId,
+          status: "graded",
+        })
+        .select("id")
+        .single();
+      if (error || !created) continue;
+      submissionId = created.id;
+    }
+    await gradeOne(admin, submissionId, 0, true);
+    zeroed++;
+  }
+
+  revalidatePath(`/teacher/assignments/${assignmentId}`);
+  return { ok: true, zeroed };
+}
+
+export async function batchAddFeedback(
+  assignmentId: string,
+  submissionIds: string[],
+  body: string
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "teacher") {
+    return { ok: false, error: "Not authorized" };
+  }
+  const trimmed = body.trim();
+  if (!trimmed) return { ok: false, error: "Feedback cannot be empty" };
+  if (submissionIds.length === 0) {
+    return { ok: false, error: "No submissions selected" };
+  }
+
+  const admin = createAdminClient();
+  let count = 0;
+  for (const id of submissionIds) {
+    const { error } = await feedbackMessages(admin).insert({
+      submission_id: id,
+      author_id: user.id,
+      body: trimmed,
+    });
+    if (!error) count++;
+  }
+
+  revalidatePath(`/teacher/assignments/${assignmentId}`);
+  return { ok: true, count };
 }
 
 async function notifyTeachersOfStudentReply(args: {

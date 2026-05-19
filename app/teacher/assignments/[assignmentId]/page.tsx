@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  ArrowRight,
   Award,
   Users,
   FileCode2,
@@ -18,10 +17,11 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Textarea, Select, FieldHint } from "@/components/ui/Input";
+import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 import {
-  AssignmentTypeBadge,
-  SubmissionStatusBadge,
-} from "@/components/assignments/Badges";
+  BulkGradePanel,
+  type BulkSubmissionRow,
+} from "@/components/assignments/BulkGradePanel";
 import { getRubricsForTeacher } from "@/lib/rubrics-server";
 import { rubricMaxPoints } from "@/lib/rubrics";
 import {
@@ -57,6 +57,32 @@ export default async function AssignmentDetailPage({
     (s) => s.status === "submitted" || s.status === "graded"
   ).length;
   const gradedCount = submissions.filter((s) => s.status === "graded").length;
+
+  const submissionRows: BulkSubmissionRow[] = submissions.map((s) => {
+    const student = Array.isArray(s.users) ? s.users[0] : s.users;
+    const grade = Array.isArray(s.grades) ? s.grades[0] : s.grades;
+    const { isLate, daysLate } = computeLateness(
+      s.submitted_at,
+      assignment.due_date
+    );
+    const whenLabel = s.submitted_at
+      ? `Submitted ${new Date(s.submitted_at).toLocaleString()}`
+      : s.updated_at
+        ? `Last edited ${new Date(s.updated_at).toLocaleString()}`
+        : "Not started";
+    return {
+      id: s.id,
+      studentName:
+        `${student?.first_name ?? ""} ${student?.last_name ?? ""}`.trim() ||
+        "Unknown student",
+      status: s.status,
+      score: grade?.score ?? null,
+      hasGrade: !!grade,
+      isLate,
+      daysLate,
+      whenLabel,
+    };
+  });
 
   const isInteractive = assignment.type === "interactive_html";
   const hasInteractiveHtml = !!assignment.interactive_html_url;
@@ -153,64 +179,12 @@ export default async function AssignmentDetailPage({
             Submissions
           </h2>
 
-          {submissions.length === 0 ? (
-            <Card>
-              <p className="text-sm text-wood-500 text-center py-4">
-                No submissions yet.
-              </p>
-            </Card>
-          ) : (
-            <Card padded={false} className="overflow-hidden">
-              <ul className="divide-y divide-wood-100">
-                {submissions.map((s) => {
-                  const student = Array.isArray(s.users) ? s.users[0] : s.users;
-                  const grade = Array.isArray(s.grades) ? s.grades[0] : s.grades;
-                  const { isLate, daysLate } = computeLateness(
-                    s.submitted_at,
-                    assignment.due_date
-                  );
-                  return (
-                    <li key={s.id} className="p-1.5">
-                      <Link
-                        href={`/teacher/assignments/${assignmentId}/grade/${s.id}`}
-                        className="group flex items-center gap-3 px-3 py-2.5 rounded-cozy hover:bg-cream-200 transition-colors"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-wood-900">
-                            {student?.first_name} {student?.last_name}
-                          </p>
-                          <p className="text-xs text-wood-500">
-                            {s.submitted_at
-                              ? `Submitted ${new Date(s.submitted_at).toLocaleString()}`
-                              : s.updated_at
-                                ? `Last edited ${new Date(s.updated_at).toLocaleString()}`
-                                : "Not started"}
-                            {isLate && ` · ${daysLate}d late`}
-                          </p>
-                        </div>
-                        {grade && (
-                          <div className="text-right">
-                            <p className="font-display text-lg text-sage-700">
-                              {grade.score}
-                              <span className="text-wood-400 text-sm font-normal">
-                                /{assignment.points}
-                              </span>
-                            </p>
-                          </div>
-                        )}
-                        <SubmissionStatusBadge
-                          status={s.status}
-                          hasGrade={!!grade}
-                          isLate={isLate}
-                        />
-                        <ArrowRight className="w-4 h-4 text-wood-400 transition-transform duration-150 group-hover:translate-x-0.5" />
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </Card>
-          )}
+          <BulkGradePanel
+            assignmentId={assignmentId}
+            assignmentType={assignment.type as AssignmentType}
+            maxPoints={assignment.points}
+            rows={submissionRows}
+          />
         </div>
 
         <div className="space-y-4">
