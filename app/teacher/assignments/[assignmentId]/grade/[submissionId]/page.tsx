@@ -14,6 +14,8 @@ import {
 } from "@/lib/assignments-server";
 import { getRubric } from "@/lib/rubrics-server";
 import { parseRubricScores } from "@/lib/rubrics";
+import { getFeedbackThread } from "@/lib/feedback-server";
+import { FeedbackThread } from "@/components/feedback/FeedbackThread";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { SubmissionStatusBadge } from "@/components/assignments/Badges";
@@ -61,6 +63,8 @@ export default async function GradeSubmissionPage({
     ? await getRubric(assignment.rubric_id)
     : null;
   const initialRubricScores = parseRubricScores(grade?.rubric_scores);
+
+  const feedbackEntries = await getFeedbackThread(submissionId);
 
   const isTextual =
     assignmentType === "short_answer" || assignmentType === "discussion";
@@ -271,6 +275,20 @@ export default async function GradeSubmissionPage({
               initialRubricScores={initialRubricScores}
             />
           </Card>
+
+          {feedbackEntries.length > 0 && (
+            <Card>
+              <h3 className="font-display text-lg text-wood-900 mb-4">
+                Feedback thread
+              </h3>
+              <FeedbackThread
+                submissionId={submissionId}
+                entries={feedbackEntries}
+                currentUserRole="teacher"
+                canReply={true}
+              />
+            </Card>
+          )}
 
           {showPasteTimeline && (
             <Card>

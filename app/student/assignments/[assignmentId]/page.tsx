@@ -11,6 +11,8 @@ import {
   getAssignmentForStudent,
   getOtherDiscussionPosts,
 } from "@/lib/assignments-server";
+import { getFeedbackThread } from "@/lib/feedback-server";
+import { FeedbackThread } from "@/components/feedback/FeedbackThread";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
@@ -59,6 +61,11 @@ export default async function StudentAssignmentPage({
     ? await getOtherDiscussionPosts(assignment.id, user.id)
     : [];
 
+  // Only build the feedback thread once graded (initial msg is grades.feedback)
+  const isGraded = submission?.status === "graded";
+  const feedbackEntries =
+    isGraded && submission ? await getFeedbackThread(submission.id) : [];
+
   return (
     <>
       <Link
@@ -98,16 +105,20 @@ export default async function StudentAssignmentPage({
                   </p>
                 )}
               </div>
-              {grade.feedback && (
-                <p className="text-sm text-wood-700 mt-3 whitespace-pre-wrap">
-                  <span className="label-eyebrow block mb-1 text-sage-700">
-                    Feedback
-                  </span>
-                  {grade.feedback}
-                </p>
-              )}
             </div>
           </div>
+        </Card>
+      )}
+
+      {isGraded && submission && feedbackEntries.length > 0 && (
+        <Card className="mb-6">
+          <h3 className="font-display text-lg text-wood-900 mb-4">Feedback</h3>
+          <FeedbackThread
+            submissionId={submission.id}
+            entries={feedbackEntries}
+            currentUserRole="student"
+            canReply={true}
+          />
         </Card>
       )}
 

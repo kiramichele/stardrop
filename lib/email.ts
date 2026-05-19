@@ -1,0 +1,74 @@
+import { Resend } from "resend";
+
+/**
+ * Thin Resend wrapper. No-ops cleanly when RESEND_API_KEY or EMAIL_FROM
+ * isn't configured, so callers can fire-and-forget without breaking
+ * primary flows (e.g. a feedback reply still saves even if email fails).
+ *
+ * Required env vars:
+ *   - RESEND_API_KEY  (Resend dashboard → API Keys)
+ *   - EMAIL_FROM      (e.g. "Stardrop <notifications@yourdomain.com>")
+ *                     The sender domain must be verified in Resend.
+ * Optional:
+ *   - NEXT_PUBLIC_APP_URL  (used by callers to build absolute links)
+ */
+
+let _resend: Resend | null = null;
+function getResend(): Resend | null {
+  if (!process.env.RESEND_API_KEY) return null;
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
+
+export type SendEmailOptions = {
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
+};
+
+export type SendEmailResult =
+  | { ok: true; id: string }
+  | { ok: false; skipped: true; reason: string }
+  | { ok: false; error: string };
+
+export async function sendEmail(
+  opts: SendEmailOptions
+): Promise<SendEmailResult> {
+  const resend = getResend();
+  if (!resend) {
+    return { ok: false, skipped: true, reason: "RESEND_API_KEY not set" };
+  }
+  const from = process.env.EMAIL_FROM;
+  if (!from) {
+    return { ok: false, skipped: true, reason: "EMAIL_FROM not set" };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from,
+      to: opts.to,
+      subject: opts.subject,
+      html: opts.html,
+      ...(opts.text ? { text: opts.text } : {}),
+    });
+    if (error) return { ok: false, error: error.message };
+    if (!data) return { ok: false, error: "Resend returned no message id" };
+    return { ok: true, id: data.id };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+/** Minimal HTML escape for body interpolation. */
+export function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}

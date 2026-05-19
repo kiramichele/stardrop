@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireTeacher } from "@/lib/auth";
+import { requireTeacher, getCurrentUser } from "@/lib/auth";
+import { sendEmail, escapeHtml } from "@/lib/email";
+import { feedbackMessages } from "@/lib/feedback-server";
 import type { AssignmentType } from "@/lib/assignments";
 import type { Json } from "@/types/database";
 
@@ -227,4 +229,113 @@ export async function saveGrade(submissionId: string, formData: FormData) {
   revalidatePath(
     `/teacher/assignments/${sub.assignment_id}/grade/${submissionId}`
   );
+}
+
+// =============================================================
+// Feedback thread (replies on top of a grade's initial feedback)
+//
+// Used by both the teacher's grade page and the student's
+// assignment page. Auth: students may only reply on their own
+// graded submission; teachers may reply any time.
+// =============================================================
+
+export async function addFeedbackMessage(
+  submissionId: string,
+  formData: FormData
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Not authorized" };
+
+  const body = formData.get("body")?.toString().trim();
+  if (!body) return { ok: false, error: "Message cannot be empty" };
+
+  const admin = createAdminClient();
+  const { data: sub } = await admin
+    .from("submissions")
+    .select("id, user_id, status, assignment_id")
+    .eq("id", submissionId)
+    .single();
+  if (!sub) return { ok: false, error: "Submission not found" };
+
+  if (user.role !== "teacher") {
+    // Students can only reply on their own submission, and only once graded
+    if (sub.user_id !== user.id) {
+      return { ok: false, error: "Not authorized" };
+    }
+    if (sub.status !== "graded") {
+      return {
+        ok: false,
+        error: "You can only reply once your work has been graded.",
+      };
+    }
+  }
+
+  const { error: insertError } = await feedbackMessages(admin).insert({
+    submission_id: submissionId,
+    author_id: user.id,
+    body,
+  });
+  if (insertError) return { ok: false, error: insertError.message };
+
+  // Best-effort notification: when a student replies, ping the teacher(s)
+  if (user.role === "student") {
+    void notifyTeachersOfStudentReply({
+      submissionId,
+      assignmentId: sub.assignment_id,
+      author: user,
+      body,
+    });
+  }
+
+  revalidatePath(`/student/assignments/${sub.assignment_id}`);
+  revalidatePath(
+    `/teacher/assignments/${sub.assignment_id}/grade/${submissionId}`
+  );
+  return { ok: true };
+}
+
+async function notifyTeachersOfStudentReply(args: {
+  submissionId: string;
+  assignmentId: string;
+  author: { first_name: string; last_name: string };
+  body: string;
+}) {
+  const admin = createAdminClient();
+  const { data: teachers } = await admin
+    .from("users")
+    .select("real_email")
+    .eq("role", "teacher");
+  const recipients = (teachers ?? [])
+    .map((t) => t.real_email)
+    .filter((e): e is string => !!e && e.includes("@"));
+  if (recipients.length === 0) return;
+
+  const { data: assignment } = await admin
+    .from("assignments")
+    .select("title")
+    .eq("id", args.assignmentId)
+    .maybeSingle();
+  const title = assignment?.title ?? "an assignment";
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  const link = appUrl
+    ? `${appUrl}/teacher/assignments/${args.assignmentId}/grade/${args.submissionId}`
+    : null;
+
+  const fullName = `${args.author.first_name} ${args.author.last_name}`.trim();
+  const subject = `${args.author.first_name || "A student"} replied to your feedback`;
+  const bodyHtml = escapeHtml(args.body).replace(/\n/g, "<br>");
+
+  await sendEmail({
+    to: recipients,
+    subject,
+    html: `
+      <p>${escapeHtml(fullName)} replied to your feedback on <strong>${escapeHtml(title)}</strong>:</p>
+      <blockquote style="margin:0 0 1em;padding:0.5em 1em;border-left:3px solid #cdb088;color:#555;">
+        ${bodyHtml}
+      </blockquote>
+      ${link ? `<p><a href="${link}">View in Stardrop</a></p>` : ""}
+    `.trim(),
+    text: `${fullName} replied to your feedback on ${title}:\n\n${args.body}${link ? `\n\n${link}` : ""}`,
+  });
 }
