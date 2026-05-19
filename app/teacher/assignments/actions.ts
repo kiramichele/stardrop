@@ -8,6 +8,7 @@ import { requireTeacher, getCurrentUser } from "@/lib/auth";
 import { sendEmail, escapeHtml } from "@/lib/email";
 import { feedbackMessages } from "@/lib/feedback-server";
 import { computeAutoGrade, type AssignmentType } from "@/lib/assignments";
+import { asProfile } from "@/lib/profile";
 import type { Json } from "@/types/database";
 
 const VALID_TYPES: AssignmentType[] = [
@@ -537,11 +538,15 @@ async function notifyTeachersOfStudentReply(args: {
   const admin = createAdminClient();
   const { data: teachers } = await admin
     .from("users")
-    .select("real_email")
+    .select("*")
     .eq("role", "teacher");
   const recipients = (teachers ?? [])
-    .map((t) => t.real_email)
-    .filter((e): e is string => !!e && e.includes("@"));
+    .map((t) => asProfile(t))
+    .filter(
+      (t) =>
+        t.email_notifications && !!t.real_email && t.real_email.includes("@")
+    )
+    .map((t) => t.real_email as string);
   if (recipients.length === 0) return;
 
   const { data: assignment } = await admin

@@ -127,7 +127,7 @@ const animals = [
   "moth", "crow", "hawk", "swan", "cat", "moose", "lynx",
 ];
 
-function generatePassword(): string {
+export function generatePassword(): string {
   const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
   const animal = animals[Math.floor(Math.random() * animals.length)];
   const num = Math.floor(Math.random() * 90) + 10;

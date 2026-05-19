@@ -1,14 +1,41 @@
 interface AvatarProps {
   firstName: string | null | undefined;
   lastName: string | null | undefined;
-  size?: "sm" | "md";
+  avatarUrl?: string | null;
+  size?: "sm" | "md" | "lg";
 }
 
-export function Avatar({ firstName, lastName, size = "md" }: AvatarProps) {
+const SIZE_CLASSES: Record<NonNullable<AvatarProps["size"]>, string> = {
+  sm: "w-7 h-7 text-xs",
+  md: "w-9 h-9 text-sm",
+  lg: "w-24 h-24 text-2xl",
+};
+
+export function Avatar({
+  firstName,
+  lastName,
+  avatarUrl,
+  size = "md",
+}: AvatarProps) {
+  const sizeClasses = SIZE_CLASSES[size];
+
+  if (avatarUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={avatarUrl}
+        alt=""
+        className={[
+          "rounded-full object-cover flex-shrink-0 bg-cream-200",
+          sizeClasses,
+        ].join(" ")}
+      />
+    );
+  }
+
   const first = (firstName ?? "").charAt(0);
   const last = (lastName ?? "").charAt(0);
   const initials = `${first}${last}`.toUpperCase() || "?";
-  const sizeClasses = size === "sm" ? "w-7 h-7 text-xs" : "w-9 h-9 text-sm";
 
   return (
     <div

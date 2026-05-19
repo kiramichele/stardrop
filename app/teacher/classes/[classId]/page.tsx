@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { asProfile, type UserProfile } from "@/lib/profile";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -28,15 +29,15 @@ export default async function ClassDetailPage({
   // Roster: get enrolled users with their profile info
   const { data: enrollments } = await supabase
     .from("enrollments")
-    .select("user_id, users(id, first_name, last_name, username, real_email)")
+    .select("user_id, users(*)")
     .eq("class_id", classId);
 
   const students = (enrollments ?? [])
     .map((e) => {
       const u = Array.isArray(e.users) ? e.users[0] : e.users;
-      return u;
+      return u ? asProfile(u) : null;
     })
-    .filter((u): u is NonNullable<typeof u> => !!u && !!u.id)
+    .filter((u): u is UserProfile => !!u && !!u.id)
     .sort((a, b) => {
       const ln = a.last_name.localeCompare(b.last_name);
       return ln !== 0 ? ln : a.first_name.localeCompare(b.first_name);

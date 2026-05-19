@@ -1,9 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { UserMinus, Loader2 } from "lucide-react";
+import { UserMinus, Loader2, KeyRound, ImageOff } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
-import { moveStudent, removeStudentFromClass } from "../actions";
+import {
+  moveStudent,
+  removeStudentFromClass,
+  resetStudentPassword,
+  removeStudentAvatar,
+} from "../actions";
 
 interface StudentRowProps {
   enrollmentUser: {
@@ -12,6 +17,7 @@ interface StudentRowProps {
     last_name: string;
     username: string;
     real_email: string | null;
+    avatar_url: string | null;
   };
   classId: string;
   className: string;
@@ -26,6 +32,8 @@ export function StudentRow({
 }: StudentRowProps) {
   const [moveSelect, setMoveSelect] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [hasAvatar, setHasAvatar] = useState(!!user.avatar_url);
+  const [resetPassword, setResetPassword] = useState<string | null>(null);
 
   function handleMove(targetClassId: string) {
     const target = otherClasses.find((c) => c.id === targetClassId);
@@ -68,6 +76,35 @@ export function StudentRow({
     });
   }
 
+  function handleResetPassword() {
+    const ok = confirm(
+      `Reset ${user.first_name} ${user.last_name}'s password?\n\nTheir current password stops working immediately. The new one is emailed to them (if an email is on file) and shown here.`
+    );
+    if (!ok) return;
+
+    startTransition(async () => {
+      const r = await resetStudentPassword(user.id, classId);
+      if (r.ok) {
+        setResetPassword(r.password);
+      } else {
+        alert(`Reset failed: ${r.error}`);
+      }
+    });
+  }
+
+  function handleRemovePhoto() {
+    const ok = confirm(
+      `Remove ${user.first_name} ${user.last_name}'s profile photo?`
+    );
+    if (!ok) return;
+
+    startTransition(async () => {
+      const r = await removeStudentAvatar(user.id, classId);
+      if (r.ok) setHasAvatar(false);
+      else alert(`Remove failed: ${r.error ?? "unknown error"}`);
+    });
+  }
+
   return (
     <div
       className={[
@@ -75,7 +112,12 @@ export function StudentRow({
         isPending ? "opacity-50 pointer-events-none" : "hover:bg-cream-200",
       ].join(" ")}
     >
-      <Avatar firstName={user.first_name} lastName={user.last_name} size="sm" />
+      <Avatar
+        firstName={user.first_name}
+        lastName={user.last_name}
+        avatarUrl={hasAvatar ? user.avatar_url : null}
+        size="sm"
+      />
 
       <div className="flex-1 min-w-0">
         <p className="font-medium text-wood-900 truncate">
@@ -90,6 +132,12 @@ export function StudentRow({
             </>
           )}
         </p>
+        {resetPassword && (
+          <p className="text-xs text-honey-700 mt-0.5">
+            New password:{" "}
+            <span className="font-mono font-semibold">{resetPassword}</span>
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150">
@@ -118,6 +166,30 @@ export function StudentRow({
               </option>
             ))}
           </select>
+        )}
+
+        <button
+          type="button"
+          onClick={handleResetPassword}
+          disabled={isPending}
+          className="p-1.5 rounded-cozy text-wood-500 hover:text-terracotta-700 hover:bg-terracotta-50 disabled:opacity-50 transition-colors"
+          title="Reset password"
+          aria-label={`Reset ${user.first_name} ${user.last_name}'s password`}
+        >
+          <KeyRound className="w-3.5 h-3.5" strokeWidth={1.75} />
+        </button>
+
+        {hasAvatar && (
+          <button
+            type="button"
+            onClick={handleRemovePhoto}
+            disabled={isPending}
+            className="p-1.5 rounded-cozy text-wood-500 hover:text-terracotta-700 hover:bg-terracotta-50 disabled:opacity-50 transition-colors"
+            title="Remove profile photo"
+            aria-label={`Remove ${user.first_name} ${user.last_name}'s profile photo`}
+          >
+            <ImageOff className="w-3.5 h-3.5" strokeWidth={1.75} />
+          </button>
         )}
 
         <button

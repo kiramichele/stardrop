@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireTeacher } from "@/lib/auth";
+import { updateProfileColumns } from "@/lib/profile-server";
+import { generatePassword } from "@/lib/csv";
+import { sendNewPasswordEmail } from "@/lib/email";
 
 // =============================================================
 // Class CRUD
@@ -101,4 +105,69 @@ export async function removeStudentFromClass(userId: string, classId: string) {
 
   revalidatePath(`/teacher/classes/${classId}`);
   revalidatePath("/teacher/classes");
+}
+
+// =============================================================
+// Student profile moderation
+// =============================================================
+
+/**
+ * Teacher-initiated password reset for a student who's locked out.
+ * Sets a fresh password and emails it; also returns it so the teacher
+ * can read it out in person if email isn't configured / didn't land.
+ */
+export async function resetStudentPassword(
+  userId: string,
+  classId: string
+): Promise<
+  | { ok: true; password: string; emailed: boolean }
+  | { ok: false; error: string }
+> {
+  await requireTeacher();
+  const admin = createAdminClient();
+
+  const { data: student } = await admin
+    .from("users")
+    .select("id, first_name, real_email, role")
+    .eq("id", userId)
+    .single();
+  if (!student) return { ok: false, error: "Student not found" };
+
+  const newPassword = generatePassword();
+  const { error } = await admin.auth.admin.updateUserById(userId, {
+    password: newPassword,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  let emailed = false;
+  if (student.real_email) {
+    const result = await sendNewPasswordEmail(
+      student.real_email,
+      student.first_name,
+      newPassword
+    );
+    emailed = result.ok;
+  }
+
+  revalidatePath(`/teacher/classes/${classId}`);
+  return { ok: true, password: newPassword, emailed };
+}
+
+/**
+ * Teacher removes a student's profile photo (moderation).
+ */
+export async function removeStudentAvatar(
+  userId: string,
+  classId: string
+): Promise<{ ok: boolean; error?: string }> {
+  await requireTeacher();
+  const admin = createAdminClient();
+  await admin.storage.from("avatars").remove([userId]);
+  const { error } = await updateProfileColumns(admin, userId, {
+    avatar_url: null,
+  });
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/teacher/classes/${classId}`);
+  return { ok: true };
 }

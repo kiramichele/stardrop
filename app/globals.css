@@ -169,3 +169,14 @@
     color: var(--color-wood-500);
   }
 }
+
+/* Per-user "reduced motion" preference. AppShell adds .reduce-motion to its
+   root element when the signed-in user has the preference turned on. */
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
