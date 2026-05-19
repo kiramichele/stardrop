@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ClipboardList, Plus, ArrowRight } from "lucide-react";
-import { getAssignmentsForTeacher, type AssignmentType } from "@/lib/assignments";
+import { type AssignmentType } from "@/lib/assignments";
+import { getAssignmentsForTeacher } from "@/lib/assignments-server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";

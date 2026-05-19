@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { ClipboardList, ArrowRight, Clock } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
-import {
-  getAssignmentsForStudent,
-  computeLateness,
-  type AssignmentType,
-} from "@/lib/assignments";
+import { computeLateness, type AssignmentType } from "@/lib/assignments";
+import { getAssignmentsForStudent } from "@/lib/assignments-server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";

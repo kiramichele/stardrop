@@ -9,12 +9,11 @@ import {
   Download,
   ExternalLink,
 } from "lucide-react";
+import { computeLateness, type AssignmentType } from "@/lib/assignments";
 import {
   getAssignment,
   getSubmissionsForAssignment,
-  computeLateness,
-  type AssignmentType,
-} from "@/lib/assignments";
+} from "@/lib/assignments-server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";

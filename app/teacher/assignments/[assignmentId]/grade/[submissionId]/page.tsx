@@ -2,13 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import {
-  getSubmissionForGrading,
-  getSubmissionEvents,
   computeLateness,
   computeAutoGrade,
   countWords,
   type AssignmentType,
 } from "@/lib/assignments";
+import {
+  getSubmissionForGrading,
+  getSubmissionEvents,
+} from "@/lib/assignments-server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { SubmissionStatusBadge } from "@/components/assignments/Badges";

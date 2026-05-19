@@ -2,12 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Award, Eye, MessagesSquare } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
+import { computeLateness, type AssignmentType } from "@/lib/assignments";
 import {
   getAssignmentForStudent,
   getOtherDiscussionPosts,
-  computeLateness,
-  type AssignmentType,
-} from "@/lib/assignments";
+} from "@/lib/assignments-server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
