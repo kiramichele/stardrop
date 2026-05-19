@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
 interface PageHeaderProps {
-  eyebrow?: string;
+  eyebrow?: ReactNode;
   title: string;
-  description?: string;
+  description?: ReactNode;
   action?: ReactNode;
 }
 

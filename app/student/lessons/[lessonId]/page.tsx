@@ -20,6 +20,14 @@ export default async function StudentLessonPage({
   const { lesson, unit, completed, locked } = result;
   const markComplete = markLessonComplete.bind(null, lessonId);
 
+  let htmlContent: string | null = null;
+  if (!locked && lesson.html_url) {
+    try {
+      const res = await fetch(lesson.html_url, { cache: "no-store" });
+      if (res.ok) htmlContent = await res.text();
+    } catch {}
+  }
+
   return (
     <>
       <Link
@@ -33,7 +41,7 @@ export default async function StudentLessonPage({
       <PageHeader eyebrow={unit.title} title={lesson.title} />
 
       <LessonViewer
-        htmlUrl={lesson.html_url}
+        htmlContent={htmlContent}
         completed={completed}
         locked={locked}
         onMarkComplete={markComplete}

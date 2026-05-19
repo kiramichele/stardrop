@@ -131,7 +131,7 @@ export async function updateLesson(lessonId: string, formData: FormData) {
   }
 
   revalidatePath(`/teacher/lessons/units/${lesson.unit_id}`);
-  revalidatePath(`/teacher/lessons/lessons/${lessonId}`);
+  revalidatePath(`/teacher/lessons/${lessonId}`);
 }
 
 export async function deleteLesson(lessonId: string) {
@@ -165,9 +165,16 @@ async function uploadLessonHtml(lessonId: string, file: File) {
   const admin = createAdminClient();
   const path = `${lessonId}.html`;
 
+  // ArrayBuffer (not File) so storage-js honors contentType. Blob bodies get
+  // FormData-wrapped and the contentType option is silently dropped — the
+  // server then stores whatever the browser put in file.type, which for many
+  // .html exports is "" or "application/octet-stream", and browsers render
+  // those as plain text instead of HTML.
+  const bytes = await file.arrayBuffer();
+
   const { error: uploadError } = await admin.storage
     .from("lessons")
-    .upload(path, file, {
+    .upload(path, bytes, {
       cacheControl: "60",
       upsert: true,
       contentType: "text/html",
@@ -177,10 +184,11 @@ async function uploadLessonHtml(lessonId: string, file: File) {
   const { data: urlData } = admin.storage.from("lessons").getPublicUrl(path);
 
   const supabase = await createClient();
-  await supabase
+  const { error: rowError } = await supabase
     .from("lessons")
     .update({ html_url: urlData.publicUrl })
     .eq("id", lessonId);
+  if (rowError) throw new Error(`html_url update failed: ${rowError.message}`);
 }
 
 // =============================================================

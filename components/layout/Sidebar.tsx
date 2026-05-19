@@ -26,12 +26,7 @@ const teacherNav: NavItem[] = [
   { label: "Dashboard", href: "/teacher", icon: LayoutDashboard },
   { label: "Classes", href: "/teacher/classes", icon: Users },
   { label: "Lessons", href: "/teacher/lessons", icon: BookOpen },
-  {
-    label: "Assignments",
-    href: "/teacher/assignments",
-    icon: ClipboardList,
-    comingSoon: true,
-  },
+  { label: "Assignments", href: "/teacher/assignments", icon: ClipboardList },
   {
     label: "Discussions",
     href: "/teacher/discussions",
@@ -46,12 +41,7 @@ const teacherNav: NavItem[] = [
 const studentNav: NavItem[] = [
   { label: "Dashboard", href: "/student", icon: LayoutDashboard },
   { label: "Lessons", href: "/student/lessons", icon: BookOpen },
-  {
-    label: "Assignments",
-    href: "/student/assignments",
-    icon: ClipboardList,
-    comingSoon: true,
-  },
+  { label: "Assignments", href: "/student/assignments", icon: ClipboardList },
   { label: "Grades", href: "/student/grades", icon: Award, comingSoon: true },
   {
     label: "Discussions",
@@ -75,7 +65,10 @@ export function Sidebar({ role }: SidebarProps) {
   return (
     <aside className="hidden md:flex w-60 flex-col bg-cream-50/80 backdrop-blur-sm border-r border-wood-100/70">
       <div className="px-6 py-6">
-        <Link href={role === "teacher" ? "/teacher" : "/student"} className="block">
+        <Link
+          href={role === "teacher" ? "/teacher" : "/student"}
+          className="block"
+        >
           <h1 className="font-display text-2xl text-terracotta-700 leading-none">
             Stardrop
           </h1>
@@ -119,10 +112,7 @@ export function Sidebar({ role }: SidebarProps) {
                   : "text-wood-700 hover:bg-cream-200 hover:text-wood-900",
               ].join(" ")}
             >
-              <Icon
-                className="w-4 h-4"
-                strokeWidth={isActive ? 2 : 1.75}
-              />
+              <Icon className="w-4 h-4" strokeWidth={isActive ? 2 : 1.75} />
               <span>{item.label}</span>
             </Link>
           );

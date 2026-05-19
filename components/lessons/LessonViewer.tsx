@@ -5,7 +5,7 @@ import { Check, Lock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
 interface LessonViewerProps {
-  htmlUrl: string | null;
+  htmlContent: string | null;
   completed: boolean;
   locked: boolean;
   /** Server action — when omitted, the mark-complete control is hidden (teacher preview mode). */
@@ -14,7 +14,7 @@ interface LessonViewerProps {
 }
 
 export function LessonViewer({
-  htmlUrl,
+  htmlContent,
   completed,
   locked,
   onMarkComplete,
@@ -40,7 +40,7 @@ export function LessonViewer({
     );
   }
 
-  if (!htmlUrl) {
+  if (!htmlContent) {
     return (
       <div
         className="flex flex-col items-center justify-center bg-cream-100 rounded-cozy-lg border border-wood-100"
@@ -55,7 +55,7 @@ export function LessonViewer({
     <div className="space-y-4 animate-fade-in">
       <div className="bg-white rounded-cozy-lg shadow-cozy border border-wood-100 overflow-hidden">
         <iframe
-          src={htmlUrl}
+          srcDoc={htmlContent}
           // allow-scripts so interactive lessons work; intentionally no allow-same-origin
           // so the iframe can't reach back into Stardrop's session
           sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
