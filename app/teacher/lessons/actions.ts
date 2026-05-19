@@ -132,6 +132,44 @@ export async function updateLesson(lessonId: string, formData: FormData) {
   revalidatePath(`/teacher/lessons/${lessonId}`);
 }
 
+/**
+ * Swap a lesson's `order` with its immediate neighbour in the same unit.
+ * Three-step swap (with a sentinel value of -1) so this stays correct
+ * even if (unit_id, order) ever gets a unique constraint.
+ */
+export async function moveLesson(
+  lessonId: string,
+  direction: "up" | "down"
+) {
+  await requireTeacher();
+  const supabase = await createClient();
+
+  const { data: current } = await supabase
+    .from("lessons")
+    .select("id, unit_id, order")
+    .eq("id", lessonId)
+    .single();
+  if (!current) return;
+
+  let q = supabase
+    .from("lessons")
+    .select("id, order")
+    .eq("unit_id", current.unit_id);
+  if (direction === "up") {
+    q = q.lt("order", current.order).order("order", { ascending: false });
+  } else {
+    q = q.gt("order", current.order).order("order", { ascending: true });
+  }
+  const { data: adjacent } = await q.limit(1).maybeSingle();
+  if (!adjacent) return;
+
+  await supabase.from("lessons").update({ order: -1 }).eq("id", current.id);
+  await supabase.from("lessons").update({ order: current.order }).eq("id", adjacent.id);
+  await supabase.from("lessons").update({ order: adjacent.order }).eq("id", current.id);
+
+  revalidatePath(`/teacher/lessons/units/${current.unit_id}`);
+}
+
 export async function deleteLesson(lessonId: string) {
   await requireTeacher();
   const supabase = await createClient();

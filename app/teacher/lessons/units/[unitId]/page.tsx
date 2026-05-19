@@ -70,12 +70,14 @@ export default async function UnitDetailPage({
           ) : (
             <Card padded={false} className="overflow-hidden">
               <ul className="divide-y divide-wood-100">
-                {unit.lessons.map((lesson) => (
+                {unit.lessons.map((lesson, idx) => (
                   <li key={lesson.id} className="p-1.5">
                     <LessonRow
                       lesson={lesson}
                       href={`/teacher/lessons/${lesson.id}`}
                       role="teacher"
+                      canMoveUp={idx > 0}
+                      canMoveDown={idx < unit.lessons.length - 1}
                     />
                   </li>
                 ))}

@@ -7,9 +7,19 @@ interface LessonRowProps {
   lesson: LessonWithStatus;
   href: string;
   role: "teacher" | "student";
+  /** Position-aware: pass `false` for the first lesson in the list. */
+  canMoveUp?: boolean;
+  /** Position-aware: pass `false` for the last lesson in the list. */
+  canMoveDown?: boolean;
 }
 
-export function LessonRow({ lesson, href, role }: LessonRowProps) {
+export function LessonRow({
+  lesson,
+  href,
+  role,
+  canMoveUp = false,
+  canMoveDown = false,
+}: LessonRowProps) {
   const isTeacher = role === "teacher";
   const isInteractive = !lesson.locked || isTeacher;
 
@@ -97,6 +107,8 @@ export function LessonRow({ lesson, href, role }: LessonRowProps) {
           lessonId={lesson.id}
           lessonTitle={lesson.title}
           editHref={href}
+          canMoveUp={canMoveUp}
+          canMoveDown={canMoveDown}
         />
       )}
     </div>
