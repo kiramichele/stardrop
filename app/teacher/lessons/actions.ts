@@ -76,7 +76,6 @@ export async function createLesson(unitId: string, formData: FormData) {
 
   const supabase = await createClient();
 
-  // Next order for this unit
   const { data: existing } = await supabase
     .from("lessons")
     .select("order")
@@ -86,7 +85,6 @@ export async function createLesson(unitId: string, formData: FormData) {
     .maybeSingle();
   const nextOrder = (existing?.order ?? -1) + 1;
 
-  // Create the row first to get an ID for the storage path
   const { data: lesson, error: insertError } = await supabase
     .from("lessons")
     .insert({ unit_id: unitId, title, order: nextOrder })
@@ -96,7 +94,6 @@ export async function createLesson(unitId: string, formData: FormData) {
     throw new Error(insertError?.message ?? "Failed to create lesson");
   }
 
-  // Optionally upload the HTML file if provided
   if (file && file.size > 0) {
     await uploadLessonHtml(lesson.id, file);
   }
@@ -143,7 +140,6 @@ export async function deleteLesson(lessonId: string) {
     .eq("id", lessonId)
     .single();
 
-  // Delete storage object if any
   const admin = createAdminClient();
   await admin.storage.from("lessons").remove([`${lessonId}.html`]);
 
@@ -155,26 +151,25 @@ export async function deleteLesson(lessonId: string) {
 }
 
 /**
- * Upload an HTML file for a lesson. Stores at lessons/${lessonId}.html
- * and updates the lesson row with the public URL.
+ * Upload an HTML file for a lesson. Re-wraps the file as a Blob with
+ * explicit text/html MIME type to guarantee correct Content-Type
+ * when served, so browsers render it instead of showing source.
  */
 async function uploadLessonHtml(lessonId: string, file: File) {
   if (!file.name.toLowerCase().endsWith(".html")) {
     throw new Error("Lesson file must be an .html file");
   }
+
+  // Re-wrap as a text/html Blob — see note in assignments/actions.ts
+  const arrayBuffer = await file.arrayBuffer();
+  const htmlBlob = new Blob([arrayBuffer], { type: "text/html" });
+
   const admin = createAdminClient();
   const path = `${lessonId}.html`;
 
-  // ArrayBuffer (not File) so storage-js honors contentType. Blob bodies get
-  // FormData-wrapped and the contentType option is silently dropped — the
-  // server then stores whatever the browser put in file.type, which for many
-  // .html exports is "" or "application/octet-stream", and browsers render
-  // those as plain text instead of HTML.
-  const bytes = await file.arrayBuffer();
-
   const { error: uploadError } = await admin.storage
     .from("lessons")
-    .upload(path, bytes, {
+    .upload(path, htmlBlob, {
       cacheControl: "60",
       upsert: true,
       contentType: "text/html",
@@ -184,11 +179,10 @@ async function uploadLessonHtml(lessonId: string, file: File) {
   const { data: urlData } = admin.storage.from("lessons").getPublicUrl(path);
 
   const supabase = await createClient();
-  const { error: rowError } = await supabase
+  await supabase
     .from("lessons")
     .update({ html_url: urlData.publicUrl })
     .eq("id", lessonId);
-  if (rowError) throw new Error(`html_url update failed: ${rowError.message}`);
 }
 
 // =============================================================

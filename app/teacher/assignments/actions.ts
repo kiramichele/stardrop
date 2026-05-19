@@ -85,7 +85,6 @@ export async function deleteAssignment(assignmentId: string) {
   await requireTeacher();
   const supabase = await createClient();
 
-  // Delete storage file if any (best effort)
   const admin = createAdminClient();
   await admin.storage.from("lessons").remove([`assignments/${assignmentId}.html`]);
 
@@ -101,6 +100,12 @@ export async function deleteAssignment(assignmentId: string) {
 
 // =============================================================
 // Interactive HTML upload
+//
+// Re-wrap the uploaded file as a Blob with an explicit text/html
+// MIME type. Without this, Supabase Storage sometimes stores the
+// content type as text/plain or application/octet-stream depending
+// on the browser's File metadata, and browsers show source code
+// instead of rendering the HTML.
 // =============================================================
 
 export async function uploadInteractiveHtml(
@@ -114,18 +119,16 @@ export async function uploadInteractiveHtml(
     throw new Error("File must be an .html file");
   }
 
+  // Re-wrap as a text/html Blob to guarantee correct Content-Type
+  const arrayBuffer = await file.arrayBuffer();
+  const htmlBlob = new Blob([arrayBuffer], { type: "text/html" });
+
   const admin = createAdminClient();
   const path = `assignments/${assignmentId}.html`;
 
-  // ArrayBuffer (not File) so storage-js honors contentType. Blob bodies get
-  // FormData-wrapped and the contentType option is silently dropped — the
-  // server then stores whatever the browser put in file.type, which is often
-  // "" or "application/octet-stream", and browsers render those as plain text.
-  const bytes = await file.arrayBuffer();
-
   const { error: uploadError } = await admin.storage
     .from("lessons")
-    .upload(path, bytes, {
+    .upload(path, htmlBlob, {
       cacheControl: "60",
       upsert: true,
       contentType: "text/html",
