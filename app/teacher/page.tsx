@@ -1,96 +1,196 @@
 import Link from "next/link";
-import { Users, Upload, ArrowRight } from "lucide-react";
+import { ArrowRight, Users, BookOpen, ClipboardList, Code2 } from "lucide-react";
+import { requireTeacher } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
 
-export default async function ClassesPage() {
+export default async function TeacherDashboard() {
+  const user = await requireTeacher();
   const supabase = await createClient();
 
-  const { data: classes } = await supabase
-    .from("classes")
-    .select("id, name, period_number, term, enrollments(count)")
-    .order("period_number", { ascending: true, nullsFirst: false });
+  const [
+    { data: classes },
+    { data: units },
+    { data: assignments },
+    { data: ungraded },
+  ] = await Promise.all([
+    supabase.from("classes").select("id, enrollments(count)"),
+    supabase.from("units").select("id, published"),
+    supabase.from("assignments").select("id, published"),
+    supabase
+      .from("submissions")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "submitted"),
+  ]);
+
+  const classCount = classes?.length ?? 0;
+  const studentCount =
+    classes?.reduce(
+      (sum, c) =>
+        sum +
+        (Array.isArray(c.enrollments) && c.enrollments[0]
+          ? c.enrollments[0].count
+          : 0),
+      0
+    ) ?? 0;
+  const unitCount = units?.length ?? 0;
+  const publishedUnits = units?.filter((u) => u.published).length ?? 0;
+  const assignmentCount = assignments?.length ?? 0;
+  const publishedAssignments =
+    assignments?.filter((a) => a.published).length ?? 0;
+  const ungradedCount = (ungraded as unknown as { count?: number })?.count ?? 0;
 
   return (
     <>
       <PageHeader
-        eyebrow="Teacher"
-        title="Classes"
-        description="Your three Game Design sections and their rosters."
-        action={
-          <Link href="/teacher/classes/import">
-            <Button>
-              <Upload className="w-4 h-4" strokeWidth={2} />
-              Import CSV
-            </Button>
-          </Link>
-        }
+        eyebrow="Dashboard"
+        title={`Welcome back, ${user.first_name}`}
+        description="Your hub for Game Design — three sections, one cozy spot."
       />
 
-      {!classes || classes.length === 0 ? (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
         <Card>
-          <EmptyState
-            icon={Users}
-            title="No classes yet"
-            description="Import a CSV roster to create your first class and student accounts."
-            action={
-              <Link href="/teacher/classes/import">
-                <Button>
-                  <Upload className="w-4 h-4" strokeWidth={2} />
-                  Import your first CSV
-                </Button>
-              </Link>
-            }
-          />
+          <p className="label-eyebrow">Classes</p>
+          <p className="font-display text-3xl text-wood-900 mt-1">
+            {classCount}
+          </p>
+          <p className="text-xs text-wood-500 mt-0.5">
+            {studentCount} {studentCount === 1 ? "student" : "students"}
+          </p>
         </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {classes.map((c) => {
-            const count =
-              Array.isArray(c.enrollments) && c.enrollments[0]
-                ? c.enrollments[0].count
-                : 0;
-            return (
-              <Link
-                key={c.id}
-                href={`/teacher/classes/${c.id}`}
-                className="block"
-              >
-                <Card hoverable className="group">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
-                      {c.period_number && (
-                        <p className="label-eyebrow mb-1.5">
-                          Period {c.period_number}
-                        </p>
-                      )}
-                      <h3 className="font-display text-xl text-wood-900 truncate">
-                        {c.name}
-                      </h3>
-                      <p className="text-sm text-wood-600 mt-1">{c.term}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="font-display text-2xl text-terracotta-700">
-                        {count}
-                      </p>
-                      <p className="text-[0.7rem] uppercase tracking-wide-label text-wood-500 font-semibold">
-                        {count === 1 ? "student" : "students"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-sm text-wood-500 mt-4 pt-4 border-t border-wood-100 group-hover:text-terracotta-700 transition-colors">
-                    <span className="font-medium">Manage roster</span>
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
-                  </div>
-                </Card>
-              </Link>
-            );
-          })}
+        <Card>
+          <p className="label-eyebrow">Units</p>
+          <p className="font-display text-3xl text-wood-900 mt-1">
+            {unitCount}
+          </p>
+          {unitCount > 0 && (
+            <p className="text-xs text-wood-500 mt-0.5">
+              {publishedUnits} published
+            </p>
+          )}
+        </Card>
+        <Card>
+          <p className="label-eyebrow">Assignments</p>
+          <p className="font-display text-3xl text-wood-900 mt-1">
+            {assignmentCount}
+          </p>
+          {assignmentCount > 0 && (
+            <p className="text-xs text-wood-500 mt-0.5">
+              {publishedAssignments} published
+            </p>
+          )}
+        </Card>
+        <Card
+          className={
+            ungradedCount > 0
+              ? "bg-honey-50 border-honey-200"
+              : "bg-sage-50 border-sage-200"
+          }
+        >
+          <p
+            className={[
+              "label-eyebrow",
+              ungradedCount > 0 ? "text-honey-700" : "text-sage-700",
+            ].join(" ")}
+          >
+            To grade
+          </p>
+          <p className="font-display text-3xl text-wood-900 mt-1">
+            {ungradedCount}
+          </p>
+          <p className="text-xs text-wood-500 mt-0.5">
+            {ungradedCount > 0 ? "Submissions waiting" : "All caught up"}
+          </p>
+        </Card>
+      </div>
+
+      <h2 className="font-display text-xl text-wood-800 mb-4">Get to work</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Link href="/teacher/classes" className="block">
+          <Card hoverable className="h-full">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-cozy bg-terracotta-100 text-terracotta-700 flex items-center justify-center flex-shrink-0">
+                <Users className="w-5 h-5" strokeWidth={1.75} />
+              </div>
+              <div className="flex-1">
+                <CardTitle className="text-lg">Classes</CardTitle>
+                <CardDescription>
+                  Rosters, CSV import, move students between sections.
+                </CardDescription>
+                <p className="text-sm text-terracotta-700 mt-3 inline-flex items-center gap-1 font-medium">
+                  Open <ArrowRight className="w-3.5 h-3.5" />
+                </p>
+              </div>
+            </div>
+          </Card>
+        </Link>
+
+        <Link href="/teacher/lessons" className="block">
+          <Card hoverable className="h-full">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-cozy bg-sage-100 text-sage-700 flex items-center justify-center flex-shrink-0">
+                <BookOpen className="w-5 h-5" strokeWidth={1.75} />
+              </div>
+              <div className="flex-1">
+                <CardTitle className="text-lg">Lessons</CardTitle>
+                <CardDescription>
+                  Units, lesson HTML, completion tracking.
+                </CardDescription>
+                <p className="text-sm text-sage-700 mt-3 inline-flex items-center gap-1 font-medium">
+                  Open <ArrowRight className="w-3.5 h-3.5" />
+                </p>
+              </div>
+            </div>
+          </Card>
+        </Link>
+
+        <Link href="/teacher/assignments" className="block">
+          <Card hoverable className="h-full">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-cozy bg-honey-100 text-honey-700 flex items-center justify-center flex-shrink-0">
+                <ClipboardList className="w-5 h-5" strokeWidth={1.75} />
+              </div>
+              <div className="flex-1">
+                <CardTitle className="text-lg">Assignments</CardTitle>
+                <CardDescription>
+                  Create, edit, grade. Code + interactive HTML so far.
+                </CardDescription>
+                <p className="text-sm text-honey-700 mt-3 inline-flex items-center gap-1 font-medium">
+                  Open <ArrowRight className="w-3.5 h-3.5" />
+                </p>
+              </div>
+            </div>
+          </Card>
+        </Link>
+      </div>
+
+      {/* Sandbox callout — for demo / showing off the editor */}
+      <Card className="bg-cream-50 border-honey-200">
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-cozy bg-honey-100 text-honey-700 flex items-center justify-center flex-shrink-0">
+            <Code2 className="w-5 h-5" strokeWidth={1.75} />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-base">Code editor sandbox</CardTitle>
+              <span className="label-eyebrow text-honey-700">Demo</span>
+            </div>
+            <CardDescription>
+              The Monaco editor with Unity autocomplete, in a standalone
+              playground. Type <code className="text-terracotta-700">transform.</code>{" "}
+              or <code className="text-terracotta-700">Debug.</code> to see
+              completions. Great for walkthroughs.
+            </CardDescription>
+            <Link
+              href="/teacher/sandbox"
+              className="text-sm text-honey-700 mt-3 inline-flex items-center gap-1 font-medium hover:text-honey-800 transition-colors"
+            >
+              Open sandbox <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
-      )}
+      </Card>
     </>
   );
 }
