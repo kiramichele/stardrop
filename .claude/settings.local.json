@@ -10,7 +10,8 @@
       "Bash(curl -s -o /dev/null -w \"status=%{http_code} redirect=%{redirect_url}\\\\n\" \"http://localhost:3000/calendar\")",
       "Bash(curl -s -o /dev/null -w \"status=%{http_code} redirect=%{redirect_url}\\\\n\" \"http://localhost:3000/calendar?month=2026-09\")",
       "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"calendar=%{http_code}\\\\n\" \"http://localhost:3000/calendar\")",
-      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"slideshows=%{http_code}\\\\n\" \"http://localhost:3000/slideshows\")"
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"slideshows=%{http_code}\\\\n\" \"http://localhost:3000/slideshows\")",
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"teacher/assignments=%{http_code}\\\\n\" \"http://localhost:3000/teacher/assignments\")"
     ]
   }
 }

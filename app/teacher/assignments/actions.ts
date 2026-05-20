@@ -251,6 +251,32 @@ export async function copyAssignmentToClasses(
 }
 
 // =============================================================
+// Bulk publish / unpublish
+// =============================================================
+
+/** Publish or unpublish many assignments in one go. */
+export async function bulkSetAssignmentsPublished(
+  assignmentIds: string[],
+  published: boolean
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  await requireTeacher();
+  if (assignmentIds.length === 0) {
+    return { ok: false, error: "No assignments selected." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("assignments")
+    .update({ published })
+    .in("id", assignmentIds);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/teacher/assignments");
+  revalidatePath("/student/assignments");
+  return { ok: true, count: assignmentIds.length };
+}
+
+// =============================================================
 // Grading
 // =============================================================
 
