@@ -16,7 +16,8 @@
       "Skill(claude-api:*)",
       "Bash(npm install *)",
       "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('@anthropic-ai/sdk', p.dependencies['@anthropic-ai/sdk']\\)\")",
-      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"analytics=%{http_code}\\\\n\" \"http://localhost:3000/teacher/analytics\")"
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"analytics=%{http_code}\\\\n\" \"http://localhost:3000/teacher/analytics\")",
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"login=%{http_code}\\\\n\" \"http://localhost:3000/login\")"
     ]
   }
 }

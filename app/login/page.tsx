@@ -1,5 +1,6 @@
 import { safeRedirectPath } from "@/lib/safe-redirect";
 import { LoginForm } from "./LoginForm";
+import { ForgotPassword } from "./ForgotPassword";
 
 // Decorative starfield SVG — scattered dots evoking stardrops without being literal
 function Starfield() {
@@ -60,9 +61,7 @@ export default async function LoginPage({
           <LoginForm next={safeNext} />
         </div>
 
-        <p className="text-center text-xs text-wood-500 mt-5">
-          Forgot your password? Ask Ms. Shinn.
-        </p>
+        <ForgotPassword />
       </div>
     </div>
   );

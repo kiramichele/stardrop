@@ -103,3 +103,27 @@ export async function sendNewPasswordEmail(
     text: `Hi ${firstName},\n\nYour Stardrop password has been reset. Your new password is:\n\n${password}\n\nSign in with your username and this password.`,
   });
 }
+
+/**
+ * Notify the teacher that a student used the "Forgot password" link on the
+ * sign-in page. The teacher then resets the password from the roster.
+ */
+export async function sendPasswordResetRequestEmail(
+  to: string | string[],
+  studentName: string,
+  username: string,
+  link: string
+): Promise<SendEmailResult> {
+  return sendEmail({
+    to,
+    subject: `Password reset request — ${studentName}`,
+    html: `<p><strong>${escapeHtml(studentName)}</strong> (username <code>${escapeHtml(
+      username
+    )}</code>) used the “Forgot password” link on the Stardrop sign-in page.</p>
+<p>Reset their password from the class roster — the new password is shown to you and emailed to the student.</p>
+${link ? `<p><a href="${link}">Open the roster</a></p>` : ""}`,
+    text: `${studentName} (username ${username}) requested a password reset on Stardrop.\n\nReset it from the class roster.${
+      link ? `\n\n${link}` : ""
+    }`,
+  });
+}
