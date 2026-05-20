@@ -2,21 +2,11 @@ import Link from "next/link";
 import { Award, ClipboardList } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { getAssignmentsForStudent } from "@/lib/assignments-server";
-import { type AssignmentType } from "@/lib/assignments";
+import { letterGrade, type AssignmentType } from "@/lib/assignments";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
-
-// Standard US scale. If the class uses a different cutoff, this is the
-// one spot to change it.
-function letterGrade(pct: number): string {
-  if (pct >= 90) return "A";
-  if (pct >= 80) return "B";
-  if (pct >= 70) return "C";
-  if (pct >= 60) return "D";
-  return "F";
-}
 
 export default async function StudentGradesPage() {
   const user = await requireStudent();

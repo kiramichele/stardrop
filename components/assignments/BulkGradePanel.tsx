@@ -8,6 +8,7 @@ import {
   CheckCheck,
   CircleSlash,
   MessageSquarePlus,
+  UserRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -24,6 +25,7 @@ import type { AssignmentType } from "@/lib/assignments";
 
 export type BulkSubmissionRow = {
   id: string;
+  studentId: string;
   studentName: string;
   status: "draft" | "submitted" | "graded" | null;
   score: number | null;
@@ -331,6 +333,14 @@ export function BulkGradePanel({
                     isLate={row.isLate}
                   />
                   <ArrowRight className="w-4 h-4 text-wood-400 transition-transform duration-150 group-hover:translate-x-0.5 flex-shrink-0" />
+                </Link>
+                <Link
+                  href={`/teacher/students/${row.studentId}`}
+                  title={`View ${row.studentName}'s record`}
+                  aria-label={`View ${row.studentName}'s record`}
+                  className="flex-shrink-0 p-1.5 rounded-cozy text-wood-400 hover:text-terracotta-700 hover:bg-cream-200 transition-colors"
+                >
+                  <UserRound className="w-4 h-4" />
                 </Link>
               </li>
             ))}

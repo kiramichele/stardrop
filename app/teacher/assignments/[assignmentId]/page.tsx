@@ -99,6 +99,7 @@ export default async function AssignmentDetailPage({
         : "Not started";
     return {
       id: s.id,
+      studentId: s.user_id,
       studentName:
         `${student?.first_name ?? ""} ${student?.last_name ?? ""}`.trim() ||
         "Unknown student",

@@ -114,6 +114,19 @@ export function parseSubmissionMedia(value: unknown): SubmissionMedia[] {
 // =============================================================
 // Helpers
 // =============================================================
+
+/**
+ * Letter grade for a percentage, standard US scale. One spot to change
+ * if the class ever uses different cutoffs.
+ */
+export function letterGrade(pct: number): string {
+  if (pct >= 90) return "A";
+  if (pct >= 80) return "B";
+  if (pct >= 70) return "C";
+  if (pct >= 60) return "D";
+  return "F";
+}
+
 export function computeLateness(
   submittedAt: string | null | undefined,
   dueDate: string | null | undefined

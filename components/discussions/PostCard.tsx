@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Pin, Trash2, Flag } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { deletePost, setPostPinned } from "@/app/discussions/actions";
@@ -56,15 +57,28 @@ export function PostCard({ post, currentUserId, isTeacher }: PostCardProps) {
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium text-wood-900 text-sm">
-            {post.author
-              ? formatAuthorName(
-                  post.author.firstName,
-                  post.author.lastName,
-                  isTeacher
-                )
-              : "Unknown"}
-          </span>
+          {isTeacher && post.author && post.author.role !== "teacher" ? (
+            <Link
+              href={`/teacher/students/${post.author.id}`}
+              className="font-medium text-wood-900 text-sm hover:text-terracotta-700 transition-colors"
+            >
+              {formatAuthorName(
+                post.author.firstName,
+                post.author.lastName,
+                isTeacher
+              )}
+            </Link>
+          ) : (
+            <span className="font-medium text-wood-900 text-sm">
+              {post.author
+                ? formatAuthorName(
+                    post.author.firstName,
+                    post.author.lastName,
+                    isTeacher
+                  )
+                : "Unknown"}
+            </span>
+          )}
           {post.author?.role === "teacher" && (
             <span className="text-[0.65rem] uppercase tracking-wide-label font-semibold px-1.5 py-0.5 rounded-cozy bg-terracotta-100 text-terracotta-800">
               Teacher

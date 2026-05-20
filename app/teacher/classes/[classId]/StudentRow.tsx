@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { UserMinus, Loader2, KeyRound, ImageOff } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import {
@@ -120,9 +121,12 @@ export function StudentRow({
       />
 
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-wood-900 truncate">
+        <Link
+          href={`/teacher/students/${user.id}`}
+          className="block font-medium text-wood-900 truncate hover:text-terracotta-700 transition-colors"
+        >
           {user.first_name} {user.last_name}
-        </p>
+        </Link>
         <p className="text-xs text-wood-500 truncate font-mono">
           {user.username}
           {user.real_email && (
