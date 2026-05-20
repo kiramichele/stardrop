@@ -5,49 +5,35 @@ import {
   parseAttachments,
   type BoardPost,
   type DiscussionBoard,
+  type DiscussionAttachment,
 } from "@/lib/discussions";
+import type { Json } from "@/types/database";
 
-// =============================================================
-// discussion_posts has new columns (flagged_at, flagged_terms,
-// attachments) not yet in types/database.ts. Reads use select("*")
-// + coercePost(); inserts go through this shim. is_pinned /
-// deleted_at / deleted_reason are existing columns — those update
-// through the normal typed client.
-// =============================================================
 type DiscussionPostInsert = {
   board_id: string;
   user_id: string;
   body: string;
   parent_id: string | null;
-  is_pinned?: boolean;
-  attachments?: unknown;
-  flagged_at?: string | null;
-  flagged_terms?: string[] | null;
+  attachments: DiscussionAttachment[];
+  flagged_at: string | null;
+  flagged_terms: string[] | null;
 };
 
 export async function insertDiscussionPost(
   admin: ReturnType<typeof createAdminClient>,
   row: DiscussionPostInsert
-): Promise<{
-  data: { id: string } | null;
-  error: { message: string } | null;
-}> {
-  return (
-    admin as unknown as {
-      from: (t: string) => {
-        insert: (r: DiscussionPostInsert) => {
-          select: (c: string) => {
-            single: () => Promise<{
-              data: { id: string } | null;
-              error: { message: string } | null;
-            }>;
-          };
-        };
-      };
-    }
-  )
+) {
+  return admin
     .from("discussion_posts")
-    .insert(row)
+    .insert({
+      board_id: row.board_id,
+      user_id: row.user_id,
+      body: row.body,
+      parent_id: row.parent_id,
+      attachments: row.attachments as unknown as Json,
+      flagged_at: row.flagged_at,
+      flagged_terms: row.flagged_terms,
+    })
     .select("id")
     .single();
 }

@@ -2,76 +2,16 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { asProfile } from "@/lib/profile";
 import type { FeedbackEntry } from "@/lib/feedback";
 
-// =============================================================
-// TEMPORARY: feedback_messages isn't in types/database.ts yet.
-// After applying the migration, regenerate with:
-//   npx supabase gen types typescript --linked > types/database.ts
-// Then delete this shim and use admin.from("feedback_messages") directly.
-// =============================================================
-type FeedbackMessageRow = {
-  id: string;
-  author_id: string | null;
-  body: string;
-  created_at: string;
-  users:
-    | {
-        first_name: string;
-        last_name: string;
-        role: "teacher" | "student";
-        avatar_url: string | null;
-      }
-    | Array<{
-        first_name: string;
-        last_name: string;
-        role: "teacher" | "student";
-        avatar_url: string | null;
-      }>
-    | null;
-};
-
-export type FeedbackMessageInsert = {
-  submission_id: string;
-  author_id: string | null;
-  body: string;
-};
-
-type FeedbackQuery = {
-  select: (cols: string) => {
-    eq: (col: string, val: string) => {
-      order: (
-        col: string,
-        opts: { ascending: boolean }
-      ) => Promise<{
-        data: FeedbackMessageRow[] | null;
-        error: { message: string } | null;
-      }>;
-    };
-  };
-  insert: (
-    row: FeedbackMessageInsert
-  ) => Promise<{ error: { message: string } | null }>;
-};
-
-export function feedbackMessages(
-  client: ReturnType<typeof createAdminClient>
-): FeedbackQuery {
-  return (
-    client as unknown as { from: (table: string) => FeedbackQuery }
-  ).from("feedback_messages");
-}
-
 /**
  * Build the feedback thread for a submission.
  *
  * Composition:
  *   - First entry (if any) = the teacher's grades.feedback text, attributed
- *     to the first teacher account in the system (we don't track
- *     grader_id on grades — could enhance later).
+ *     to the first teacher account in the system.
  *   - Remaining entries = rows from feedback_messages, oldest first.
  *
  * Uses the admin client so a student can see their own thread regardless
- * of RLS on feedback_messages. The calling page is responsible for
- * gating access (student must own the submission).
+ * of RLS. The calling page gates access (student must own the submission).
  */
 export async function getFeedbackThread(
   submissionId: string
@@ -84,7 +24,8 @@ export async function getFeedbackThread(
       .select("feedback, graded_at")
       .eq("submission_id", submissionId)
       .maybeSingle(),
-    feedbackMessages(admin)
+    admin
+      .from("feedback_messages")
       .select(
         "id, author_id, body, created_at, users(first_name, last_name, role, avatar_url)"
       )
@@ -95,7 +36,6 @@ export async function getFeedbackThread(
   const entries: FeedbackEntry[] = [];
 
   if (grade?.feedback && grade.feedback.trim().length > 0) {
-    // Look up any teacher to attribute (and illustrate) the initial feedback
     const { data: teachers } = await admin
       .from("users")
       .select("*")

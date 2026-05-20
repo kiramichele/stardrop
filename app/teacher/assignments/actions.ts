@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireTeacher, getCurrentUser } from "@/lib/auth";
 import { sendEmail, escapeHtml } from "@/lib/email";
-import { feedbackMessages } from "@/lib/feedback-server";
 import { computeAutoGrade, type AssignmentType } from "@/lib/assignments";
 import { asProfile } from "@/lib/profile";
 import type { Json } from "@/types/database";
@@ -271,7 +270,7 @@ export async function addFeedbackMessage(
     }
   }
 
-  const { error: insertError } = await feedbackMessages(admin).insert({
+  const { error: insertError } = await admin.from("feedback_messages").insert({
     submission_id: submissionId,
     author_id: user.id,
     body,
@@ -517,7 +516,7 @@ export async function batchAddFeedback(
   const admin = createAdminClient();
   let count = 0;
   for (const id of submissionIds) {
-    const { error } = await feedbackMessages(admin).insert({
+    const { error } = await admin.from("feedback_messages").insert({
       submission_id: id,
       author_id: user.id,
       body: trimmed,
