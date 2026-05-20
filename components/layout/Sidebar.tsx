@@ -13,6 +13,7 @@ import {
   Award,
   BookMarked,
   Presentation,
+  UserRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -26,6 +27,7 @@ type NavItem = {
 const teacherNav: NavItem[] = [
   { label: "Dashboard", href: "/teacher", icon: LayoutDashboard },
   { label: "Classes", href: "/teacher/classes", icon: Users },
+  { label: "Roster", href: "/teacher/students", icon: UserRound },
   { label: "Lessons", href: "/teacher/lessons", icon: BookOpen },
   { label: "Assignments", href: "/teacher/assignments", icon: ClipboardList },
   { label: "Slideshows", href: "/slideshows", icon: Presentation },

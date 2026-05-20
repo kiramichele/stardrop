@@ -54,34 +54,39 @@ export default async function ClassesPage() {
                 ? c.enrollments[0].count
                 : 0;
             return (
-              <Card key={c.id} hoverable className="group">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    {c.period_number && (
-                      <p className="label-eyebrow mb-1.5">
-                        Period {c.period_number}
+              <Link
+                key={c.id}
+                href={`/teacher/classes/${c.id}`}
+                className="block"
+              >
+                <Card hoverable className="group h-full">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      {c.period_number && (
+                        <p className="label-eyebrow mb-1.5">
+                          Period {c.period_number}
+                        </p>
+                      )}
+                      <h3 className="font-display text-xl text-wood-900 truncate">
+                        {c.name}
+                      </h3>
+                      <p className="text-sm text-wood-600 mt-1">{c.term}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-display text-2xl text-terracotta-700">
+                        {count}
                       </p>
-                    )}
-                    <h3 className="font-display text-xl text-wood-900 truncate">
-                      {c.name}
-                    </h3>
-                    <p className="text-sm text-wood-600 mt-1">{c.term}</p>
+                      <p className="text-[0.7rem] uppercase tracking-wide-label text-wood-500 font-semibold">
+                        {count === 1 ? "student" : "students"}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="font-display text-2xl text-terracotta-700">
-                      {count}
-                    </p>
-                    <p className="text-[0.7rem] uppercase tracking-wide-label text-wood-500 font-semibold">
-                      {count === 1 ? "student" : "students"}
-                    </p>
+                  <div className="flex items-center gap-1 text-sm font-medium text-terracotta-700 mt-4 pt-4 border-t border-wood-100">
+                    <span>Roster &amp; settings</span>
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
                   </div>
-                </div>
-                <div className="flex items-center gap-1 text-sm text-wood-500 mt-4 pt-4 border-t border-wood-100">
-                  <span>Roster details</span>
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
-                  <span className="text-wood-400 ml-2">(coming next)</span>
-                </div>
-              </Card>
+                </Card>
+              </Link>
             );
           })}
         </div>
