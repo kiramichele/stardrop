@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { CalendarDays, Clock } from "lucide-react";
 import type { CalendarEvent } from "@/lib/calendar";
-import { CalendarMonth, type DatedItem } from "./CalendarMonth";
+import {
+  CalendarMonth,
+  type DatedItem,
+  type CalendarSlideshow,
+} from "./CalendarMonth";
 import { BellSchedule } from "@/components/schedule/BellSchedule";
 
 interface CalendarClientProps {
@@ -11,7 +15,7 @@ interface CalendarClientProps {
   year: number;
   month: number;
   events: CalendarEvent[];
-  slideshows: DatedItem[];
+  slideshows: CalendarSlideshow[];
   assignmentsDue: DatedItem[];
 }
 

@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Award, Eye, MessagesSquare } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Award,
+  BookOpen,
+  Eye,
+  MessagesSquare,
+} from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import {
   computeLateness,
@@ -12,6 +19,7 @@ import {
   getOtherDiscussionPosts,
 } from "@/lib/assignments-server";
 import { getFeedbackThread } from "@/lib/feedback-server";
+import { getLesson } from "@/lib/lessons";
 import { FeedbackThread } from "@/components/feedback/FeedbackThread";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -33,6 +41,9 @@ export default async function StudentAssignmentPage({
   if (!result) notFound();
 
   const { assignment, submission } = result;
+  const helpLesson = assignment.lesson_id
+    ? await getLesson(assignment.lesson_id)
+    : null;
   const grade =
     submission && Array.isArray(submission.grades)
       ? submission.grades[0]
@@ -233,7 +244,7 @@ export default async function StudentAssignmentPage({
           )}
         </div>
 
-        <div>
+        <div className="space-y-4">
           {assignment.instructions ? (
             <Card>
               <p className="label-eyebrow mb-2">Instructions</p>
@@ -253,6 +264,23 @@ export default async function StudentAssignmentPage({
               <p className="text-sm text-wood-500 italic">
                 No instructions provided.
               </p>
+            </Card>
+          )}
+
+          {helpLesson && helpLesson.published && (
+            <Card className="bg-sage-50 border-sage-200">
+              <p className="label-eyebrow text-sage-700 mb-2">Need help?</p>
+              <Link
+                href={`/student/lessons/${helpLesson.id}`}
+                className="group flex items-center gap-2 text-sm font-medium text-sage-800 hover:text-sage-900"
+              >
+                <BookOpen
+                  className="w-4 h-4 flex-shrink-0"
+                  strokeWidth={1.75}
+                />
+                <span className="flex-1">Review {helpLesson.title}</span>
+                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-150 group-hover:translate-x-0.5" />
+              </Link>
             </Card>
           )}
         </div>

@@ -9,6 +9,7 @@ import {
 } from "@/lib/assignments";
 import { getRubricsForTeacher } from "@/lib/rubrics-server";
 import { rubricMaxPoints } from "@/lib/rubrics";
+import { getUnitsForTeacher } from "@/lib/lessons";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -19,6 +20,7 @@ import {
   Select,
   FieldHint,
 } from "@/components/ui/Input";
+import { UnitLessonPicker } from "@/components/assignments/UnitLessonPicker";
 import { createAssignment } from "../actions";
 
 export default async function NewAssignmentPage() {
@@ -32,6 +34,11 @@ export default async function NewAssignmentPage() {
 
   const allTypes = Object.keys(ASSIGNMENT_TYPE_LABELS) as AssignmentType[];
   const rubrics = await getRubricsForTeacher();
+  const units = (await getUnitsForTeacher()).map((u) => ({
+    id: u.id,
+    title: u.title,
+    lessons: u.lessons.map((l) => ({ id: l.id, title: l.title })),
+  }));
 
   return (
     <>
@@ -84,6 +91,8 @@ export default async function NewAssignmentPage() {
               available. Unity upload and Check-in are coming.
             </FieldHint>
           </div>
+
+          <UnitLessonPicker units={units} />
 
           <div>
             <Label htmlFor="title">Title</Label>

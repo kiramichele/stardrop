@@ -212,3 +212,56 @@ export function computeAutoGrade(
     hasManualQuestions: totalQuestions > autoTotal,
   };
 }
+
+// =============================================================
+// Grouping assignments by unit
+// (a unit is derived from the assignment's linked lesson)
+// =============================================================
+
+export type AssignmentUnitGroup<T> = {
+  /** Stable key for React. */
+  key: string;
+  /** Unit title, or "Other assignments" for the no-unit bucket. */
+  unitTitle: string;
+  assignments: T[];
+};
+
+/**
+ * Group assignments by the unit of their linked lesson. Units keep the
+ * order given; assignments with no lesson (or a lesson not in `units`)
+ * fall into a trailing "Other assignments" group.
+ */
+export function groupAssignmentsByUnit<T extends { lesson_id: string | null }>(
+  assignments: T[],
+  units: Array<{ id: string; title: string; lessons: Array<{ id: string }> }>
+): AssignmentUnitGroup<T>[] {
+  const lessonToUnit = new Map<string, string>();
+  for (const u of units) {
+    for (const l of u.lessons) lessonToUnit.set(l.id, u.id);
+  }
+
+  const byUnit = new Map<string | null, T[]>();
+  for (const a of assignments) {
+    const unitId = a.lesson_id ? lessonToUnit.get(a.lesson_id) ?? null : null;
+    const list = byUnit.get(unitId);
+    if (list) list.push(a);
+    else byUnit.set(unitId, [a]);
+  }
+
+  const groups: AssignmentUnitGroup<T>[] = [];
+  for (const u of units) {
+    const list = byUnit.get(u.id);
+    if (list && list.length > 0) {
+      groups.push({ key: u.id, unitTitle: u.title, assignments: list });
+    }
+  }
+  const noUnit = byUnit.get(null);
+  if (noUnit && noUnit.length > 0) {
+    groups.push({
+      key: "__none__",
+      unitTitle: "Other assignments",
+      assignments: noUnit,
+    });
+  }
+  return groups;
+}

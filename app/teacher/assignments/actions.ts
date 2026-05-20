@@ -84,6 +84,7 @@ export async function updateAssignment(
   const minWordsRaw = formData.get("minimum_word_count")?.toString();
   const rubricIdRaw = formData.get("rubric_id")?.toString();
   const rubricId = rubricIdRaw && rubricIdRaw !== "" ? rubricIdRaw : null;
+  const lessonId = formData.get("lesson_id")?.toString() || null;
 
   if (!title) throw new Error("Title required");
   const points = pointsRaw ? Number.parseInt(pointsRaw, 10) : 100;
@@ -101,6 +102,7 @@ export async function updateAssignment(
       published,
       minimum_word_count: minimumWordCount,
       rubric_id: rubricId,
+      lesson_id: lessonId,
     })
     .eq("id", assignmentId);
   if (error) throw new Error(error.message);

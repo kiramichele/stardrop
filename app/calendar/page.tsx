@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCalendarEvents } from "@/lib/calendar-server";
 import { getSlideshows } from "@/lib/slideshows-server";
 import { parseMonthParam } from "@/lib/calendar";
@@ -17,24 +17,37 @@ export default async function CalendarPage({
   const { month } = await searchParams;
   const { year, month: monthIndex } = parseMonthParam(month);
 
-  const supabase = await createClient();
-  const [events, slideshows, assignmentsResult] = await Promise.all([
+  const admin = createAdminClient();
+  const [events, slideshows, assignmentsRes, lessonsRes] = await Promise.all([
     getCalendarEvents(),
     getSlideshows(),
-    supabase
-      .from("assignments")
-      .select("id, title, due_date")
-      .eq("published", true),
+    admin.from("assignments").select("id, title, due_date, published"),
+    admin.from("lessons").select("id, title"),
   ]);
 
-  const slideshowsByDate = slideshows.map((s) => ({
+  // Title lookups so the day-detail popup can name a slideshow's links.
+  const lessonTitle = new Map<string, string>();
+  for (const l of lessonsRes.data ?? []) lessonTitle.set(l.id, l.title);
+  const assignmentTitle = new Map<string, string>();
+  for (const a of assignmentsRes.data ?? []) assignmentTitle.set(a.id, a.title);
+
+  const slideshowsEnriched = slideshows.map((s) => ({
     date: s.classDate,
     id: s.id,
     title: s.title,
+    description: s.description,
+    lessons: s.lessonIds.map((id) => ({
+      id,
+      title: lessonTitle.get(id) ?? "Lesson",
+    })),
+    assignments: s.assignmentIds.map((id) => ({
+      id,
+      title: assignmentTitle.get(id) ?? "Assignment",
+    })),
   }));
 
-  const assignmentsDue = (assignmentsResult.data ?? [])
-    .filter((a) => typeof a.due_date === "string")
+  const assignmentsDue = (assignmentsRes.data ?? [])
+    .filter((a) => a.published && typeof a.due_date === "string")
     .map((a) => ({
       date: (a.due_date as string).slice(0, 10),
       id: a.id,
@@ -46,14 +59,14 @@ export default async function CalendarPage({
       <PageHeader
         eyebrow="Calendar"
         title="School calendar"
-        description="The GCA 2026–27 calendar, your daily plans, and assignment deadlines — plus the weekly bell schedule."
+        description="The GCA 2026–27 calendar, your daily plans, and assignment deadlines. Click any day for the full plan."
       />
       <CalendarClient
         role={role}
         year={year}
         month={monthIndex}
         events={events}
-        slideshows={slideshowsByDate}
+        slideshows={slideshowsEnriched}
         assignmentsDue={assignmentsDue}
       />
     </>

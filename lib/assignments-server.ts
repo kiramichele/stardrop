@@ -19,14 +19,14 @@ import {
 // =============================================================
 const SELECTS = {
   teacherAssignmentsList:
-    "id, class_id, title, type, due_date, points, published, interactive_html_url, created_at, submissions(count), classes(name, period_number)",
+    "id, class_id, lesson_id, title, type, due_date, points, published, interactive_html_url, created_at, submissions(count), classes(name, period_number)",
   assignmentWithClass: "*, classes(id, name, period_number)",
   submissionsList:
     "id, user_id, status, submitted_at, updated_at, users(first_name, last_name, username), grades(score, graded_at)",
   submissionForGrading:
     "*, users(first_name, last_name, username), assignments(title, type, instructions, points, due_date, class_id, interactive_html_url, minimum_word_count, rubric_id), grades(score, feedback, graded_at, rubric_scores)",
   studentAssignmentsList:
-    "id, class_id, title, type, due_date, points, published, interactive_html_url, classes(name, period_number)",
+    "id, class_id, lesson_id, title, type, due_date, points, published, interactive_html_url, classes(name, period_number)",
   studentSubmissionsOverlay:
     "assignment_id, status, submitted_at, grades(score)",
   studentAssignment: "*, classes(name, period_number)",

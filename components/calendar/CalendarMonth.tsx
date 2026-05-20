@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Presentation } from "lucide-react";
 import {
@@ -16,15 +17,25 @@ import {
   type CalendarCategory,
   type CalendarEvent,
 } from "@/lib/calendar";
+import { DayDetailModal } from "./DayDetailModal";
 
 export type DatedItem = { date: string; id: string; title: string };
+
+export type CalendarSlideshow = {
+  date: string;
+  id: string;
+  title: string;
+  description: string | null;
+  lessons: { id: string; title: string }[];
+  assignments: { id: string; title: string }[];
+};
 
 interface CalendarMonthProps {
   role: "teacher" | "student";
   year: number;
   month: number;
   events: CalendarEvent[];
-  slideshows: DatedItem[];
+  slideshows: CalendarSlideshow[];
   assignmentsDue: DatedItem[];
 }
 
@@ -39,12 +50,15 @@ const LEGEND_ORDER: CalendarCategory[] = [
 ];
 
 export function CalendarMonth({
+  role,
   year,
   month,
   events,
   slideshows,
   assignmentsDue,
 }: CalendarMonthProps) {
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
   const today = todayString();
   const weeks = monthGrid(year, month);
 
@@ -113,15 +127,14 @@ export function CalendarMonth({
               const plan = planByDate.get(ds);
               const due = dueByDate.get(ds) ?? [];
 
-              return (
-                <div
-                  key={ds}
-                  className={[
-                    "min-h-[6rem] p-1.5 flex flex-col gap-1",
-                    dayType ? CATEGORY_META[dayType].cellBg : "bg-cream-50",
-                    inMonth ? "" : "opacity-45",
-                  ].join(" ")}
-                >
+              const cellClass = [
+                "min-h-[6rem] p-1.5 flex flex-col gap-1 text-left",
+                dayType ? CATEGORY_META[dayType].cellBg : "bg-cream-50",
+                inMonth ? "" : "opacity-45",
+              ].join(" ");
+
+              const inner = (
+                <>
                   <div className="flex items-center justify-between">
                     <span
                       className={[
@@ -134,10 +147,7 @@ export function CalendarMonth({
                       {day.getDate()}
                     </span>
                     {due.length > 0 && (
-                      <span
-                        className="text-[0.6rem] font-semibold text-honey-800 bg-honey-100 border border-honey-200 rounded px-1 leading-tight"
-                        title={due.map((d) => d.title).join(", ")}
-                      >
+                      <span className="text-[0.6rem] font-semibold text-honey-800 bg-honey-100 border border-honey-200 rounded px-1 leading-tight">
                         {due.length} due
                       </span>
                     )}
@@ -147,7 +157,6 @@ export function CalendarMonth({
                     {dayEvents.slice(0, 3).map((e) => (
                       <span
                         key={e.id}
-                        title={e.note ? `${e.title} — ${e.note}` : e.title}
                         className={[
                           "text-[0.62rem] leading-tight px-1 py-0.5 rounded border truncate",
                           CATEGORY_META[e.category].chip,
@@ -164,16 +173,31 @@ export function CalendarMonth({
                   </div>
 
                   {plan && (
-                    <Link
-                      href={`/slideshows/${plan.id}`}
-                      title={plan.title}
-                      className="mt-auto inline-flex items-center gap-1 text-[0.62rem] font-medium text-terracotta-700 hover:text-terracotta-800"
-                    >
+                    <span className="mt-auto inline-flex items-center gap-1 text-[0.62rem] font-medium text-terracotta-700">
                       <Presentation className="w-3 h-3" />
                       <span className="truncate">Plan</span>
-                    </Link>
+                    </span>
                   )}
-                </div>
+                </>
+              );
+
+              if (!inMonth) {
+                return (
+                  <div key={ds} className={cellClass}>
+                    {inner}
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  key={ds}
+                  type="button"
+                  onClick={() => setSelectedDate(ds)}
+                  className={`${cellClass} transition-shadow hover:ring-2 hover:ring-inset hover:ring-terracotta-300`}
+                >
+                  {inner}
+                </button>
               );
             })}
           </div>
@@ -204,6 +228,21 @@ export function CalendarMonth({
           Assignment deadline
         </span>
       </div>
+
+      <p className="text-xs text-wood-500">
+        Tip: click any day to see its full plan.
+      </p>
+
+      {selectedDate && (
+        <DayDetailModal
+          date={selectedDate}
+          role={role}
+          events={events.filter((e) => eventCoversDate(e, selectedDate))}
+          slideshow={planByDate.get(selectedDate) ?? null}
+          assignmentsDue={dueByDate.get(selectedDate) ?? []}
+          onClose={() => setSelectedDate(null)}
+        />
+      )}
     </div>
   );
 }

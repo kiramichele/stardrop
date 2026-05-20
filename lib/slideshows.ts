@@ -34,3 +34,34 @@ export function todayDateString(): string {
   const dd = String(now.getDate()).padStart(2, "0");
   return `${now.getFullYear()}-${mm}-${dd}`;
 }
+
+/**
+ * The Monday of the week containing `dateStr` ("YYYY-MM-DD"), as a
+ * "YYYY-MM-DD" string. Used to group slideshows by school week.
+ */
+export function weekStartString(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  const dow = date.getDay(); // 0=Sun .. 6=Sat
+  const back = dow === 0 ? 6 : dow - 1; // step back to Monday
+  date.setDate(date.getDate() - back);
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${mm}-${dd}`;
+}
+
+/**
+ * A Mon–Fri label for a week given its Monday ("YYYY-MM-DD"),
+ * e.g. "May 18 – 22" or "May 30 – Jun 3".
+ */
+export function formatWeekRange(weekStartStr: string): string {
+  const [y, m, d] = weekStartStr.split("-").map(Number);
+  const mon = new Date(y, m - 1, d);
+  const fri = new Date(y, m - 1, d + 4);
+  const shortMonth = (dt: Date) =>
+    dt.toLocaleDateString(undefined, { month: "short" });
+  if (mon.getMonth() === fri.getMonth()) {
+    return `${shortMonth(mon)} ${mon.getDate()} – ${fri.getDate()}`;
+  }
+  return `${shortMonth(mon)} ${mon.getDate()} – ${shortMonth(fri)} ${fri.getDate()}`;
+}

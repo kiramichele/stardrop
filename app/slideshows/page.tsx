@@ -4,7 +4,11 @@ import { requireUser } from "@/lib/auth";
 import { getUnitsForTeacher } from "@/lib/lessons";
 import { getAssignmentsForTeacher } from "@/lib/assignments-server";
 import { getSlideshows } from "@/lib/slideshows-server";
-import { formatClassDate } from "@/lib/slideshows";
+import {
+  formatClassDate,
+  weekStartString,
+  formatWeekRange,
+} from "@/lib/slideshows";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -28,6 +32,23 @@ export default async function SlideshowsPage() {
       u.lessons.map((l) => ({ id: l.id, title: l.title }))
     );
     assignmentOptions = assignments.map((a) => ({ id: a.id, title: a.title }));
+  }
+
+  // Group into school weeks. getSlideshows() is sorted newest-first, so
+  // same-week slideshows are already contiguous.
+  const weekGroups: {
+    weekStart: string;
+    label: string;
+    items: typeof slideshows;
+  }[] = [];
+  for (const s of slideshows) {
+    const ws = weekStartString(s.classDate);
+    const last = weekGroups[weekGroups.length - 1];
+    if (last && last.weekStart === ws) {
+      last.items.push(s);
+    } else {
+      weekGroups.push({ weekStart: ws, label: formatWeekRange(ws), items: [s] });
+    }
   }
 
   return (
@@ -70,40 +91,56 @@ export default async function SlideshowsPage() {
           />
         </Card>
       ) : (
-        <div className="space-y-2.5">
-          {slideshows.map((s) => (
-            <Link key={s.id} href={`/slideshows/${s.id}`} className="block">
-              <Card hoverable padded={false} className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-cozy bg-honey-100 text-honey-700 flex items-center justify-center flex-shrink-0">
-                    <Presentation className="w-5 h-5" strokeWidth={1.75} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="label-eyebrow text-wood-500">
-                      {formatClassDate(s.classDate)}
-                    </p>
-                    <h3 className="font-display text-lg text-wood-900 truncate">
-                      {s.title}
-                    </h3>
-                    {s.description && (
-                      <p className="text-sm text-wood-600 truncate">
-                        {s.description}
-                      </p>
-                    )}
-                  </div>
-                  {!s.htmlUrl && (
-                    <span
-                      className="inline-flex items-center gap-1 text-xs text-wood-400 flex-shrink-0"
-                      title="No HTML file uploaded"
-                    >
-                      <FileCode2 className="w-3.5 h-3.5" />
-                      No file
-                    </span>
-                  )}
-                  <ArrowRight className="w-4 h-4 text-wood-400 flex-shrink-0" />
-                </div>
-              </Card>
-            </Link>
+        <div className="space-y-7">
+          {weekGroups.map((g) => (
+            <section key={g.weekStart}>
+              <h2 className="font-display text-xl text-wood-800 mb-3">
+                Week of {g.label}
+              </h2>
+              <div className="space-y-2.5">
+                {g.items.map((s) => (
+                  <Link
+                    key={s.id}
+                    href={`/slideshows/${s.id}`}
+                    className="block"
+                  >
+                    <Card hoverable padded={false} className="p-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-cozy bg-honey-100 text-honey-700 flex items-center justify-center flex-shrink-0">
+                          <Presentation
+                            className="w-5 h-5"
+                            strokeWidth={1.75}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="label-eyebrow text-wood-500">
+                            {formatClassDate(s.classDate)}
+                          </p>
+                          <h3 className="font-display text-lg text-wood-900 truncate">
+                            {s.title}
+                          </h3>
+                          {s.description && (
+                            <p className="text-sm text-wood-600 truncate">
+                              {s.description}
+                            </p>
+                          )}
+                        </div>
+                        {!s.htmlUrl && (
+                          <span
+                            className="inline-flex items-center gap-1 text-xs text-wood-400 flex-shrink-0"
+                            title="No HTML file uploaded"
+                          >
+                            <FileCode2 className="w-3.5 h-3.5" />
+                            No file
+                          </span>
+                        )}
+                        <ArrowRight className="w-4 h-4 text-wood-400 flex-shrink-0" />
+                      </div>
+                    </Card>
+                  </Link>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}

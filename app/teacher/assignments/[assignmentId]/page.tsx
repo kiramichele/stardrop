@@ -27,6 +27,8 @@ import {
 } from "@/components/assignments/BulkGradePanel";
 import { getRubricsForTeacher } from "@/lib/rubrics-server";
 import { rubricMaxPoints } from "@/lib/rubrics";
+import { getUnitsForTeacher } from "@/lib/lessons";
+import { UnitLessonPicker } from "@/components/assignments/UnitLessonPicker";
 import {
   updateAssignment,
   deleteAssignment,
@@ -63,6 +65,12 @@ export default async function AssignmentDetailPage({
           ? `${c.name} · Period ${c.period_number}`
           : c.name,
     }));
+
+  const units = (await getUnitsForTeacher()).map((u) => ({
+    id: u.id,
+    title: u.title,
+    lessons: u.lessons.map((l) => ({ id: l.id, title: l.title })),
+  }));
 
   const updateAction = updateAssignment.bind(null, assignmentId);
   const deleteAction = deleteAssignment.bind(null, assignmentId);
@@ -296,6 +304,12 @@ export default async function AssignmentDetailPage({
                   defaultValue={assignment.instructions ?? ""}
                 />
               </div>
+
+              <UnitLessonPicker
+                units={units}
+                initialLessonId={assignment.lesson_id}
+              />
+
               <div>
                 <Label htmlFor="due_date">Due date</Label>
                 <Input
