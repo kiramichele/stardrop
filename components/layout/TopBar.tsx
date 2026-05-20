@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { Avatar } from "@/components/ui/Avatar";
+import { NotificationBell } from "./NotificationBell";
 import type { UserProfile } from "@/lib/profile";
 
 interface TopBarProps {
@@ -12,7 +13,8 @@ export function TopBar({ user }: TopBarProps) {
   const roleLabel = user.role === "teacher" ? "Teacher" : "Student";
 
   return (
-    <header className="h-16 border-b border-wood-100/70 bg-cream-50/60 backdrop-blur-sm flex items-center justify-end px-6 gap-4">
+    <header className="h-16 border-b border-wood-100/70 bg-cream-50/60 backdrop-blur-sm flex items-center justify-end px-6 gap-2">
+      <NotificationBell userId={user.id} />
       <Link
         href="/profile"
         className="flex items-center gap-3 px-2 py-1 rounded-cozy hover:bg-cream-200 transition-colors"
