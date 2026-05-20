@@ -12,6 +12,7 @@ import {
   Calendar,
   Award,
   BookMarked,
+  Presentation,
   type LucideIcon,
 } from "lucide-react";
 
@@ -27,6 +28,7 @@ const teacherNav: NavItem[] = [
   { label: "Classes", href: "/teacher/classes", icon: Users },
   { label: "Lessons", href: "/teacher/lessons", icon: BookOpen },
   { label: "Assignments", href: "/teacher/assignments", icon: ClipboardList },
+  { label: "Slideshows", href: "/slideshows", icon: Presentation },
   { label: "Discussions", href: "/discussions", icon: MessagesSquare },
   { label: "Resources", href: "/teacher/resources", icon: Library, comingSoon: true },
   { label: "Glossary", href: "/teacher/glossary", icon: BookMarked, comingSoon: true },
@@ -38,6 +40,7 @@ const studentNav: NavItem[] = [
   { label: "Lessons", href: "/student/lessons", icon: BookOpen },
   { label: "Assignments", href: "/student/assignments", icon: ClipboardList },
   { label: "Grades", href: "/student/grades", icon: Award },
+  { label: "Slideshows", href: "/slideshows", icon: Presentation },
   { label: "Discussions", href: "/discussions", icon: MessagesSquare },
   { label: "Resources", href: "/student/resources", icon: Library, comingSoon: true },
   { label: "Glossary", href: "/student/glossary", icon: BookMarked, comingSoon: true },

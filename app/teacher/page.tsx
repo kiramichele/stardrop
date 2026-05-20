@@ -4,6 +4,7 @@ import { requireTeacher } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
+import { TodaySlideshow } from "@/components/dashboard/TodaySlideshow";
 
 export default async function TeacherDashboard() {
   const user = await requireTeacher();
@@ -48,6 +49,10 @@ export default async function TeacherDashboard() {
         title={`Welcome back, ${user.first_name}`}
         description="Your hub for Game Design — three sections, one cozy spot."
       />
+
+      <div className="mb-6">
+        <TodaySlideshow role="teacher" />
+      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
         <Card>

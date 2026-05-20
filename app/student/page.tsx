@@ -1,8 +1,9 @@
 import { Sparkles } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { TodaySlideshow } from "@/components/dashboard/TodaySlideshow";
 
 export default async function StudentDashboard() {
   const user = await requireStudent();
@@ -16,16 +17,7 @@ export default async function StudentDashboard() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-        <Card className="md:col-span-2 bg-honey-50 border-honey-200">
-          <p className="label-eyebrow text-honey-700">Today</p>
-          <h2 className="font-display text-xl text-wood-900 mt-1">
-            Class hasn&apos;t started yet
-          </h2>
-          <CardDescription>
-            Once the semester kicks off in August, your daily plan and what&apos;s
-            due will show up here automatically.
-          </CardDescription>
-        </Card>
+        <TodaySlideshow role="student" />
         <Card>
           <p className="label-eyebrow">Pending</p>
           <p className="font-display text-3xl text-wood-900 mt-1">0</p>
