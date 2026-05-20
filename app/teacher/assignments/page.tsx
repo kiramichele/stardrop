@@ -18,33 +18,32 @@ export default async function TeacherAssignmentsPage() {
     getUnitsForTeacher(),
   ]);
 
-  const lessonTitle = new Map<string, string>();
-  for (const u of units) {
-    for (const l of u.lessons) lessonTitle.set(l.id, l.title);
-  }
-
   const groups = groupAssignmentsByUnit(assignments, units);
   const boardGroups: BoardGroup[] = groups.map((g) => ({
     key: g.key,
     unitTitle: g.unitTitle,
-    assignments: g.assignments.map((a) => {
-      const klass = Array.isArray(a.classes) ? a.classes[0] : a.classes;
-      const subCount =
-        Array.isArray(a.submissions) && a.submissions[0]
-          ? a.submissions[0].count
-          : 0;
-      return {
-        id: a.id,
-        title: a.title,
-        type: a.type,
-        published: a.published,
-        dueDate: a.due_date,
-        points: a.points,
-        className: klass?.name ?? "Unknown class",
-        lessonName: a.lesson_id ? lessonTitle.get(a.lesson_id) ?? null : null,
-        submissionCount: subCount,
-      };
-    }),
+    lessonGroups: g.lessonGroups.map((lg) => ({
+      key: lg.key,
+      title: lg.title,
+      isUnitQuiz: lg.isUnitQuiz,
+      assignments: lg.assignments.map((a) => {
+        const klass = Array.isArray(a.classes) ? a.classes[0] : a.classes;
+        const subCount =
+          Array.isArray(a.submissions) && a.submissions[0]
+            ? a.submissions[0].count
+            : 0;
+        return {
+          id: a.id,
+          title: a.title,
+          type: a.type,
+          published: a.published,
+          dueDate: a.due_date,
+          points: a.points,
+          className: klass?.name ?? "Unknown class",
+          submissionCount: subCount,
+        };
+      }),
+    })),
   }));
 
   return (

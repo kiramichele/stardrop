@@ -218,28 +218,47 @@ export function computeAutoGrade(
 // (a unit is derived from the assignment's linked lesson)
 // =============================================================
 
+/** A lesson's assignments within a unit (or the trailing "Unit Quiz" bucket). */
+export type AssignmentLessonGroup<T> = {
+  /** Stable key for React. */
+  key: string;
+  /** Lesson title, "Unit Quiz", or "" for the no-lesson bucket. */
+  title: string;
+  isUnitQuiz: boolean;
+  assignments: T[];
+};
+
 export type AssignmentUnitGroup<T> = {
   /** Stable key for React. */
   key: string;
   /** Unit title, or "Other assignments" for the no-unit bucket. */
   unitTitle: string;
-  assignments: T[];
+  lessonGroups: AssignmentLessonGroup<T>[];
 };
 
 /**
- * Group assignments by the unit of their linked lesson. Units keep the
- * order given; assignments with no lesson (or a lesson not in `units`)
- * fall into a trailing "Other assignments" group.
+ * Group assignments by unit, then by lesson within each unit. The unit
+ * comes from the assignment's linked lesson; lesson sub-groups follow the
+ * lesson order in `units`. Assignments flagged `is_unit_quiz` are pulled
+ * into a "Unit Quiz" sub-group at the end of their unit. Assignments with
+ * no lesson land in a trailing "Other assignments" group.
  */
-export function groupAssignmentsByUnit<T extends { lesson_id: string | null }>(
+export function groupAssignmentsByUnit<
+  T extends { lesson_id: string | null; is_unit_quiz: boolean },
+>(
   assignments: T[],
-  units: Array<{ id: string; title: string; lessons: Array<{ id: string }> }>
+  units: Array<{
+    id: string;
+    title: string;
+    lessons: Array<{ id: string; title: string }>;
+  }>
 ): AssignmentUnitGroup<T>[] {
   const lessonToUnit = new Map<string, string>();
   for (const u of units) {
     for (const l of u.lessons) lessonToUnit.set(l.id, u.id);
   }
 
+  // Bucket every assignment under its unit (null = no unit).
   const byUnit = new Map<string | null, T[]>();
   for (const a of assignments) {
     const unitId = a.lesson_id ? lessonToUnit.get(a.lesson_id) ?? null : null;
@@ -248,20 +267,60 @@ export function groupAssignmentsByUnit<T extends { lesson_id: string | null }>(
     else byUnit.set(unitId, [a]);
   }
 
-  const groups: AssignmentUnitGroup<T>[] = [];
+  const result: AssignmentUnitGroup<T>[] = [];
+
   for (const u of units) {
-    const list = byUnit.get(u.id);
-    if (list && list.length > 0) {
-      groups.push({ key: u.id, unitTitle: u.title, assignments: list });
+    const unitAssignments = byUnit.get(u.id);
+    if (!unitAssignments || unitAssignments.length === 0) continue;
+
+    const byLesson = new Map<string, T[]>();
+    const quizzes: T[] = [];
+    for (const a of unitAssignments) {
+      if (a.is_unit_quiz) {
+        quizzes.push(a);
+      } else if (a.lesson_id) {
+        const list = byLesson.get(a.lesson_id);
+        if (list) list.push(a);
+        else byLesson.set(a.lesson_id, [a]);
+      }
+    }
+
+    const lessonGroups: AssignmentLessonGroup<T>[] = [];
+    for (const l of u.lessons) {
+      const list = byLesson.get(l.id);
+      if (list && list.length > 0) {
+        lessonGroups.push({
+          key: l.id,
+          title: l.title,
+          isUnitQuiz: false,
+          assignments: list,
+        });
+      }
+    }
+    if (quizzes.length > 0) {
+      lessonGroups.push({
+        key: `${u.id}:quiz`,
+        title: "Unit Quiz",
+        isUnitQuiz: true,
+        assignments: quizzes,
+      });
+    }
+
+    if (lessonGroups.length > 0) {
+      result.push({ key: u.id, unitTitle: u.title, lessonGroups });
     }
   }
+
   const noUnit = byUnit.get(null);
   if (noUnit && noUnit.length > 0) {
-    groups.push({
+    result.push({
       key: "__none__",
       unitTitle: "Other assignments",
-      assignments: noUnit,
+      lessonGroups: [
+        { key: "__none__", title: "", isUnitQuiz: false, assignments: noUnit },
+      ],
     });
   }
-  return groups;
+
+  return result;
 }

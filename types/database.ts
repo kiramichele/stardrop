@@ -47,6 +47,7 @@ export type Database = {
           id: string
           instructions: string | null
           interactive_html_url: string | null
+          is_unit_quiz: boolean
           lesson_id: string | null
           minimum_word_count: number | null
           points: number
@@ -63,6 +64,7 @@ export type Database = {
           id?: string
           instructions?: string | null
           interactive_html_url?: string | null
+          is_unit_quiz?: boolean
           lesson_id?: string | null
           minimum_word_count?: number | null
           points?: number
@@ -79,6 +81,7 @@ export type Database = {
           id?: string
           instructions?: string | null
           interactive_html_url?: string | null
+          is_unit_quiz?: boolean
           lesson_id?: string | null
           minimum_word_count?: number | null
           points?: number

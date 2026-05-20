@@ -308,6 +308,7 @@ export default async function AssignmentDetailPage({
               <UnitLessonPicker
                 units={units}
                 initialLessonId={assignment.lesson_id}
+                initialIsUnitQuiz={assignment.is_unit_quiz}
               />
 
               <div>

@@ -36,6 +36,7 @@ export async function createAssignment(formData: FormData) {
   const dueDateRaw = formData.get("due_date")?.toString();
   const pointsRaw = formData.get("points")?.toString();
   const lessonId = formData.get("lesson_id")?.toString() || null;
+  const isUnitQuiz = formData.get("is_unit_quiz") === "on";
   const minWordsRaw = formData.get("minimum_word_count")?.toString();
   const rubricIdRaw = formData.get("rubric_id")?.toString();
   const rubricId = rubricIdRaw && rubricIdRaw !== "" ? rubricIdRaw : null;
@@ -54,6 +55,7 @@ export async function createAssignment(formData: FormData) {
     .insert({
       class_id: classId,
       lesson_id: lessonId,
+      is_unit_quiz: isUnitQuiz,
       title,
       type,
       instructions,
@@ -85,6 +87,7 @@ export async function updateAssignment(
   const rubricIdRaw = formData.get("rubric_id")?.toString();
   const rubricId = rubricIdRaw && rubricIdRaw !== "" ? rubricIdRaw : null;
   const lessonId = formData.get("lesson_id")?.toString() || null;
+  const isUnitQuiz = formData.get("is_unit_quiz") === "on";
 
   if (!title) throw new Error("Title required");
   const points = pointsRaw ? Number.parseInt(pointsRaw, 10) : 100;
@@ -103,6 +106,7 @@ export async function updateAssignment(
       minimum_word_count: minimumWordCount,
       rubric_id: rubricId,
       lesson_id: lessonId,
+      is_unit_quiz: isUnitQuiz,
     })
     .eq("id", assignmentId);
   if (error) throw new Error(error.message);
@@ -209,6 +213,7 @@ export async function copyAssignmentToClasses(
       .insert({
         class_id: classId,
         lesson_id: src.lesson_id,
+        is_unit_quiz: src.is_unit_quiz,
         title: src.title,
         type: src.type,
         instructions: src.instructions,

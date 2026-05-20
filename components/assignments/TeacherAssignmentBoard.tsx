@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeOff, X } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, X, GraduationCap } from "lucide-react";
 import { type AssignmentType } from "@/lib/assignments";
 import { Card } from "@/components/ui/Card";
 import {
@@ -20,14 +20,20 @@ export type BoardAssignment = {
   dueDate: string | null;
   points: number;
   className: string;
-  lessonName: string | null;
   submissionCount: number;
+};
+
+export type BoardLessonGroup = {
+  key: string;
+  title: string;
+  isUnitQuiz: boolean;
+  assignments: BoardAssignment[];
 };
 
 export type BoardGroup = {
   key: string;
   unitTitle: string;
-  assignments: BoardAssignment[];
+  lessonGroups: BoardLessonGroup[];
 };
 
 export function TeacherAssignmentBoard({ groups }: { groups: BoardGroup[] }) {
@@ -46,9 +52,9 @@ export function TeacherAssignmentBoard({ groups }: { groups: BoardGroup[] }) {
     });
   }
 
-  function toggleGroup(g: BoardGroup) {
+  function toggleSet(ids: string[]) {
+    if (ids.length === 0) return;
     setError(null);
-    const ids = g.assignments.map((a) => a.id);
     const allSelected = ids.every((id) => selected.has(id));
     setSelected((prev) => {
       const next = new Set(prev);
@@ -78,85 +84,132 @@ export function TeacherAssignmentBoard({ groups }: { groups: BoardGroup[] }) {
     <>
       <div className="space-y-7 pb-24">
         {groups.map((g) => {
-          const ids = g.assignments.map((a) => a.id);
-          const allSelected =
-            ids.length > 0 && ids.every((id) => selected.has(id));
+          const unitIds = g.lessonGroups.flatMap((lg) =>
+            lg.assignments.map((a) => a.id)
+          );
+          const unitAllSelected =
+            unitIds.length > 0 && unitIds.every((id) => selected.has(id));
           return (
             <section key={g.key}>
               <label className="flex items-center gap-2 mb-3 w-fit cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={allSelected}
-                  onChange={() => toggleGroup(g)}
+                  checked={unitAllSelected}
+                  onChange={() => toggleSet(unitIds)}
                   className="w-4 h-4 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
                 />
                 <h2 className="font-display text-xl text-wood-800">
                   {g.unitTitle}
                 </h2>
                 <span className="text-sm text-wood-400">
-                  ({g.assignments.length})
+                  ({unitIds.length})
                 </span>
               </label>
+
               <Card padded={false} className="overflow-hidden">
-                <ul className="divide-y divide-wood-100">
-                  {g.assignments.map((a) => {
-                    const isSel = selected.has(a.id);
-                    return (
-                      <li
-                        key={a.id}
-                        className={[
-                          "flex items-center gap-1 p-1.5 transition-colors",
-                          isSel ? "bg-terracotta-50" : "",
-                        ].join(" ")}
-                      >
-                        <label className="flex items-center self-stretch pl-2.5 pr-1 cursor-pointer">
+                {g.lessonGroups.map((lg, i) => {
+                  const lessonIds = lg.assignments.map((a) => a.id);
+                  const lessonAllSelected = lessonIds.every((id) =>
+                    selected.has(id)
+                  );
+                  return (
+                    <div
+                      key={lg.key}
+                      className={i > 0 ? "border-t border-wood-100" : ""}
+                    >
+                      {lg.title && (
+                        <label
+                          className={[
+                            "flex items-center gap-2 px-3 py-1.5 cursor-pointer border-b border-wood-100",
+                            lg.isUnitQuiz ? "bg-honey-100" : "bg-cream-100",
+                          ].join(" ")}
+                        >
                           <input
                             type="checkbox"
-                            checked={isSel}
-                            onChange={() => toggle(a.id)}
-                            className="w-4 h-4 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
+                            checked={lessonAllSelected}
+                            onChange={() => toggleSet(lessonIds)}
+                            className="w-3.5 h-3.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
                           />
+                          {lg.isUnitQuiz && (
+                            <GraduationCap
+                              className="w-3.5 h-3.5 text-honey-700"
+                              strokeWidth={2}
+                            />
+                          )}
+                          <span
+                            className={[
+                              "text-sm font-semibold",
+                              lg.isUnitQuiz
+                                ? "text-honey-900"
+                                : "text-wood-600",
+                            ].join(" ")}
+                          >
+                            {lg.title}
+                          </span>
                         </label>
-                        <Link
-                          href={`/teacher/assignments/${a.id}`}
-                          className="group flex-1 min-w-0 flex items-center gap-4 px-3 py-3 rounded-cozy hover:bg-cream-200 transition-colors"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-3 mb-1">
-                              <p className="font-medium text-wood-900 truncate">
-                                {a.title}
-                              </p>
-                              <AssignmentTypeBadge
-                                type={a.type as AssignmentType}
-                              />
-                              <PublishBadge published={a.published} />
-                            </div>
-                            <p className="text-xs text-wood-500">
-                              {a.className}
-                              {a.lessonName && ` · ${a.lessonName}`}
-                              {a.dueDate &&
-                                ` · due ${new Date(
-                                  a.dueDate
-                                ).toLocaleDateString()}`}
-                              {a.points ? ` · ${a.points} pts` : ""}
-                            </p>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="font-display text-xl text-terracotta-700">
-                              {a.submissionCount}
-                            </p>
-                            <p className="text-[0.65rem] uppercase tracking-wide-label text-wood-500 font-semibold">
-                              {a.submissionCount === 1
-                                ? "submission"
-                                : "submissions"}
-                            </p>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-wood-400 transition-transform duration-150 group-hover:translate-x-0.5" />
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
+                      )}
+
+                      <ul className="divide-y divide-wood-100">
+                        {lg.assignments.map((a) => {
+                          const isSel = selected.has(a.id);
+                          return (
+                            <li
+                              key={a.id}
+                              className={[
+                                "flex items-center gap-1 p-1.5 transition-colors",
+                                isSel ? "bg-terracotta-50" : "",
+                              ].join(" ")}
+                            >
+                              <label className="flex items-center self-stretch pl-2.5 pr-1 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={isSel}
+                                  onChange={() => toggle(a.id)}
+                                  className="w-4 h-4 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
+                                />
+                              </label>
+                              <Link
+                                href={`/teacher/assignments/${a.id}`}
+                                className="group flex-1 min-w-0 flex items-center gap-4 px-3 py-3 rounded-cozy hover:bg-cream-200 transition-colors"
+                              >
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-3 mb-1">
+                                    <p className="font-medium text-wood-900 truncate">
+                                      {a.title}
+                                    </p>
+                                    <AssignmentTypeBadge
+                                      type={a.type as AssignmentType}
+                                    />
+                                    <PublishBadge published={a.published} />
+                                  </div>
+                                  <p className="text-xs text-wood-500">
+                                    {a.className}
+                                    {a.dueDate &&
+                                      ` · due ${new Date(
+                                        a.dueDate
+                                      ).toLocaleDateString()}`}
+                                    {a.points ? ` · ${a.points} pts` : ""}
+                                  </p>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <p className="font-display text-xl text-terracotta-700">
+                                    {a.submissionCount}
+                                  </p>
+                                  <p className="text-[0.65rem] uppercase tracking-wide-label text-wood-500 font-semibold">
+                                    {a.submissionCount === 1
+                                      ? "submission"
+                                      : "submissions"}
+                                  </p>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-wood-400 transition-transform duration-150 group-hover:translate-x-0.5" />
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  );
+                })}
               </Card>
             </section>
           );
