@@ -73,6 +73,18 @@ export function escapeHtml(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+/**
+ * The app's public base URL for absolute links in emails, e.g.
+ * "https://stardrop.studio". Reads NEXT_PUBLIC_APP_URL and tolerates a
+ * missing scheme ("stardrop.studio" -> "https://stardrop.studio") and any
+ * trailing slash. Returns "" when unset so callers can omit the link.
+ */
+export function appBaseUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "") ?? "";
+  if (!raw) return "";
+  return /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+}
+
 /** Send a freshly-reset password to a user. Best-effort (see sendEmail). */
 export async function sendNewPasswordEmail(
   to: string,

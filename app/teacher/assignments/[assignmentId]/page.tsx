@@ -13,12 +13,14 @@ import {
   getAssignment,
   getSubmissionsForAssignment,
 } from "@/lib/assignments-server";
+import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ShareLink } from "@/components/ui/ShareLink";
 import { Input, Label, Textarea, Select, FieldHint } from "@/components/ui/Input";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
+import { CopyToClassPanel } from "@/components/assignments/CopyToClassPanel";
 import {
   BulkGradePanel,
   type BulkSubmissionRow,
@@ -45,6 +47,22 @@ export default async function AssignmentDetailPage({
   const klass = Array.isArray(assignment.classes)
     ? assignment.classes[0]
     : assignment.classes;
+
+  // Other classes this assignment could be copied into.
+  const supabase = await createClient();
+  const { data: allClasses } = await supabase
+    .from("classes")
+    .select("id, name, period_number")
+    .order("period_number", { ascending: true, nullsFirst: false });
+  const otherClasses = (allClasses ?? [])
+    .filter((c) => c.id !== assignment.class_id)
+    .map((c) => ({
+      id: c.id,
+      name:
+        c.period_number != null
+          ? `${c.name} · Period ${c.period_number}`
+          : c.name,
+    }));
 
   const updateAction = updateAssignment.bind(null, assignmentId);
   const deleteAction = deleteAssignment.bind(null, assignmentId);
@@ -365,6 +383,11 @@ export default async function AssignmentDetailPage({
               </Button>
             </form>
           </Card>
+
+          <CopyToClassPanel
+            assignmentId={assignmentId}
+            classes={otherClasses}
+          />
 
           <Card className="border-terracotta-200 bg-terracotta-50/50">
             <h3 className="font-display text-base text-terracotta-900 mb-1">

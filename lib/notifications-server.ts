@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { asProfile } from "@/lib/profile";
-import { sendEmail, escapeHtml } from "@/lib/email";
+import { sendEmail, escapeHtml, appBaseUrl } from "@/lib/email";
 import type { Json } from "@/types/database";
 
 export type NotificationType =
@@ -60,7 +60,7 @@ export async function createNotifications(rows: NewNotification[]) {
     (users ?? []).map((u) => [asProfile(u).id, asProfile(u)])
   );
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  const appUrl = appBaseUrl();
 
   await Promise.all(
     rows.map(async (r) => {

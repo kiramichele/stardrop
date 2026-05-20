@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireTeacher, getCurrentUser } from "@/lib/auth";
-import { sendEmail, escapeHtml } from "@/lib/email";
+import { sendEmail, escapeHtml, appBaseUrl } from "@/lib/email";
 import { computeAutoGrade, type AssignmentType } from "@/lib/assignments";
 import { asProfile } from "@/lib/profile";
 import type { Json } from "@/types/database";
@@ -166,6 +166,86 @@ export async function uploadInteractiveHtml(
   if (error) throw new Error(error.message);
 
   revalidatePath(`/teacher/assignments/${assignmentId}`);
+}
+
+// =============================================================
+// Copy an assignment to other classes
+// =============================================================
+
+/**
+ * Duplicate an assignment into one or more other classes. Each copy is
+ * independent — its own submissions and grades — and starts as an
+ * unpublished draft. Interactive-HTML files are copied too, so deleting
+ * one copy never affects another.
+ */
+export async function copyAssignmentToClasses(
+  assignmentId: string,
+  classIds: string[]
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  await requireTeacher();
+  if (classIds.length === 0) {
+    return { ok: false, error: "Pick at least one class." };
+  }
+
+  const supabase = await createClient();
+  const { data: src, error: srcError } = await supabase
+    .from("assignments")
+    .select("*")
+    .eq("id", assignmentId)
+    .single();
+  if (srcError || !src) {
+    return { ok: false, error: "Could not load the assignment to copy." };
+  }
+
+  const admin = createAdminClient();
+  let count = 0;
+  let lastError = "";
+
+  for (const classId of classIds) {
+    const { data: copy, error: insertError } = await supabase
+      .from("assignments")
+      .insert({
+        class_id: classId,
+        lesson_id: src.lesson_id,
+        title: src.title,
+        type: src.type,
+        instructions: src.instructions,
+        due_date: src.due_date,
+        points: src.points,
+        minimum_word_count: src.minimum_word_count,
+        rubric_id: src.rubric_id,
+        published: false, // copies start as drafts so the teacher can review
+      })
+      .select("id")
+      .single();
+    if (insertError || !copy) {
+      lastError = insertError?.message ?? "Insert failed";
+      continue;
+    }
+
+    // Give interactive-HTML copies their own file, so the copies stay
+    // fully independent of the original (and of each other).
+    if (src.type === "interactive_html" && src.interactive_html_url) {
+      const toPath = `assignments/${copy.id}.html`;
+      const { error: copyError } = await admin.storage
+        .from("lessons")
+        .copy(`assignments/${assignmentId}.html`, toPath);
+      if (!copyError) {
+        await supabase
+          .from("assignments")
+          .update({ interactive_html_url: `/api/files/lessons/${toPath}` })
+          .eq("id", copy.id);
+      }
+    }
+    count++;
+  }
+
+  if (count === 0) {
+    return { ok: false, error: lastError || "Nothing was copied." };
+  }
+
+  revalidatePath("/teacher/assignments");
+  return { ok: true, count };
 }
 
 // =============================================================
@@ -555,7 +635,7 @@ async function notifyTeachersOfStudentReply(args: {
     .maybeSingle();
   const title = assignment?.title ?? "an assignment";
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
+  const appUrl = appBaseUrl();
   const link = appUrl
     ? `${appUrl}/teacher/assignments/${args.assignmentId}/grade/${args.submissionId}`
     : null;
