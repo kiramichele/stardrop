@@ -14,6 +14,7 @@ type SlideshowRow = {
   html_url: string | null;
   lesson_ids: string[] | null;
   assignment_ids: string[] | null;
+  async_note: string | null;
 };
 
 export type SlideshowInsert = {
@@ -22,6 +23,7 @@ export type SlideshowInsert = {
   description: string | null;
   lesson_ids: string[];
   assignment_ids: string[];
+  async_note: string | null;
 };
 
 export type SlideshowPatch = Partial<{
@@ -31,6 +33,7 @@ export type SlideshowPatch = Partial<{
   html_url: string | null;
   lesson_ids: string[];
   assignment_ids: string[];
+  async_note: string | null;
   updated_at: string;
 }>;
 
@@ -84,6 +87,7 @@ function rowToSlideshow(r: SlideshowRow): Slideshow {
     htmlUrl: r.html_url,
     lessonIds: r.lesson_ids ?? [],
     assignmentIds: r.assignment_ids ?? [],
+    asyncNote: r.async_note ?? null,
   };
 }
 
@@ -151,4 +155,23 @@ export async function resolveSlideshowLinks(s: Slideshow): Promise<{
     assignments = data ?? [];
   }
   return { lessons, assignments };
+}
+
+/**
+ * Published assignments whose due date lands on `date` ("YYYY-MM-DD").
+ * Powers the "assignments due today" line on the daily plan.
+ */
+export async function getAssignmentsDueOn(
+  date: string
+): Promise<Array<{ id: string; title: string }>> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("assignments")
+    .select("id, title, due_date")
+    .eq("published", true);
+  return (data ?? [])
+    .filter(
+      (a) => typeof a.due_date === "string" && a.due_date.slice(0, 10) === date
+    )
+    .map((a) => ({ id: a.id, title: a.title }));
 }

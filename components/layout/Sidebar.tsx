@@ -30,9 +30,9 @@ const teacherNav: NavItem[] = [
   { label: "Assignments", href: "/teacher/assignments", icon: ClipboardList },
   { label: "Slideshows", href: "/slideshows", icon: Presentation },
   { label: "Discussions", href: "/discussions", icon: MessagesSquare },
+  { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "Resources", href: "/teacher/resources", icon: Library, comingSoon: true },
   { label: "Glossary", href: "/teacher/glossary", icon: BookMarked, comingSoon: true },
-  { label: "Calendar", href: "/teacher/calendar", icon: Calendar, comingSoon: true },
 ];
 
 const studentNav: NavItem[] = [
@@ -42,9 +42,9 @@ const studentNav: NavItem[] = [
   { label: "Grades", href: "/student/grades", icon: Award },
   { label: "Slideshows", href: "/slideshows", icon: Presentation },
   { label: "Discussions", href: "/discussions", icon: MessagesSquare },
+  { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "Resources", href: "/student/resources", icon: Library, comingSoon: true },
   { label: "Glossary", href: "/student/glossary", icon: BookMarked, comingSoon: true },
-  { label: "Calendar", href: "/student/calendar", icon: Calendar, comingSoon: true },
 ];
 
 interface SidebarProps {

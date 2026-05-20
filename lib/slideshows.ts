@@ -8,6 +8,8 @@ export type Slideshow = {
   htmlUrl: string | null;
   lessonIds: string[];
   assignmentIds: string[];
+  /** Free-text plan for the Period 3 async ("Personalized Learning") block. */
+  asyncNote: string | null;
 };
 
 /**

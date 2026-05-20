@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BookOpen, ClipboardList } from "lucide-react";
+import { ArrowLeft, BookOpen, ClipboardList, Clock } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { getUnitsForTeacher } from "@/lib/lessons";
 import { getAssignmentsForTeacher } from "@/lib/assignments-server";
-import { getSlideshow, resolveSlideshowLinks } from "@/lib/slideshows-server";
+import {
+  getSlideshow,
+  resolveSlideshowLinks,
+  getAssignmentsDueOn,
+} from "@/lib/slideshows-server";
 import { formatClassDate } from "@/lib/slideshows";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -26,6 +30,7 @@ export default async function SlideshowPage({
   if (!slideshow) notFound();
 
   const { lessons, assignments } = await resolveSlideshowLinks(slideshow);
+  const dueAssignments = await getAssignmentsDueOn(slideshow.classDate);
   const lessonBase = isTeacher ? "/teacher/lessons" : "/student/lessons";
   const assignmentBase = isTeacher
     ? "/teacher/assignments"
@@ -69,6 +74,40 @@ export default async function SlideshowPage({
         </div>
 
         <div className="space-y-4">
+          {dueAssignments.length > 0 && (
+            <Card className="bg-honey-50 border-honey-200">
+              <h3 className="font-display text-lg text-wood-900 mb-3">
+                Due this day
+              </h3>
+              <div className="space-y-1.5">
+                {dueAssignments.map((a) => (
+                  <Link
+                    key={a.id}
+                    href={`${assignmentBase}/${a.id}`}
+                    className="flex items-center gap-2 px-2.5 py-2 rounded-cozy text-sm text-wood-700 hover:bg-honey-100 hover:text-terracotta-700 transition-colors"
+                  >
+                    <ClipboardList className="w-4 h-4 flex-shrink-0 text-honey-700" />
+                    <span className="truncate">{a.title}</span>
+                  </Link>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {slideshow.asyncNote && (
+            <Card>
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-4 h-4 text-wood-600" strokeWidth={2} />
+                <h3 className="font-display text-lg text-wood-900">
+                  Period 3 — async work
+                </h3>
+              </div>
+              <p className="text-sm text-wood-700 whitespace-pre-wrap">
+                {slideshow.asyncNote}
+              </p>
+            </Card>
+          )}
+
           {(lessons.length > 0 || assignments.length > 0) && (
             <Card>
               <h3 className="font-display text-lg text-wood-900 mb-3">
@@ -113,6 +152,7 @@ export default async function SlideshowPage({
                     classDate: slideshow.classDate,
                     title: slideshow.title,
                     description: slideshow.description,
+                    asyncNote: slideshow.asyncNote,
                     hasHtml: !!slideshow.htmlUrl,
                     lessonIds: slideshow.lessonIds,
                     assignmentIds: slideshow.assignmentIds,

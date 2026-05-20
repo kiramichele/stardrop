@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -111,6 +111,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      calendar_events: {
+        Row: {
+          category: string
+          created_at: string
+          end_date: string | null
+          event_date: string
+          id: string
+          note: string | null
+          title: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          end_date?: string | null
+          event_date: string
+          id?: string
+          note?: string | null
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          end_date?: string | null
+          event_date?: string
+          id?: string
+          note?: string | null
+          title?: string
+        }
+        Relationships: []
       }
       class_schedule_templates: {
         Row: {
@@ -817,6 +847,45 @@ export type Database = {
           date?: string
           day_type?: Database["public"]["Enums"]["day_type"]
           notes?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      slideshows: {
+        Row: {
+          assignment_ids: string[]
+          async_note: string | null
+          class_date: string
+          created_at: string
+          description: string | null
+          html_url: string | null
+          id: string
+          lesson_ids: string[]
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assignment_ids?: string[]
+          async_note?: string | null
+          class_date: string
+          created_at?: string
+          description?: string | null
+          html_url?: string | null
+          id?: string
+          lesson_ids?: string[]
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assignment_ids?: string[]
+          async_note?: string | null
+          class_date?: string
+          created_at?: string
+          description?: string | null
+          html_url?: string | null
+          id?: string
+          lesson_ids?: string[]
+          title?: string
           updated_at?: string | null
         }
         Relationships: []

@@ -16,6 +16,7 @@ interface SlideshowFormProps {
     classDate: string;
     title: string;
     description: string | null;
+    asyncNote: string | null;
     hasHtml: boolean;
     lessonIds: string[];
     assignmentIds: string[];
@@ -36,6 +37,7 @@ export function SlideshowForm({
   const [classDate, setClassDate] = useState(initial?.classDate ?? "");
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [asyncNote, setAsyncNote] = useState(initial?.asyncNote ?? "");
   const [lessonIds, setLessonIds] = useState<Set<string>>(
     new Set(initial?.lessonIds ?? [])
   );
@@ -72,6 +74,7 @@ export function SlideshowForm({
     fd.set("class_date", classDate);
     fd.set("title", title.trim());
     fd.set("description", description.trim());
+    fd.set("async_note", asyncNote.trim());
     for (const id of lessonIds) fd.append("lesson_ids", id);
     for (const id of assignmentIds) fd.append("assignment_ids", id);
     const file = fileRef.current?.files?.[0];
@@ -88,6 +91,7 @@ export function SlideshowForm({
           setClassDate("");
           setTitle("");
           setDescription("");
+          setAsyncNote("");
           setLessonIds(new Set());
           setAssignmentIds(new Set());
           if (fileRef.current) fileRef.current.value = "";
@@ -134,6 +138,20 @@ export function SlideshowForm({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="A short note shown on the dashboard."
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="ss-async">
+          Period 3 — async work{" "}
+          <span className="text-wood-500 font-normal">(optional)</span>
+        </Label>
+        <Textarea
+          id="ss-async"
+          rows={2}
+          value={asyncNote}
+          onChange={(e) => setAsyncNote(e.target.value)}
+          placeholder="What students should work on during the Personalized Learning block."
         />
       </div>
 

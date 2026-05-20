@@ -32,6 +32,7 @@ function parseForm(formData: FormData) {
     classDate: formData.get("class_date")?.toString() ?? "",
     title: formData.get("title")?.toString().trim() ?? "",
     description: formData.get("description")?.toString().trim() || null,
+    asyncNote: formData.get("async_note")?.toString().trim() || null,
     lessonIds: formData.getAll("lesson_ids").map(String).filter(Boolean),
     assignmentIds: formData.getAll("assignment_ids").map(String).filter(Boolean),
     file: formData.get("html_file") as File | null,
@@ -42,8 +43,15 @@ export async function createSlideshow(
   formData: FormData
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   await requireTeacher();
-  const { classDate, title, description, lessonIds, assignmentIds, file } =
-    parseForm(formData);
+  const {
+    classDate,
+    title,
+    description,
+    asyncNote,
+    lessonIds,
+    assignmentIds,
+    file,
+  } = parseForm(formData);
 
   if (!classDate) return { ok: false, error: "Pick a date" };
   if (!title) return { ok: false, error: "Title required" };
@@ -55,6 +63,7 @@ export async function createSlideshow(
     class_date: classDate,
     title,
     description,
+    async_note: asyncNote,
     lesson_ids: lessonIds,
     assignment_ids: assignmentIds,
   });
@@ -85,8 +94,15 @@ export async function updateSlideshow(
   formData: FormData
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   await requireTeacher();
-  const { classDate, title, description, lessonIds, assignmentIds, file } =
-    parseForm(formData);
+  const {
+    classDate,
+    title,
+    description,
+    asyncNote,
+    lessonIds,
+    assignmentIds,
+    file,
+  } = parseForm(formData);
 
   if (!classDate) return { ok: false, error: "Pick a date" };
   if (!title) return { ok: false, error: "Title required" };
@@ -98,6 +114,7 @@ export async function updateSlideshow(
     class_date: classDate,
     title,
     description,
+    async_note: asyncNote,
     lesson_ids: lessonIds,
     assignment_ids: assignmentIds,
     updated_at: new Date().toISOString(),
