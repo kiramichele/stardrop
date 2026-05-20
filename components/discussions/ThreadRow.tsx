@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Pin, Trash2, Flag, MessageSquare, Paperclip } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { deletePost, setPostPinned } from "@/app/discussions/actions";
-import type { BoardPost } from "@/lib/discussions";
+import { formatAuthorName, type BoardPost } from "@/lib/discussions";
 
 interface ThreadRowProps {
   thread: BoardPost;
@@ -74,7 +74,11 @@ export function ThreadRow({
           <p className="text-xs text-wood-500 mt-0.5 flex items-center gap-3">
             <span>
               {thread.author
-                ? `${thread.author.firstName} ${thread.author.lastName}`
+                ? formatAuthorName(
+                    thread.author.firstName,
+                    thread.author.lastName,
+                    isTeacher
+                  )
                 : "Unknown"}
             </span>
             <span className="inline-flex items-center gap-1">

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Pin, Trash2, Flag } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { deletePost, setPostPinned } from "@/app/discussions/actions";
-import type { BoardPost } from "@/lib/discussions";
+import { formatAuthorName, type BoardPost } from "@/lib/discussions";
 
 interface PostCardProps {
   post: BoardPost;
@@ -58,7 +58,11 @@ export function PostCard({ post, currentUserId, isTeacher }: PostCardProps) {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-medium text-wood-900 text-sm">
             {post.author
-              ? `${post.author.firstName} ${post.author.lastName}`
+              ? formatAuthorName(
+                  post.author.firstName,
+                  post.author.lastName,
+                  isTeacher
+                )
               : "Unknown"}
           </span>
           {post.author?.role === "teacher" && (

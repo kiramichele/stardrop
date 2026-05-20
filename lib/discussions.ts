@@ -64,6 +64,23 @@ export function parseMentions(text: string): string[] {
   return [...out];
 }
 
+/**
+ * Format an author's name for display on the boards. Students see everyone
+ * as "Firstname L." (last-initial only); teachers see full names.
+ */
+export function formatAuthorName(
+  firstName: string | null | undefined,
+  lastName: string | null | undefined,
+  abbreviate: boolean
+): string {
+  const first = (firstName ?? "").trim();
+  const last = (lastName ?? "").trim();
+  if (!first && !last) return "Unknown";
+  if (!abbreviate) return `${first} ${last}`.trim();
+  if (!last) return first || "Unknown";
+  return `${first} ${last[0].toUpperCase()}.`;
+}
+
 // Profanity filter — flags posts for teacher review (never blocks).
 // Edit this list to tune what gets flagged.
 const PROFANITY = [
