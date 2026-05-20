@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { asProfile, type UserProfile } from "@/lib/profile";
 import { isAssignmentReady } from "@/lib/assignments";
+import { getExcusalsForStudent } from "@/lib/excusals-server";
 
 // Teacher-facing: everything about one student in a single view.
 // Uses the admin client (the calling page is requireTeacher()-gated).
@@ -14,6 +15,7 @@ export type StudentGradeRow = {
   status: "draft" | "submitted" | "graded" | null;
   submissionId: string | null;
   score: number | null;
+  excused: boolean;
 };
 
 export type StudentOverview = {
@@ -84,6 +86,8 @@ export async function getStudentOverview(
     (submissionRows ?? []).map((s) => [s.assignment_id, s])
   );
 
+  const excusals = await getExcusalsForStudent(studentId);
+
   const grades: StudentGradeRow[] = assignments.map((a) => {
     const sub = subByAssignment.get(a.id);
     const grade = sub
@@ -100,6 +104,7 @@ export async function getStudentOverview(
       status: sub?.status ?? null,
       submissionId: sub?.id ?? null,
       score: grade?.score ?? null,
+      excused: excusals.has(a.id),
     };
   });
 

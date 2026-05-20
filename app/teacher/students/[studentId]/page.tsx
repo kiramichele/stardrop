@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
+import { ExcuseToggle } from "@/components/students/ExcuseToggle";
 
 export default async function StudentOverviewPage({
   params,
@@ -28,11 +29,14 @@ export default async function StudentOverviewPage({
     discussionPosts,
   } = overview;
 
-  const graded = grades.filter((g) => g.score !== null);
+  // Excused work is dropped from the average entirely.
+  const graded = grades.filter((g) => g.score !== null && !g.excused);
   const earned = graded.reduce((s, g) => s + (g.score ?? 0), 0);
   const possible = graded.reduce((s, g) => s + g.points, 0);
   const averagePct = possible > 0 ? (earned / possible) * 100 : null;
-  const awaitingGrade = grades.filter((g) => g.status === "submitted").length;
+  const awaitingGrade = grades.filter(
+    (g) => g.status === "submitted" && !g.excused
+  ).length;
 
   const fullName =
     `${student.first_name} ${student.last_name}`.trim() || student.username;
@@ -180,10 +184,16 @@ export default async function StudentOverviewPage({
                 ? `/teacher/assignments/${g.assignmentId}/grade/${g.submissionId}`
                 : `/teacher/assignments/${g.assignmentId}`;
               return (
-                <li key={g.assignmentId} className="p-1.5">
+                <li
+                  key={g.assignmentId}
+                  className={[
+                    "flex items-center gap-1 p-1.5",
+                    g.excused ? "opacity-60" : "",
+                  ].join(" ")}
+                >
                   <Link
                     href={href}
-                    className="group flex items-center gap-3 px-3 py-3 rounded-cozy hover:bg-cream-200 transition-colors"
+                    className="group flex-1 min-w-0 flex items-center gap-3 px-3 py-3 rounded-cozy hover:bg-cream-200 transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -198,7 +208,11 @@ export default async function StudentOverviewPage({
                           : "No due date"}
                       </p>
                     </div>
-                    {g.score !== null ? (
+                    {g.excused ? (
+                      <p className="text-xs font-medium text-wood-500 flex-shrink-0">
+                        Excused
+                      </p>
+                    ) : g.score !== null ? (
                       <div className="text-right flex-shrink-0">
                         <p className="font-display text-lg text-sage-700">
                           {g.score}
@@ -223,6 +237,11 @@ export default async function StudentOverviewPage({
                     )}
                     <ArrowRight className="w-4 h-4 text-wood-400 transition-transform duration-150 group-hover:translate-x-0.5 flex-shrink-0" />
                   </Link>
+                  <ExcuseToggle
+                    assignmentId={g.assignmentId}
+                    studentId={studentId}
+                    initialExcused={g.excused}
+                  />
                 </li>
               );
             })}

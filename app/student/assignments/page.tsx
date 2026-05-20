@@ -7,6 +7,7 @@ import {
   type AssignmentType,
 } from "@/lib/assignments";
 import { getAssignmentsForStudent } from "@/lib/assignments-server";
+import { getExcusalsForStudent } from "@/lib/excusals-server";
 import { getUnitsForStudent } from "@/lib/lessons";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -18,9 +19,10 @@ import {
 
 export default async function StudentAssignmentsPage() {
   const user = await requireStudent();
-  const [assignments, units] = await Promise.all([
+  const [assignments, units, excused] = await Promise.all([
     getAssignmentsForStudent(user.id),
     getUnitsForStudent(user.id),
+    getExcusalsForStudent(user.id),
   ]);
 
   const groups = groupAssignmentsByUnit(assignments, units);
@@ -103,9 +105,16 @@ export default async function StudentAssignmentsPage() {
                           !sub?.submitted_at &&
                           new Date(a.due_date).getTime() - Date.now() <
                             24 * 60 * 60 * 1000;
+                        const isExcused = excused.has(a.id);
 
                         return (
-                          <li key={a.id} className="p-1.5">
+                          <li
+                            key={a.id}
+                            className={[
+                              "p-1.5",
+                              isExcused ? "opacity-60" : "",
+                            ].join(" ")}
+                          >
                             <Link
                               href={`/student/assignments/${a.id}`}
                               className="group flex items-center gap-3 px-3 py-3 rounded-cozy hover:bg-cream-200 transition-colors"
@@ -139,7 +148,7 @@ export default async function StudentAssignmentsPage() {
                                   )}
                                 </p>
                               </div>
-                              {grade && (
+                              {!isExcused && grade && (
                                 <div className="text-right">
                                   <p className="font-display text-lg text-sage-700">
                                     {grade.score}
@@ -149,11 +158,17 @@ export default async function StudentAssignmentsPage() {
                                   </p>
                                 </div>
                               )}
-                              <SubmissionStatusBadge
-                                status={sub?.status}
-                                hasGrade={!!grade}
-                                isLate={isLate}
-                              />
+                              {isExcused ? (
+                                <span className="flex-shrink-0 text-[0.65rem] uppercase tracking-wide-label font-semibold px-2 py-0.5 rounded-cozy bg-wood-200 text-wood-700">
+                                  Excused
+                                </span>
+                              ) : (
+                                <SubmissionStatusBadge
+                                  status={sub?.status}
+                                  hasGrade={!!grade}
+                                  isLate={isLate}
+                                />
+                              )}
                               <ArrowRight className="w-4 h-4 text-wood-400 transition-transform duration-150 group-hover:translate-x-0.5" />
                             </Link>
                           </li>

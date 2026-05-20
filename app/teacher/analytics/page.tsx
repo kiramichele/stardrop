@@ -4,6 +4,7 @@ import {
   TriangleAlert,
   Timer,
   ArrowRight,
+  LayoutGrid,
 } from "lucide-react";
 import { requireTeacher } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -11,21 +12,24 @@ import {
   getLessonCompletionStats,
   getStrugglingStudents,
   getTimeOnTaskStats,
+  getUnitClassHeatmap,
 } from "@/lib/analytics-server";
 import { isAnthropicConfigured } from "@/lib/anthropic";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { AiAnalysisPanel } from "@/components/analytics/AiAnalysisPanel";
+import { UnitHeatmap } from "@/components/analytics/UnitHeatmap";
 
 export default async function AnalyticsPage() {
   await requireTeacher();
   const admin = createAdminClient();
 
-  const [completion, struggling, timeOnTask, assignmentsRes] =
+  const [completion, struggling, timeOnTask, heatmap, assignmentsRes] =
     await Promise.all([
       getLessonCompletionStats(),
       getStrugglingStudents(),
       getTimeOnTaskStats(),
+      getUnitClassHeatmap(),
       admin
         .from("assignments")
         .select("id, title")
@@ -53,6 +57,22 @@ export default async function AnalyticsPage() {
       />
 
       <div className="space-y-7">
+        {/* Scores by unit & class — heat map */}
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <LayoutGrid
+              className="w-4 h-4 text-terracotta-600"
+              strokeWidth={2}
+            />
+            <h2 className="font-display text-xl text-wood-800">
+              Scores by unit &amp; class
+            </h2>
+          </div>
+          <Card>
+            <UnitHeatmap data={heatmap} />
+          </Card>
+        </section>
+
         {/* Lesson completions */}
         <section>
           <div className="flex items-center gap-2 mb-3">

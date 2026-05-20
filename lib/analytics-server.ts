@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAssignmentReady } from "@/lib/assignments";
+import { getAllExcusals } from "@/lib/excusals-server";
 
 // Teacher analytics. Admin-client based — the calling page is
 // requireTeacher()-gated.
@@ -72,21 +73,27 @@ export async function getStrugglingStudents(): Promise<StrugglingStudent[]> {
   const admin = createAdminClient();
   const now = Date.now();
 
-  const [studentsRes, enrollmentsRes, assignmentsRes, submissionsRes] =
-    await Promise.all([
-      admin
-        .from("users")
-        .select("id, first_name, last_name")
-        .eq("role", "student"),
-      admin.from("enrollments").select("user_id, class_id"),
-      admin
-        .from("assignments")
-        .select("id, class_id, points, due_date, type, interactive_html_url")
-        .eq("published", true),
-      admin
-        .from("submissions")
-        .select("user_id, assignment_id, status, grades(score)"),
-    ]);
+  const [
+    studentsRes,
+    enrollmentsRes,
+    assignmentsRes,
+    submissionsRes,
+    excusals,
+  ] = await Promise.all([
+    admin
+      .from("users")
+      .select("id, first_name, last_name")
+      .eq("role", "student"),
+    admin.from("enrollments").select("user_id, class_id"),
+    admin
+      .from("assignments")
+      .select("id, class_id, points, due_date, type, interactive_html_url")
+      .eq("published", true),
+    admin
+      .from("submissions")
+      .select("user_id, assignment_id, status, grades(score)"),
+    getAllExcusals(),
+  ]);
 
   const readyAssignments = (assignmentsRes.data ?? []).filter(
     isAssignmentReady
@@ -130,6 +137,8 @@ export async function getStrugglingStudents(): Promise<StrugglingStudent[]> {
     let gradedCount = 0;
     let missingCount = 0;
     for (const a of applicable) {
+      // Excused work doesn't count for or against the student.
+      if (excusals.has(`${stu.id}::${a.id}`)) continue;
       const sub = subByUserAssignment.get(subKey(stu.id, a.id));
       if (sub && sub.score !== null) {
         earned += sub.score;
@@ -222,4 +231,143 @@ export async function getTimeOnTaskStats(): Promise<TimeOnTaskStat[]> {
   }
   stats.sort((a, b) => b.avgMinutes - a.avgMinutes);
   return stats;
+}
+
+// =============================================================
+// Unit x class heat map (completion + average score)
+// =============================================================
+
+export type HeatmapCell = {
+  completionPct: number | null;
+  avgPct: number | null;
+  assignmentCount: number;
+};
+
+export type UnitClassHeatmap = {
+  units: { id: string; title: string }[];
+  classes: { id: string; label: string }[];
+  /** cells[unitId][classId] */
+  cells: Record<string, Record<string, HeatmapCell>>;
+};
+
+export async function getUnitClassHeatmap(): Promise<UnitClassHeatmap> {
+  const admin = createAdminClient();
+
+  const [
+    unitsRes,
+    lessonsRes,
+    classesRes,
+    assignmentsRes,
+    enrollmentsRes,
+    submissionsRes,
+    excusals,
+  ] = await Promise.all([
+    admin.from("units").select("id, title, order").order("order"),
+    admin.from("lessons").select("id, unit_id"),
+    admin
+      .from("classes")
+      .select("id, name, period_number")
+      .order("period_number", { ascending: true, nullsFirst: false }),
+    admin
+      .from("assignments")
+      .select("id, class_id, lesson_id, points, type, interactive_html_url")
+      .eq("published", true),
+    admin.from("enrollments").select("class_id, user_id"),
+    admin
+      .from("submissions")
+      .select("assignment_id, user_id, status, grades(score)"),
+    getAllExcusals(),
+  ]);
+
+  const lessonToUnit = new Map<string, string>();
+  for (const l of lessonsRes.data ?? []) lessonToUnit.set(l.id, l.unit_id);
+
+  const ready = (assignmentsRes.data ?? []).filter(isAssignmentReady);
+
+  const studentsByClass = new Map<string, string[]>();
+  for (const e of enrollmentsRes.data ?? []) {
+    const arr = studentsByClass.get(e.class_id) ?? [];
+    arr.push(e.user_id);
+    studentsByClass.set(e.class_id, arr);
+  }
+
+  const pair = (u: string, a: string) => `${u}::${a}`;
+  const subs = new Map<string, { status: string; score: number | null }>();
+  for (const s of submissionsRes.data ?? []) {
+    const grade = Array.isArray(s.grades) ? s.grades[0] : s.grades;
+    subs.set(pair(s.user_id, s.assignment_id), {
+      status: s.status,
+      score: grade?.score ?? null,
+    });
+  }
+
+  // assignments grouped: unit -> class -> assignments
+  const byUnitClass = new Map<string, Map<string, typeof ready>>();
+  for (const a of ready) {
+    if (!a.lesson_id) continue;
+    const unitId = lessonToUnit.get(a.lesson_id);
+    if (!unitId) continue;
+    let cm = byUnitClass.get(unitId);
+    if (!cm) {
+      cm = new Map();
+      byUnitClass.set(unitId, cm);
+    }
+    const arr = cm.get(a.class_id) ?? [];
+    arr.push(a);
+    cm.set(a.class_id, arr);
+  }
+
+  const units = (unitsRes.data ?? [])
+    .filter((u) => byUnitClass.has(u.id))
+    .map((u) => ({ id: u.id, title: u.title }));
+  const classes = (classesRes.data ?? []).map((c) => ({
+    id: c.id,
+    label: c.period_number != null ? `P${c.period_number}` : c.name,
+  }));
+
+  const cells: Record<string, Record<string, HeatmapCell>> = {};
+  for (const u of units) {
+    cells[u.id] = {};
+    const cm = byUnitClass.get(u.id);
+    for (const c of classes) {
+      const assignments = cm?.get(c.id) ?? [];
+      if (assignments.length === 0) {
+        cells[u.id][c.id] = {
+          completionPct: null,
+          avgPct: null,
+          assignmentCount: 0,
+        };
+        continue;
+      }
+      const students = studentsByClass.get(c.id) ?? [];
+      let expected = 0;
+      let completed = 0;
+      let sumScore = 0;
+      let sumPoints = 0;
+      for (const a of assignments) {
+        for (const studentId of students) {
+          if (excusals.has(pair(studentId, a.id))) continue;
+          expected++;
+          const sub = subs.get(pair(studentId, a.id));
+          if (
+            sub &&
+            (sub.status === "submitted" || sub.status === "graded")
+          ) {
+            completed++;
+          }
+          if (sub && sub.score !== null) {
+            sumScore += sub.score;
+            sumPoints += a.points;
+          }
+        }
+      }
+      cells[u.id][c.id] = {
+        completionPct: expected > 0 ? (completed / expected) * 100 : null,
+        avgPct: sumPoints > 0 ? (sumScore / sumPoints) * 100 : null,
+        assignmentCount: assignments.length,
+      };
+    }
+  }
+
+  return { units, classes, cells };
 }

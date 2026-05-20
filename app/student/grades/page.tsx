@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Award, ClipboardList } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { getAssignmentsForStudent } from "@/lib/assignments-server";
+import { getExcusalsForStudent } from "@/lib/excusals-server";
 import { letterGrade, type AssignmentType } from "@/lib/assignments";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -10,7 +11,10 @@ import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 
 export default async function StudentGradesPage() {
   const user = await requireStudent();
-  const assignments = await getAssignmentsForStudent(user.id);
+  const [assignments, excused] = await Promise.all([
+    getAssignmentsForStudent(user.id),
+    getExcusalsForStudent(user.id),
+  ]);
 
   const rows = assignments.map((a) => {
     const sub = a.submission;
@@ -27,10 +31,12 @@ export default async function StudentGradesPage() {
       status: sub?.status ?? null,
       score,
       graded: score !== null,
+      excused: excused.has(a.id),
     };
   });
 
-  const graded = rows.filter((r) => r.graded);
+  // Excused assignments are dropped from the average.
+  const graded = rows.filter((r) => r.graded && !r.excused);
   const earned = graded.reduce((sum, r) => sum + (r.score ?? 0), 0);
   const possible = graded.reduce((sum, r) => sum + r.points, 0);
   const averagePct = possible > 0 ? (earned / possible) * 100 : null;
@@ -109,7 +115,11 @@ export default async function StudentGradesPage() {
                           </p>
                         )}
                       </div>
-                      {r.graded ? (
+                      {r.excused ? (
+                        <p className="text-xs font-medium text-wood-500 flex-shrink-0">
+                          Excused
+                        </p>
+                      ) : r.graded ? (
                         <div className="text-right flex-shrink-0">
                           <p className="font-display text-lg text-sage-700">
                             {r.score}
