@@ -8,6 +8,7 @@ export type FeedbackEntry = {
   authorRole: "teacher" | "student";
   authorFirstName: string;
   authorLastName: string;
+  authorAvatarUrl: string | null;
   body: string;
   createdAt: string;
 };

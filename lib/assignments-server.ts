@@ -1,6 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isAssignmentReady, type SubmissionEvent } from "@/lib/assignments";
+import { asProfile } from "@/lib/profile";
+import {
+  isAssignmentReady,
+  type SubmissionEvent,
+  type DiscussionPost,
+} from "@/lib/assignments";
 
 // =============================================================
 // PostgREST select strings.
@@ -26,8 +31,7 @@ const SELECTS = {
     "assignment_id, status, submitted_at, grades(score)",
   studentAssignment: "*, classes(name, period_number)",
   studentSubmission: "*, grades(score, feedback, graded_at)",
-  discussionPosts:
-    "id, user_id, content, submitted_at, users(first_name, last_name)",
+  discussionPosts: "id, content, submitted_at, users(*)",
 } as const;
 
 // =============================================================
@@ -154,7 +158,7 @@ export async function getAssignmentForStudent(
 export async function getOtherDiscussionPosts(
   assignmentId: string,
   currentUserId: string
-) {
+): Promise<DiscussionPost[]> {
   // Bypass RLS with the admin client: the default user-scoped policy on
   // `submissions` hides peers' rows from a student, but discussions are
   // supposed to expose them once the student has submitted their own.
@@ -167,5 +171,18 @@ export async function getOtherDiscussionPosts(
     .neq("user_id", currentUserId)
     .in("status", ["submitted", "graded"])
     .order("submitted_at", { ascending: false, nullsFirst: false });
-  return data ?? [];
+
+  return (data ?? []).map((row) => {
+    const author = asProfile(
+      Array.isArray(row.users) ? row.users[0] : row.users
+    );
+    return {
+      id: row.id,
+      content: row.content,
+      submitted_at: row.submitted_at,
+      authorFirstName: author.first_name,
+      authorLastName: author.last_name,
+      authorAvatarUrl: author.avatar_url,
+    };
+  });
 }

@@ -2,20 +2,9 @@ import { MessagesSquare } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { displayName } from "@/lib/assignments";
+import { displayName, type DiscussionPost } from "@/lib/assignments";
 
-type Post = {
-  id: string;
-  user_id: string;
-  content: string | null;
-  submitted_at: string | null;
-  users:
-    | { first_name: string; last_name: string }
-    | { first_name: string; last_name: string }[]
-    | null;
-};
-
-export function DiscussionFeed({ posts }: { posts: Post[] }) {
+export function DiscussionFeed({ posts }: { posts: DiscussionPost[] }) {
   if (posts.length === 0) {
     return (
       <Card>
@@ -31,14 +20,14 @@ export function DiscussionFeed({ posts }: { posts: Post[] }) {
   return (
     <div className="space-y-3">
       {posts.map((p) => {
-        const user = Array.isArray(p.users) ? p.users[0] : p.users;
-        const name = displayName(user?.first_name, user?.last_name);
+        const name = displayName(p.authorFirstName, p.authorLastName);
         return (
           <Card key={p.id}>
             <div className="flex items-start gap-3 mb-3">
               <Avatar
-                firstName={user?.first_name}
-                lastName={user?.last_name}
+                firstName={p.authorFirstName}
+                lastName={p.authorLastName}
+                avatarUrl={p.authorAvatarUrl}
                 size="sm"
               />
               <div className="flex-1">

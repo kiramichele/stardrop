@@ -56,6 +56,7 @@ export function FeedbackThread({
                   <Avatar
                     firstName={entry.authorFirstName}
                     lastName={entry.authorLastName}
+                    avatarUrl={entry.authorAvatarUrl}
                     size="sm"
                   />
                 </div>

@@ -89,6 +89,16 @@ export type SubmissionMedia = {
   createdAt: string;
 };
 
+/** One submitted discussion post, flattened with its author for rendering. */
+export type DiscussionPost = {
+  id: string;
+  content: string | null;
+  submitted_at: string | null;
+  authorFirstName: string;
+  authorLastName: string;
+  authorAvatarUrl: string | null;
+};
+
 /** Safely narrows the JSONB uploaded_files column to a typed array. */
 export function parseSubmissionMedia(value: unknown): SubmissionMedia[] {
   if (!Array.isArray(value)) return [];

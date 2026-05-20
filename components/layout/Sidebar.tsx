@@ -42,7 +42,7 @@ const studentNav: NavItem[] = [
   { label: "Dashboard", href: "/student", icon: LayoutDashboard },
   { label: "Lessons", href: "/student/lessons", icon: BookOpen },
   { label: "Assignments", href: "/student/assignments", icon: ClipboardList },
-  { label: "Grades", href: "/student/grades", icon: Award, comingSoon: true },
+  { label: "Grades", href: "/student/grades", icon: Award },
   {
     label: "Discussions",
     href: "/student/discussions",

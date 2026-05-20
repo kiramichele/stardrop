@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { asProfile } from "@/lib/profile";
 import type { FeedbackEntry } from "@/lib/feedback";
 
 // =============================================================
@@ -13,8 +14,18 @@ type FeedbackMessageRow = {
   body: string;
   created_at: string;
   users:
-    | { first_name: string; last_name: string; role: "teacher" | "student" }
-    | Array<{ first_name: string; last_name: string; role: "teacher" | "student" }>
+    | {
+        first_name: string;
+        last_name: string;
+        role: "teacher" | "student";
+        avatar_url: string | null;
+      }
+    | Array<{
+        first_name: string;
+        last_name: string;
+        role: "teacher" | "student";
+        avatar_url: string | null;
+      }>
     | null;
 };
 
@@ -75,7 +86,7 @@ export async function getFeedbackThread(
       .maybeSingle(),
     feedbackMessages(admin)
       .select(
-        "id, author_id, body, created_at, users(first_name, last_name, role)"
+        "id, author_id, body, created_at, users(first_name, last_name, role, avatar_url)"
       )
       .eq("submission_id", submissionId)
       .order("created_at", { ascending: true }),
@@ -84,19 +95,20 @@ export async function getFeedbackThread(
   const entries: FeedbackEntry[] = [];
 
   if (grade?.feedback && grade.feedback.trim().length > 0) {
-    // Look up any teacher's name to attribute the initial feedback
+    // Look up any teacher to attribute (and illustrate) the initial feedback
     const { data: teachers } = await admin
       .from("users")
-      .select("first_name, last_name")
+      .select("*")
       .eq("role", "teacher")
       .limit(1);
-    const t = teachers?.[0];
+    const t = teachers?.[0] ? asProfile(teachers[0]) : null;
     entries.push({
       id: `initial:${submissionId}`,
       source: "initial",
       authorRole: "teacher",
       authorFirstName: t?.first_name ?? "Teacher",
       authorLastName: t?.last_name ?? "",
+      authorAvatarUrl: t?.avatar_url ?? null,
       body: grade.feedback,
       createdAt: grade.graded_at ?? new Date(0).toISOString(),
     });
@@ -110,6 +122,7 @@ export async function getFeedbackThread(
       authorRole: user?.role === "teacher" ? "teacher" : "student",
       authorFirstName: user?.first_name ?? "Removed",
       authorLastName: user?.last_name ?? "user",
+      authorAvatarUrl: user?.avatar_url ?? null,
       body: m.body,
       createdAt: m.created_at,
     });
