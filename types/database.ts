@@ -115,42 +115,6 @@ export type Database = {
           },
         ]
       }
-      assignment_excusals: {
-        Row: {
-          assignment_id: string
-          created_at: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          assignment_id: string
-          created_at?: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          assignment_id?: string
-          created_at?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "assignment_excusals_assignment_id_fkey"
-            columns: ["assignment_id"]
-            isOneToOne: false
-            referencedRelation: "assignments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assignment_excusals_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       calendar_events: {
         Row: {
           category: string
@@ -1064,6 +1028,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          onboarded_at: string | null
           real_email: string | null
           reduced_motion: boolean
           role: Database["public"]["Enums"]["user_role"]
@@ -1077,6 +1042,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          onboarded_at?: string | null
           real_email?: string | null
           reduced_motion?: boolean
           role?: Database["public"]["Enums"]["user_role"]
@@ -1090,6 +1056,7 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string
+          onboarded_at?: string | null
           real_email?: string | null
           reduced_motion?: boolean
           role?: Database["public"]["Enums"]["user_role"]
