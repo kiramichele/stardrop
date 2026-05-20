@@ -32,7 +32,9 @@ export async function middleware(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isLoginPage = path === "/login";
-  const isPublic = path === "/" || isLoginPage;
+  // Public, shareable lesson pages — the links teachers post to Canvas.
+  const isPublicLesson = path.startsWith("/lessons/");
+  const isPublic = path === "/" || isLoginPage || isPublicLesson;
 
   // Not signed in + accessing protected route -> /login
   if (!user && !isPublic) {
