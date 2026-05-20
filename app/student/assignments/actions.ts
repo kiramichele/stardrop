@@ -309,3 +309,30 @@ export async function logPasteEvent(
   });
   return { ok: true };
 }
+
+/**
+ * Activity heartbeat from an assignment editor — one ping per active
+ * minute the student spends working. Powers time-on-task analytics.
+ * No-ops until the student has a submission row to attach events to.
+ */
+export async function recordActivityPing(
+  assignmentId: string
+): Promise<{ ok: boolean }> {
+  const user = await requireStudent();
+  const supabase = await createClient();
+
+  const { data: sub } = await supabase
+    .from("submissions")
+    .select("id")
+    .eq("assignment_id", assignmentId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!sub) return { ok: false };
+
+  await supabase.from("submission_events").insert({
+    submission_id: sub.id,
+    event_type: "keystroke_batch",
+    payload: { activeMs: 60000 },
+  });
+  return { ok: true };
+}

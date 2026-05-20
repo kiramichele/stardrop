@@ -11,7 +11,12 @@
       "Bash(curl -s -o /dev/null -w \"status=%{http_code} redirect=%{redirect_url}\\\\n\" \"http://localhost:3000/calendar?month=2026-09\")",
       "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"calendar=%{http_code}\\\\n\" \"http://localhost:3000/calendar\")",
       "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"slideshows=%{http_code}\\\\n\" \"http://localhost:3000/slideshows\")",
-      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"teacher/assignments=%{http_code}\\\\n\" \"http://localhost:3000/teacher/assignments\")"
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"teacher/assignments=%{http_code}\\\\n\" \"http://localhost:3000/teacher/assignments\")",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Bash(npm install *)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('@anthropic-ai/sdk', p.dependencies['@anthropic-ai/sdk']\\)\")",
+      "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"analytics=%{http_code}\\\\n\" \"http://localhost:3000/teacher/analytics\")"
     ]
   }
 }

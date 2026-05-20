@@ -71,12 +71,13 @@ export function parseMentions(text: string): string[] {
 export function formatAuthorName(
   firstName: string | null | undefined,
   lastName: string | null | undefined,
-  abbreviate: boolean
+  viewerIsTeacher: boolean
 ): string {
   const first = (firstName ?? "").trim();
   const last = (lastName ?? "").trim();
   if (!first && !last) return "Unknown";
-  if (!abbreviate) return `${first} ${last}`.trim();
+  // Teachers see full names; students see first name + last initial only.
+  if (viewerIsTeacher) return `${first} ${last}`.trim();
   if (!last) return first || "Unknown";
   return `${first} ${last[0].toUpperCase()}.`;
 }

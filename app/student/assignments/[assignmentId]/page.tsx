@@ -24,6 +24,7 @@ import { FeedbackThread } from "@/components/feedback/FeedbackThread";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
+import { ActivityTracker } from "@/components/assignments/ActivityTracker";
 import { CodeAssignmentEditor } from "@/components/assignments/CodeAssignmentEditor";
 import { InteractiveHtmlAssignment } from "@/components/assignments/InteractiveHtmlAssignment";
 import { TextAssignmentEditor } from "@/components/assignments/TextAssignmentEditor";
@@ -79,6 +80,8 @@ export default async function StudentAssignmentPage({
 
   return (
     <>
+      <ActivityTracker assignmentId={assignment.id} />
+
       <Link
         href="/student/assignments"
         className="inline-flex items-center gap-1.5 text-sm text-wood-600 hover:text-terracotta-700 transition-colors mb-4"

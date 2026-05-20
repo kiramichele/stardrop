@@ -14,6 +14,7 @@ import {
   BookMarked,
   Presentation,
   UserRound,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 
@@ -26,6 +27,7 @@ type NavItem = {
 
 const teacherNav: NavItem[] = [
   { label: "Dashboard", href: "/teacher", icon: LayoutDashboard },
+  { label: "Analytics", href: "/teacher/analytics", icon: BarChart3 },
   { label: "Classes", href: "/teacher/classes", icon: Users },
   { label: "Roster", href: "/teacher/students", icon: UserRound },
   { label: "Lessons", href: "/teacher/lessons", icon: BookOpen },
