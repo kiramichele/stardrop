@@ -16,6 +16,7 @@ import {
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { ShareLink } from "@/components/ui/ShareLink";
 import { Input, Label, Textarea, Select, FieldHint } from "@/components/ui/Input";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 import {
@@ -188,6 +189,18 @@ export default async function AssignmentDetailPage({
         </div>
 
         <div className="space-y-4">
+          <ShareLink
+            path={`/assignments/${assignmentId}`}
+            description="A link for Canvas — students open it once they're signed in, and it takes them straight to this assignment."
+            warning={
+              assignment.published
+                ? isInteractive && !hasInteractiveHtml
+                  ? "Upload the HTML file above for the link to work."
+                  : null
+                : "Publish this assignment for the link to work."
+            }
+          />
+
           {isInteractive && (
             <Card>
               <h3 className="font-display text-lg text-wood-900 mb-1">

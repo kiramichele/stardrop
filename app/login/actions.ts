@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { usernameToEmail, isValidUsername } from "@/lib/auth";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 
 export type LoginState = { error?: string } | null;
 
@@ -44,8 +45,13 @@ export async function login(
     .eq("id", user.id)
     .single();
 
+  // Bounce back to wherever they were headed before being sent to /login,
+  // falling back to their role's dashboard.
+  const next = safeRedirectPath(formData.get("next")?.toString());
+  const dashboard = profile?.role === "teacher" ? "/teacher" : "/student";
+
   revalidatePath("/", "layout");
-  redirect(profile?.role === "teacher" ? "/teacher" : "/student");
+  redirect(next ?? dashboard);
 }
 
 export async function logout() {

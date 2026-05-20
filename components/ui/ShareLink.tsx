@@ -5,19 +5,28 @@ import { Link2, Copy, Check, AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
-export function LessonShareLink({
-  lessonId,
-  published,
-}: {
-  lessonId: string;
-  published: boolean;
-}) {
+interface ShareLinkProps {
+  /** App-relative path, e.g. "/lessons/abc" or "/assignments/abc". */
+  path: string;
+  title?: string;
+  description: string;
+  /** Amber caveat shown under the field; null/undefined = no caveat. */
+  warning?: string | null;
+}
+
+/** A copy-the-URL card for sharing a page (e.g. pasting into Canvas). */
+export function ShareLink({
+  path,
+  title = "Share link",
+  description,
+  warning,
+}: ShareLinkProps) {
   const [url, setUrl] = useState("");
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setUrl(`${window.location.origin}/lessons/${lessonId}`);
-  }, [lessonId]);
+    setUrl(`${window.location.origin}${path}`);
+  }, [path]);
 
   async function copy() {
     if (!url) return;
@@ -34,11 +43,9 @@ export function LessonShareLink({
     <Card>
       <div className="flex items-center gap-2 mb-1">
         <Link2 className="w-4 h-4 text-terracotta-600" strokeWidth={2} />
-        <h3 className="font-display text-lg text-wood-900">Share link</h3>
+        <h3 className="font-display text-lg text-wood-900">{title}</h3>
       </div>
-      <p className="text-xs text-wood-600 mb-3">
-        A public link — no login needed. Paste it into Canvas for students.
-      </p>
+      <p className="text-xs text-wood-600 mb-3">{description}</p>
 
       <div className="flex gap-2">
         <input
@@ -62,10 +69,10 @@ export function LessonShareLink({
         </Button>
       </div>
 
-      {!published && (
+      {warning && (
         <p className="flex items-center gap-1.5 text-xs text-honey-800 bg-honey-50 border border-honey-200 rounded-cozy px-2.5 py-1.5 mt-3">
           <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-          Publish this lesson for the link to work.
+          {warning}
         </p>
       )}
     </Card>

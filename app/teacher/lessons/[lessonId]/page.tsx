@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, FieldHint } from "@/components/ui/Input";
 import { LessonViewer } from "@/components/lessons/LessonViewer";
-import { LessonShareLink } from "@/components/lessons/LessonShareLink";
+import { ShareLink } from "@/components/ui/ShareLink";
 import { updateLesson, deleteLesson } from "../actions";
 
 export default async function TeacherLessonPage({
@@ -42,9 +42,14 @@ export default async function TeacherLessonPage({
         </div>
 
         <div className="space-y-4">
-          <LessonShareLink
-            lessonId={lesson.id}
-            published={lesson.published}
+          <ShareLink
+            path={`/lessons/${lesson.id}`}
+            description="A public link — no login needed. Paste it into Canvas for students."
+            warning={
+              lesson.published
+                ? null
+                : "Publish this lesson for the link to work."
+            }
           />
 
           <Card>

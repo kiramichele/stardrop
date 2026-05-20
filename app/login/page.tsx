@@ -1,9 +1,5 @@
-"use client";
-
-import { useActionState } from "react";
-import { login, type LoginState } from "./actions";
-import { Button } from "@/components/ui/Button";
-import { Input, Label, FieldError } from "@/components/ui/Input";
+import { safeRedirectPath } from "@/lib/safe-redirect";
+import { LoginForm } from "./LoginForm";
 
 // Decorative starfield SVG — scattered dots evoking stardrops without being literal
 function Starfield() {
@@ -34,24 +30,19 @@ function Starfield() {
       aria-hidden
     >
       {stars.map((s, i) => (
-        <circle
-          key={i}
-          cx={s.x}
-          cy={s.y}
-          r={s.r}
-          fill="#d56f3e"
-          opacity={s.o}
-        />
+        <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#d56f3e" opacity={s.o} />
       ))}
     </svg>
   );
 }
 
-export default function LoginPage() {
-  const [state, formAction, isPending] = useActionState<LoginState, FormData>(
-    login,
-    null
-  );
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+  const safeNext = safeRedirectPath(next) ?? "";
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
@@ -66,44 +57,7 @@ export default function LoginPage() {
             <p className="label-eyebrow mt-3">Game Design · Ms. Shinn</p>
           </div>
 
-          <form action={formAction} className="space-y-4">
-            <div>
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                name="username"
-                type="text"
-                required
-                autoComplete="username"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck={false}
-                placeholder="firstinitiallastname"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                required
-                autoComplete="current-password"
-              />
-            </div>
-
-            {state?.error && <FieldError>{state.error}</FieldError>}
-
-            <Button
-              type="submit"
-              disabled={isPending}
-              size="lg"
-              className="w-full"
-            >
-              {isPending ? "Signing in…" : "Sign in"}
-            </Button>
-          </form>
+          <LoginForm next={safeNext} />
         </div>
 
         <p className="text-center text-xs text-wood-500 mt-5">

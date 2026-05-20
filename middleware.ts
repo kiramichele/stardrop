@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -36,14 +37,18 @@ export async function middleware(request: NextRequest) {
   const isPublicLesson = path.startsWith("/lessons/");
   const isPublic = path === "/" || isLoginPage || isPublicLesson;
 
-  // Not signed in + accessing protected route -> /login
+  // Not signed in + accessing protected route -> /login, remembering where
+  // they were headed so we can bounce them back after they sign in.
   if (!user && !isPublic) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("next", path + request.nextUrl.search);
+    return NextResponse.redirect(loginUrl);
   }
 
-  // Signed in + on /login -> bounce to root (which redirects to dashboard)
+  // Signed in + on /login -> straight to their destination (or the dashboard)
   if (user && isLoginPage) {
-    return NextResponse.redirect(new URL("/", request.url));
+    const next = safeRedirectPath(request.nextUrl.searchParams.get("next"));
+    return NextResponse.redirect(new URL(next ?? "/", request.url));
   }
 
   return response;
