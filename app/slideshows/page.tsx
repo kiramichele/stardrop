@@ -34,14 +34,21 @@ export default async function SlideshowsPage() {
     assignmentOptions = assignments.map((a) => ({ id: a.id, title: a.title }));
   }
 
-  // Group into school weeks. getSlideshows() is sorted newest-first, so
-  // same-week slideshows are already contiguous.
+  // Students follow the semester in order (oldest week at the top, newest
+  // at the bottom); the teacher sees newest first. Sorting here keeps
+  // same-week slideshows contiguous either way, so the grouping loop works.
+  const ordered = [...slideshows].sort((a, b) =>
+    isTeacher
+      ? b.classDate.localeCompare(a.classDate)
+      : a.classDate.localeCompare(b.classDate)
+  );
+
   const weekGroups: {
     weekStart: string;
     label: string;
     items: typeof slideshows;
   }[] = [];
-  for (const s of slideshows) {
+  for (const s of ordered) {
     const ws = weekStartString(s.classDate);
     const last = weekGroups[weekGroups.length - 1];
     if (last && last.weekStart === ws) {
