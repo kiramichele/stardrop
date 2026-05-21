@@ -11,6 +11,7 @@ import {
 import {
   getSubmissionForGrading,
   getSubmissionEvents,
+  getSubmissionsForAssignment,
 } from "@/lib/assignments-server";
 import { getRubric } from "@/lib/rubrics-server";
 import { parseRubricScores } from "@/lib/rubrics";
@@ -18,10 +19,24 @@ import { getFeedbackThread } from "@/lib/feedback-server";
 import { FeedbackThread } from "@/components/feedback/FeedbackThread";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
+import {
+  KeyboardShortcuts,
+  type Shortcut,
+} from "@/components/ui/KeyboardShortcuts";
 import { SubmissionStatusBadge } from "@/components/assignments/Badges";
 import { PasteTimeline } from "@/components/assignments/PasteTimeline";
 import { GradingForm } from "@/components/assignments/GradingForm";
+import { GradingNav } from "@/components/assignments/GradingNav";
 import { InteractiveResponseView } from "@/components/assignments/InteractiveResponseView";
+
+const GRADING_SHORTCUTS: Shortcut[] = [
+  { keys: ["J"], label: "Go to the next submission" },
+  { keys: ["K"], label: "Go to the previous submission" },
+  { keys: ["Ctrl", "S"], label: "Save this grade" },
+  { keys: ["Ctrl", "Enter"], label: "Save grade & jump to next ungraded" },
+  { keys: ["?"], label: "Open this shortcuts list" },
+  { keys: ["Esc"], label: "Close this list" },
+];
 
 export default async function GradeSubmissionPage({
   params,
@@ -29,8 +44,35 @@ export default async function GradeSubmissionPage({
   params: Promise<{ assignmentId: string; submissionId: string }>;
 }) {
   const { assignmentId, submissionId } = await params;
-  const submission = await getSubmissionForGrading(submissionId);
+  const [submission, queue] = await Promise.all([
+    getSubmissionForGrading(submissionId),
+    getSubmissionsForAssignment(assignmentId),
+  ]);
   if (!submission) notFound();
+
+  // Submission queue — drives j / k navigation and "Save & grade next".
+  // `queue` is ordered newest-submitted first, matching the assignment page.
+  const queueIds = queue.map((s) => s.id);
+  const currentIndex = queueIds.indexOf(submissionId);
+  const prevId = currentIndex > 0 ? queueIds[currentIndex - 1] : null;
+  const nextId =
+    currentIndex >= 0 && currentIndex < queueIds.length - 1
+      ? queueIds[currentIndex + 1]
+      : null;
+  const gradedCount = queue.filter((s) => s.status === "graded").length;
+
+  // First submission still awaiting a grade — scan forward, wrapping once.
+  let nextUngradedId: string | null = null;
+  if (currentIndex >= 0) {
+    for (let step = 1; step <= queue.length; step++) {
+      const candidate = queue[(currentIndex + step) % queue.length];
+      if (candidate.id === submissionId) break;
+      if (candidate.status === "submitted") {
+        nextUngradedId = candidate.id;
+        break;
+      }
+    }
+  }
 
   const student = Array.isArray(submission.users)
     ? submission.users[0]
@@ -83,9 +125,21 @@ export default async function GradeSubmissionPage({
         Back to {assignment?.title ?? "assignment"}
       </Link>
 
+      <GradingNav
+        assignmentId={assignmentId}
+        prevId={prevId}
+        nextId={nextId}
+        position={{
+          index: currentIndex + 1,
+          total: queue.length,
+          graded: gradedCount,
+        }}
+      />
+
       <PageHeader
         eyebrow={`${student?.first_name} ${student?.last_name}`}
         title={assignment?.title ?? "Submission"}
+        action={<KeyboardShortcuts shortcuts={GRADING_SHORTCUTS} />}
         description={
           <span className="inline-flex items-center gap-3 mt-1">
             <SubmissionStatusBadge
@@ -266,6 +320,8 @@ export default async function GradeSubmissionPage({
             </h3>
             <GradingForm
               submissionId={submissionId}
+              assignmentId={assignmentId}
+              nextUngradedId={nextUngradedId}
               maxPoints={assignment?.points ?? 100}
               initialScore={grade?.score ?? null}
               initialFeedback={grade?.feedback ?? null}

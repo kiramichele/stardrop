@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Save, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, Save, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Textarea } from "@/components/ui/Input";
+import { Kbd } from "@/components/ui/KeyboardShortcuts";
 import { saveGrade } from "@/app/teacher/assignments/actions";
 import type { AutoGrade } from "@/lib/assignments";
 import {
@@ -27,6 +29,13 @@ interface GradingFormProps {
    */
   rubric?: Rubric | null;
   initialRubricScores?: RubricScores;
+  /** Assignment id — used to build the "grade next" navigation target. */
+  assignmentId: string;
+  /**
+   * Next submission still awaiting a grade, for the "Save & grade next"
+   * flow. Null when there are no ungraded submissions left.
+   */
+  nextUngradedId: string | null;
 }
 
 export function GradingForm({
@@ -38,6 +47,8 @@ export function GradingForm({
   autoGrade,
   rubric,
   initialRubricScores,
+  assignmentId,
+  nextUngradedId,
 }: GradingFormProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -70,20 +81,58 @@ export function GradingForm({
   const startingScore =
     initialScore ?? (autoGrade ? autoGrade.autoPoints : null);
 
-  const action = saveGrade.bind(null, submissionId);
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
 
-  async function handleSubmit(formData: FormData) {
-    setIsSaving(true);
-    setSaveMessage(null);
-    try {
-      await action(formData);
-      setSaveMessage("Grade saved.");
-    } catch (err) {
-      setSaveMessage(err instanceof Error ? err.message : "Save failed.");
-    } finally {
-      setIsSaving(false);
+  // Save the grade, then either stay put ("stay") or jump straight to the
+  // next ungraded submission ("next") — the power-user grading flow.
+  const doSave = useCallback(
+    async (mode: "stay" | "next") => {
+      const form = formRef.current;
+      if (!form || !form.reportValidity()) return;
+
+      setIsSaving(true);
+      setSaveMessage(null);
+      let navigating = false;
+      try {
+        await saveGrade(submissionId, new FormData(form));
+        if (mode === "next") {
+          navigating = true;
+          router.push(
+            nextUngradedId
+              ? `/teacher/assignments/${assignmentId}/grade/${nextUngradedId}`
+              : `/teacher/assignments/${assignmentId}`
+          );
+          return;
+        }
+        setSaveMessage("Grade saved.");
+      } catch (err) {
+        setSaveMessage(err instanceof Error ? err.message : "Save failed.");
+      } finally {
+        // On a successful "next" we keep the form disabled through the
+        // navigation; otherwise re-enable it.
+        if (!navigating) setIsSaving(false);
+      }
+    },
+    [submissionId, nextUngradedId, assignmentId, router]
+  );
+
+  // Ctrl/⌘+S saves; Ctrl/⌘+Enter saves and advances. These fire even while
+  // a field is focused — saving from inside the feedback box is the point.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!e.ctrlKey && !e.metaKey) return;
+      if (e.key === "s" || e.key === "S") {
+        e.preventDefault();
+        void doSave("stay");
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        void doSave("next");
+      }
     }
-  }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [doSave]);
 
   function patchScore(criterionId: string, raw: string) {
     setScores((s) => ({
@@ -104,7 +153,14 @@ export function GradingForm({
   }, [rubric, scores]);
 
   return (
-    <form action={handleSubmit} className="space-y-4">
+    <form
+      ref={formRef}
+      onSubmit={(e) => {
+        e.preventDefault();
+        void doSave("stay");
+      }}
+      className="space-y-4"
+    >
       {autoGrade && !alreadyGraded && !rubric && (
         <div className="bg-honey-50 border border-honey-200 rounded-cozy p-3 space-y-2">
           <div className="flex items-center gap-2">
@@ -245,14 +301,34 @@ export function GradingForm({
         </p>
       )}
 
-      <Button type="submit" disabled={isSaving} className="w-full">
-        <Save className="w-4 h-4" strokeWidth={2} />
-        {isSaving
-          ? "Saving…"
-          : alreadyGraded
-            ? "Update grade"
-            : "Save grade"}
-      </Button>
+      <div className="space-y-2">
+        <Button
+          type="button"
+          onClick={() => void doSave("next")}
+          disabled={isSaving}
+          className="w-full"
+        >
+          {isSaving
+            ? "Saving…"
+            : nextUngradedId
+              ? "Save & grade next"
+              : "Save & finish"}
+          <ArrowRight className="w-4 h-4" strokeWidth={2} />
+        </Button>
+        <Button
+          type="submit"
+          variant="secondary"
+          disabled={isSaving}
+          className="w-full"
+        >
+          <Save className="w-4 h-4" strokeWidth={2} />
+          {alreadyGraded ? "Update grade" : "Save grade"}
+        </Button>
+        <p className="pt-0.5 text-center text-[0.7rem] text-wood-500">
+          <Kbd>Ctrl</Kbd> <Kbd>Enter</Kbd> saves &amp; opens the next one ·{" "}
+          <Kbd>?</Kbd> for all shortcuts
+        </p>
+      </div>
     </form>
   );
 }
