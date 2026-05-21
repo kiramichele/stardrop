@@ -3,6 +3,7 @@ import { LogOut } from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { Avatar } from "@/components/ui/Avatar";
 import { NotificationBell } from "./NotificationBell";
+import { MobileNav } from "./MobileNav";
 import type { UserProfile } from "@/lib/profile";
 
 interface TopBarProps {
@@ -14,6 +15,7 @@ export function TopBar({ user }: TopBarProps) {
 
   return (
     <header className="h-16 border-b border-wood-100/70 bg-cream-50/60 backdrop-blur-sm flex items-center justify-end px-6 gap-2">
+      <MobileNav role={user.role === "teacher" ? "teacher" : "student"} />
       <NotificationBell userId={user.id} />
       <Link
         href="/profile"
