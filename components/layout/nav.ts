@@ -37,7 +37,7 @@ export const teacherNav: NavItem[] = [
   { label: "Showcase", href: "/showcase", icon: Gamepad2 },
   { label: "Discussions", href: "/discussions", icon: MessagesSquare },
   { label: "Calendar", href: "/calendar", icon: Calendar },
-  { label: "Resources", href: "/teacher/resources", icon: Library, comingSoon: true },
+  { label: "Assets", href: "/assets", icon: Library },
   { label: "Glossary", href: "/teacher/glossary", icon: BookMarked, comingSoon: true },
 ];
 
@@ -51,6 +51,6 @@ export const studentNav: NavItem[] = [
   { label: "Showcase", href: "/showcase", icon: Gamepad2 },
   { label: "Discussions", href: "/discussions", icon: MessagesSquare },
   { label: "Calendar", href: "/calendar", icon: Calendar },
-  { label: "Resources", href: "/student/resources", icon: Library, comingSoon: true },
+  { label: "Assets", href: "/assets", icon: Library },
   { label: "Glossary", href: "/student/glossary", icon: BookMarked, comingSoon: true },
 ];
