@@ -1,9 +1,8 @@
-import { Sparkles } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { TodaySlideshow } from "@/components/dashboard/TodaySlideshow";
+import { AchievementsSummary } from "@/components/dashboard/AchievementsSummary";
 import { StudentOrientation } from "@/components/onboarding/StudentOrientation";
 
 export default async function StudentDashboard() {
@@ -28,13 +27,7 @@ export default async function StudentDashboard() {
         </Card>
       </div>
 
-      <Card>
-        <EmptyState
-          icon={Sparkles}
-          title="More coming soon"
-          description="Lessons, assignments, grades, discussions, and your daily plan are being built. The site will fill in as Ms. Shinn adds content."
-        />
-      </Card>
+      <AchievementsSummary userId={user.id} />
     </>
   );
 }
