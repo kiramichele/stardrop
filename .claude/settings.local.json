@@ -19,7 +19,10 @@
       "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"analytics=%{http_code}\\\\n\" \"http://localhost:3000/teacher/analytics\")",
       "Bash(MSYS_NO_PATHCONV=1 curl -s -o /dev/null -w \"login=%{http_code}\\\\n\" \"http://localhost:3000/login\")",
       "Bash(grep -rn 'from\\(\"assignment_excusals\"\\)' app lib components)",
-      "Bash(git log *)"
+      "Bash(git log *)",
+      "Bash(tee /tmp/tsc.txt)",
+      "Read(//tmp/**)",
+      "Bash(npx tsx *)"
     ]
   }
 }
