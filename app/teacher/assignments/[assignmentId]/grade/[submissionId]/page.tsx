@@ -13,6 +13,7 @@ import {
   getSubmissionEvents,
   getSubmissionsForAssignment,
 } from "@/lib/assignments-server";
+import { getStudentNotes } from "@/lib/students-server";
 import { getRubric } from "@/lib/rubrics-server";
 import { parseRubricScores } from "@/lib/rubrics";
 import { getFeedbackThread } from "@/lib/feedback-server";
@@ -28,6 +29,7 @@ import { PasteTimeline } from "@/components/assignments/PasteTimeline";
 import { GradingForm } from "@/components/assignments/GradingForm";
 import { GradingNav } from "@/components/assignments/GradingNav";
 import { InteractiveResponseView } from "@/components/assignments/InteractiveResponseView";
+import { StudentNoteCallout } from "@/components/students/StudentNoteCallout";
 
 const GRADING_SHORTCUTS: Shortcut[] = [
   { keys: ["J"], label: "Go to the next submission" },
@@ -107,6 +109,7 @@ export default async function GradeSubmissionPage({
   const initialRubricScores = parseRubricScores(grade?.rubric_scores);
 
   const feedbackEntries = await getFeedbackThread(submissionId);
+  const studentNotes = await getStudentNotes(submission.user_id);
 
   const isTextual =
     assignmentType === "short_answer" || assignmentType === "discussion";
@@ -158,6 +161,8 @@ export default async function GradeSubmissionPage({
           </span>
         }
       />
+
+      <StudentNoteCallout notes={studentNotes} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, ClipboardList } from "lucide-react";
 import { requireTeacher } from "@/lib/auth";
-import { getStudentOverview } from "@/lib/students-server";
+import { getStudentOverview, getStudentNotes } from "@/lib/students-server";
 import { letterGrade, type AssignmentType } from "@/lib/assignments";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
@@ -11,6 +11,7 @@ import { Input, Label } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 import { ExcuseToggle } from "@/components/students/ExcuseToggle";
+import { StudentNotes } from "@/components/students/StudentNotes";
 import { updateStudentId } from "../actions";
 
 export default async function StudentOverviewPage({
@@ -20,7 +21,10 @@ export default async function StudentOverviewPage({
 }) {
   await requireTeacher();
   const { studentId } = await params;
-  const overview = await getStudentOverview(studentId);
+  const [overview, notes] = await Promise.all([
+    getStudentOverview(studentId),
+    getStudentNotes(studentId),
+  ]);
   if (!overview) notFound();
 
   const {
@@ -130,6 +134,10 @@ export default async function StudentOverviewPage({
           </div>
         </div>
       </Card>
+
+      <div className="mb-6">
+        <StudentNotes studentId={studentId} notes={notes} />
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">

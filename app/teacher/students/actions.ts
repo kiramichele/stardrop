@@ -109,3 +109,33 @@ export async function updateStudentId(
     .eq("id", studentId);
   revalidatePath(`/teacher/students/${studentId}`);
 }
+
+const MAX_NOTE_LENGTH = 1000;
+
+/** Pin a reminder ("sticky note") on a student. */
+export async function addStudentNote(
+  studentId: string,
+  formData: FormData
+): Promise<void> {
+  const teacher = await requireTeacher();
+  const body = (formData.get("body") ?? "").toString().trim();
+  if (!body) return;
+  const admin = createAdminClient();
+  await admin.from("student_notes").insert({
+    student_id: studentId,
+    body: body.slice(0, MAX_NOTE_LENGTH),
+    created_by: teacher.id,
+  });
+  revalidatePath(`/teacher/students/${studentId}`);
+}
+
+/** Remove a pinned reminder from a student. */
+export async function deleteStudentNote(
+  noteId: string,
+  studentId: string
+): Promise<void> {
+  await requireTeacher();
+  const admin = createAdminClient();
+  await admin.from("student_notes").delete().eq("id", noteId);
+  revalidatePath(`/teacher/students/${studentId}`);
+}

@@ -133,3 +133,30 @@ export async function getStudentOverview(
     discussionPosts: postsRes.count ?? 0,
   };
 }
+
+// =============================================================
+// Pinned reminders ("sticky notes") on a student
+// =============================================================
+
+export type StudentNote = {
+  id: string;
+  body: string;
+  createdAt: string;
+};
+
+/** A student's pinned reminders, newest first. */
+export async function getStudentNotes(
+  studentId: string
+): Promise<StudentNote[]> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("student_notes")
+    .select("id, body, created_at")
+    .eq("student_id", studentId)
+    .order("created_at", { ascending: false });
+  return (data ?? []).map((n) => ({
+    id: n.id,
+    body: n.body,
+    createdAt: n.created_at,
+  }));
+}
