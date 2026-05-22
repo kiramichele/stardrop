@@ -74,13 +74,13 @@ export function parseRosterCsv(csvText: string): {
 // Collisions -> "jsmith2", "jsmith3", ...
 // Strips non-alphanumeric chars (apostrophes, hyphens, etc.)
 // =============================================================
-function baseUsername(first: string, last: string): string {
+export function baseUsername(first: string, last: string): string {
   const cleanFirst = first.toLowerCase().replace(/[^a-z0-9]/g, "");
   const cleanLast = last.toLowerCase().replace(/[^a-z0-9]/g, "");
   return `${cleanFirst.charAt(0)}${cleanLast}`;
 }
 
-async function uniqueUsername(
+export async function uniqueUsername(
   supabase: ReturnType<typeof createAdminClient>,
   first: string,
   last: string,
@@ -237,7 +237,7 @@ export async function importRoster(
       .maybeSingle();
 
     if (existingUser) {
-      // Already exists — just ensure enrollment in this class
+      // Already exists — ensure enrollment in this class
       const { data: existingEnroll } = await supabase
         .from("enrollments")
         .select("id")
@@ -249,6 +249,15 @@ export async function importRoster(
         await supabase
           .from("enrollments")
           .insert({ user_id: existingUser.id, class_id: targetClassId });
+      }
+
+      // Backfill the student_id if the CSV supplies one. Re-uploading the
+      // roster is how a teacher fills these in for already-created students.
+      if (row.student_id) {
+        await supabase
+          .from("users")
+          .update({ student_id: row.student_id })
+          .eq("id", existingUser.id);
       }
 
       result.skipped.push({
@@ -292,6 +301,7 @@ export async function importRoster(
       first_name: row.first_name,
       last_name: row.last_name,
       role: "student",
+      student_id: row.student_id || null,
     });
 
     if (profileError) {

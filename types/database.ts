@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -12,8 +12,122 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
+      assets: {
+        Row: {
+          added_by: string
+          category: string
+          created_at: string
+          description: string | null
+          file_name: string | null
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          storage_path: string | null
+          title: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          added_by: string
+          category: string
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          storage_path?: string | null
+          title: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          added_by?: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          storage_path?: string | null
+          title?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assignment_excusals: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_excusals_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_excusals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignments: {
         Row: {
           class_id: string
@@ -21,7 +135,10 @@ export type Database = {
           due_date: string | null
           id: string
           instructions: string | null
+          interactive_html_url: string | null
+          is_unit_quiz: boolean
           lesson_id: string | null
+          minimum_word_count: number | null
           points: number
           published: boolean
           rubric_id: string | null
@@ -35,7 +152,10 @@ export type Database = {
           due_date?: string | null
           id?: string
           instructions?: string | null
+          interactive_html_url?: string | null
+          is_unit_quiz?: boolean
           lesson_id?: string | null
+          minimum_word_count?: number | null
           points?: number
           published?: boolean
           rubric_id?: string | null
@@ -49,7 +169,10 @@ export type Database = {
           due_date?: string | null
           id?: string
           instructions?: string | null
+          interactive_html_url?: string | null
+          is_unit_quiz?: boolean
           lesson_id?: string | null
+          minimum_word_count?: number | null
           points?: number
           published?: boolean
           rubric_id?: string | null
@@ -80,6 +203,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      calendar_events: {
+        Row: {
+          category: string
+          created_at: string
+          end_date: string | null
+          event_date: string
+          id: string
+          note: string | null
+          title: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          end_date?: string | null
+          event_date: string
+          id?: string
+          note?: string | null
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          end_date?: string | null
+          event_date?: string
+          id?: string
+          note?: string | null
+          title?: string
+        }
+        Relationships: []
       }
       class_schedule_templates: {
         Row: {
@@ -235,13 +388,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "discussion_boards_assignment_id_fkey"
-            columns: ["assignment_id"]
-            isOneToOne: false
-            referencedRelation: "assignments"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "discussion_boards_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
@@ -259,11 +405,14 @@ export type Database = {
       }
       discussion_posts: {
         Row: {
+          attachments: Json
           board_id: string
           body: string
           created_at: string | null
           deleted_at: string | null
           deleted_reason: string | null
+          flagged_at: string | null
+          flagged_terms: string[] | null
           id: string
           is_pinned: boolean
           parent_id: string | null
@@ -271,11 +420,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          attachments?: Json
           board_id: string
           body: string
           created_at?: string | null
           deleted_at?: string | null
           deleted_reason?: string | null
+          flagged_at?: string | null
+          flagged_terms?: string[] | null
           id?: string
           is_pinned?: boolean
           parent_id?: string | null
@@ -283,11 +435,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          attachments?: Json
           board_id?: string
           body?: string
           created_at?: string | null
           deleted_at?: string | null
           deleted_reason?: string | null
+          flagged_at?: string | null
+          flagged_terms?: string[] | null
           id?: string
           is_pinned?: boolean
           parent_id?: string | null
@@ -354,6 +509,45 @@ export type Database = {
           },
         ]
       }
+      feedback_messages: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          submission_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          submission_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_messages_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_messages_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       glossary_terms: {
         Row: {
           created_at: string | null
@@ -380,6 +574,38 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      gradebook_template: {
+        Row: {
+          csv_text: string
+          filename: string
+          id: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          csv_text: string
+          filename: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          csv_text?: string
+          filename?: string
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gradebook_template_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       grades: {
         Row: {
@@ -749,6 +975,189 @@ export type Database = {
         }
         Relationships: []
       }
+      showcase_comments: {
+        Row: {
+          body: string
+          created_at: string
+          deleted_at: string | null
+          deleted_reason: string | null
+          id: string
+          parent_id: string | null
+          project_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_reason?: string | null
+          id?: string
+          parent_id?: string | null
+          project_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          deleted_at?: string | null
+          deleted_reason?: string | null
+          id?: string
+          parent_id?: string | null
+          project_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showcase_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "showcase_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showcase_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "showcase_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showcase_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      showcase_likes: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showcase_likes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "showcase_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "showcase_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      showcase_projects: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_count: number
+          id: string
+          index_path: string | null
+          published: boolean
+          storage_prefix: string
+          thumbnail_path: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_count?: number
+          id?: string
+          index_path?: string | null
+          published?: boolean
+          storage_prefix: string
+          thumbnail_path?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_count?: number
+          id?: string
+          index_path?: string | null
+          published?: boolean
+          storage_prefix?: string
+          thumbnail_path?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "showcase_projects_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      slideshows: {
+        Row: {
+          assignment_ids: string[]
+          async_note: string | null
+          class_date: string
+          created_at: string
+          description: string | null
+          html_url: string | null
+          id: string
+          lesson_ids: string[]
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assignment_ids?: string[]
+          async_note?: string | null
+          class_date: string
+          created_at?: string
+          description?: string | null
+          html_url?: string | null
+          id?: string
+          lesson_ids?: string[]
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assignment_ids?: string[]
+          async_note?: string | null
+          class_date?: string
+          created_at?: string
+          description?: string | null
+          html_url?: string | null
+          id?: string
+          lesson_ids?: string[]
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       submission_events: {
         Row: {
           event_type: Database["public"]["Enums"]["submission_event_type"]
@@ -788,8 +1197,10 @@ export type Database = {
           created_at: string | null
           id: string
           status: Database["public"]["Enums"]["submission_status"]
+          structured_data: Json | null
           submitted_at: string | null
           updated_at: string | null
+          uploaded_files: Json | null
           user_id: string
         }
         Insert: {
@@ -798,8 +1209,10 @@ export type Database = {
           created_at?: string | null
           id?: string
           status?: Database["public"]["Enums"]["submission_status"]
+          structured_data?: Json | null
           submitted_at?: string | null
           updated_at?: string | null
+          uploaded_files?: Json | null
           user_id: string
         }
         Update: {
@@ -808,8 +1221,10 @@ export type Database = {
           created_at?: string | null
           id?: string
           status?: Database["public"]["Enums"]["submission_status"]
+          structured_data?: Json | null
           submitted_at?: string | null
           updated_at?: string | null
+          uploaded_files?: Json | null
           user_id?: string
         }
         Relationships: [
@@ -872,32 +1287,47 @@ export type Database = {
       }
       users: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
+          email_notifications: boolean
           first_name: string
           id: string
           last_name: string
+          onboarded_at: string | null
           real_email: string | null
+          reduced_motion: boolean
           role: Database["public"]["Enums"]["user_role"]
+          student_id: string | null
           updated_at: string | null
           username: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
+          email_notifications?: boolean
           first_name: string
           id: string
           last_name: string
+          onboarded_at?: string | null
           real_email?: string | null
+          reduced_motion?: boolean
           role?: Database["public"]["Enums"]["user_role"]
+          student_id?: string | null
           updated_at?: string | null
           username: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
+          email_notifications?: boolean
           first_name?: string
           id?: string
           last_name?: string
+          onboarded_at?: string | null
           real_email?: string | null
+          reduced_motion?: boolean
           role?: Database["public"]["Enums"]["user_role"]
+          student_id?: string | null
           updated_at?: string | null
           username?: string
         }
@@ -912,10 +1342,17 @@ export type Database = {
         Args: { u: Database["public"]["Tables"]["users"]["Row"] }
         Returns: string
       }
+      is_student_in_class: { Args: { class_uuid: string }; Returns: boolean }
       is_teacher: { Args: never; Returns: boolean }
     }
     Enums: {
-      assignment_type: "code" | "written" | "discussion" | "upload"
+      assignment_type:
+        | "code"
+        | "interactive_html"
+        | "short_answer"
+        | "discussion"
+        | "unity_upload"
+        | "check_in"
       day_type:
         | "regular"
         | "holiday"
@@ -1056,9 +1493,19 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
-      assignment_type: ["code", "written", "discussion", "upload"],
+      assignment_type: [
+        "code",
+        "interactive_html",
+        "short_answer",
+        "discussion",
+        "unity_upload",
+        "check_in",
+      ],
       day_type: [
         "regular",
         "holiday",

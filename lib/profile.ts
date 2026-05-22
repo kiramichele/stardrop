@@ -15,6 +15,8 @@ export type UserProfile = {
   avatar_url: string | null;
   email_notifications: boolean;
   reduced_motion: boolean;
+  /** District / SIS student number. Used to match Canvas gradebook rows. */
+  student_id: string | null;
 };
 
 export function asProfile(row: unknown): UserProfile {
@@ -27,6 +29,7 @@ export function asProfile(row: unknown): UserProfile {
     real_email: typeof r.real_email === "string" ? r.real_email : null,
     role: r.role === "teacher" ? "teacher" : "student",
     avatar_url: typeof r.avatar_url === "string" ? r.avatar_url : null,
+    student_id: typeof r.student_id === "string" ? r.student_id : null,
     // default-on for notifications, default-off for reduced motion
     email_notifications: r.email_notifications !== false,
     reduced_motion: r.reduced_motion === true,

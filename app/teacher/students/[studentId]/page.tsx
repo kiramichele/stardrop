@@ -6,9 +6,12 @@ import { getStudentOverview } from "@/lib/students-server";
 import { letterGrade, type AssignmentType } from "@/lib/assignments";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
+import { Input, Label } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 import { ExcuseToggle } from "@/components/students/ExcuseToggle";
+import { updateStudentId } from "../actions";
 
 export default async function StudentOverviewPage({
   params,
@@ -97,6 +100,32 @@ export default async function StudentOverviewPage({
                   </Link>
                 ))
               )}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-wood-100">
+              <form
+                action={updateStudentId.bind(null, student.id)}
+                className="flex items-end gap-2"
+              >
+                <div className="w-44">
+                  <Label htmlFor="student_id" className="text-xs">
+                    Student ID
+                  </Label>
+                  <Input
+                    id="student_id"
+                    name="student_id"
+                    type="text"
+                    defaultValue={student.student_id ?? ""}
+                    placeholder="Not set"
+                  />
+                </div>
+                <Button type="submit" size="sm" variant="secondary">
+                  Save
+                </Button>
+              </form>
+              <p className="text-xs text-wood-400 mt-1.5">
+                Matches this student to your Canvas gradebook when exporting.
+              </p>
             </div>
           </div>
         </div>

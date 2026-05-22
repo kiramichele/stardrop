@@ -1,7 +1,9 @@
 import { requireTeacher } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { asProfile, type UserProfile } from "@/lib/profile";
+import { getGradebookStatus } from "@/lib/gradebook-server";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { GradebookExport } from "@/components/students/GradebookExport";
 import {
   RosterView,
   type RosterGroup,
@@ -29,14 +31,16 @@ export default async function RosterPage() {
   await requireTeacher();
   const admin = createAdminClient();
 
-  const [classesRes, enrollmentsRes, studentsRes] = await Promise.all([
-    admin
-      .from("classes")
-      .select("id, name, period_number")
-      .order("period_number", { ascending: true, nullsFirst: false }),
-    admin.from("enrollments").select("class_id, user_id"),
-    admin.from("users").select("*").eq("role", "student"),
-  ]);
+  const [classesRes, enrollmentsRes, studentsRes, gradebookStatus] =
+    await Promise.all([
+      admin
+        .from("classes")
+        .select("id, name, period_number")
+        .order("period_number", { ascending: true, nullsFirst: false }),
+      admin.from("enrollments").select("class_id, user_id"),
+      admin.from("users").select("*").eq("role", "student"),
+      getGradebookStatus(),
+    ]);
 
   const students = (studentsRes.data ?? []).map(asProfile);
   const studentById = new Map(students.map((s) => [s.id, s]));
@@ -89,6 +93,15 @@ export default async function RosterPage() {
           students.length === 1 ? "student" : "students"
         } across all classes. Click anyone to open their full record.`}
       />
+      <div className="mb-8">
+        <GradebookExport
+          hasTemplate={gradebookStatus.hasTemplate}
+          filename={gradebookStatus.filename}
+          uploadedAt={gradebookStatus.uploadedAt}
+          report={gradebookStatus.report}
+          parseError={gradebookStatus.parseError}
+        />
+      </div>
       <RosterView groups={groups} />
     </>
   );
