@@ -10,12 +10,21 @@ import {
   IconButton,
   SaveCancelButtons,
 } from "@/components/exam-prep/EditControls";
+import { CsvImport } from "@/components/exam-prep/CsvImport";
 import type { CodeExample } from "@/lib/exam-prep";
 import {
   createCodeExample,
   updateCodeExample,
   deleteCodeExample,
+  importCodeExamplesCsv,
 } from "@/app/exam-prep/manage-actions";
+
+const CSV_TEMPLATE = `title,description,category,code
+Log a message,Prints text to the Unity console.,Scripting & C#,"void Start()
+{
+    Debug.Log(""Hello, Unity!"");
+}"
+`;
 
 function ExampleForm({
   example,
@@ -115,6 +124,15 @@ export function CodeExampleManager({
             Add code example
           </Button>
         )}
+        <div className="mt-4 pt-4 border-t border-wood-100">
+          <p className="label-eyebrow mb-2">Bulk import</p>
+          <CsvImport
+            columns="title, description, category, code"
+            templateName="code-examples-template.csv"
+            templateContent={CSV_TEMPLATE}
+            onImport={importCodeExamplesCsv}
+          />
+        </div>
       </Card>
 
       {examples.length === 0 ? (

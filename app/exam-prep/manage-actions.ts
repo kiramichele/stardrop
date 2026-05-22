@@ -262,3 +262,47 @@ export async function deleteCodeExample(id: string): Promise<void> {
   await createAdminClient().from("code_examples").delete().eq("id", id);
   revalidateExamPrep();
 }
+
+export async function importCodeExamplesCsv(
+  csvText: string
+): Promise<ImportResult> {
+  await requireTeacher();
+  const parsed = Papa.parse<Record<string, string>>(csvText, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: (h) => h.trim().toLowerCase(),
+  });
+
+  const rows: {
+    title: string;
+    description: string;
+    code: string;
+    category: string;
+  }[] = [];
+  const errors: string[] = [];
+  parsed.data.forEach((r, i) => {
+    const title = (r.title ?? "").trim();
+    const code = (r.code ?? "").toString().trim();
+    if (!title || !code) {
+      errors.push(`Row ${i + 2}: title and code are both required.`);
+      return;
+    }
+    rows.push({
+      title,
+      description: (r.description ?? "").trim(),
+      code,
+      category: (r.category ?? "").trim() || "General",
+    });
+  });
+
+  let added = 0;
+  if (rows.length > 0) {
+    const { error } = await createAdminClient()
+      .from("code_examples")
+      .insert(rows);
+    if (error) errors.push(error.message);
+    else added = rows.length;
+  }
+  revalidateExamPrep();
+  return { added, errors };
+}
