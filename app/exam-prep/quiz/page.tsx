@@ -7,10 +7,12 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { QuizRunner } from "@/components/exam-prep/QuizRunner";
+import { QuestionManager } from "@/components/exam-prep/QuestionManager";
 
 export default async function QuizPage() {
-  await requireUser();
+  const user = await requireUser();
   const questions = await getExamQuestions();
+  const isTeacher = user.role === "teacher";
 
   return (
     <>
@@ -24,11 +26,17 @@ export default async function QuizPage() {
 
       <PageHeader
         eyebrow="Exam Prep"
-        title="Quick quiz"
-        description={`A gamified ${QUIZ_LENGTH}-question round — pick an answer, get instant feedback, build a streak.`}
+        title={isTeacher ? "Quick quiz — question bank" : "Quick quiz"}
+        description={
+          isTeacher
+            ? "Add, edit, and import the questions students are quizzed on. These also feed the practice exam."
+            : `A gamified ${QUIZ_LENGTH}-question round — pick an answer, get instant feedback, build a streak.`
+        }
       />
 
-      {questions.length === 0 ? (
+      {isTeacher ? (
+        <QuestionManager questions={questions} />
+      ) : questions.length === 0 ? (
         <Card>
           <EmptyState
             icon={Gamepad2}

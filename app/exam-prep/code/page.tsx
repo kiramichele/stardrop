@@ -6,10 +6,12 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { CodeExamples } from "@/components/exam-prep/CodeExamples";
+import { CodeExampleManager } from "@/components/exam-prep/CodeExampleManager";
 
 export default async function CodeExamplesPage() {
-  await requireUser();
+  const user = await requireUser();
   const examples = await getCodeExamples();
+  const isTeacher = user.role === "teacher";
 
   return (
     <>
@@ -24,10 +26,16 @@ export default async function CodeExamplesPage() {
       <PageHeader
         eyebrow="Exam Prep"
         title="Code examples"
-        description="Annotated C# scripts for the Unity patterns the certification exam expects you to recognize."
+        description={
+          isTeacher
+            ? "Add and edit annotated C# examples — type or paste straight into the code editor."
+            : "Annotated C# scripts for the Unity patterns the certification exam expects you to recognize."
+        }
       />
 
-      {examples.length === 0 ? (
+      {isTeacher ? (
+        <CodeExampleManager examples={examples} />
+      ) : examples.length === 0 ? (
         <Card>
           <EmptyState
             icon={Code2}

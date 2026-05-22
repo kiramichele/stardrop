@@ -161,8 +161,8 @@ export default async function ExamPrepHub() {
 
           {isTeacher && (
             <p className="text-xs text-wood-400 mt-6">
-              Content lives in the database — glossary terms, the question
-              bank, and code examples can all be edited there.
+              Open any section to add, edit, or import content — editing
+              controls appear inline for teachers.
             </p>
           )}
         </>
