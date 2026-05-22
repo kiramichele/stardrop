@@ -24,7 +24,7 @@ export default async function PracticeExamPage() {
       <PageHeader
         eyebrow="Exam Prep"
         title="Practice exam"
-        description="A full, timed run-through of the whole question bank. Answer everything, then review every question with explanations."
+        description="A timed practice exam — up to 100 questions pulled at random from the bank. Answer them all, then review every one with explanations."
       />
 
       {questions.length === 0 ? (

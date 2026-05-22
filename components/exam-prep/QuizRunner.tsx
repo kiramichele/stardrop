@@ -19,6 +19,7 @@ import {
   scoreBand,
   formatTime,
   QUIZ_LENGTH,
+  EXAM_LENGTH,
   type ExamQuestion,
   type QuizMode,
 } from "@/lib/exam-prep";
@@ -43,7 +44,7 @@ export function QuizRunner({
 }) {
   function buildRunSet(): ExamQuestion[] {
     const s = shuffle(questions);
-    return mode === "quiz" ? s.slice(0, QUIZ_LENGTH) : s;
+    return s.slice(0, mode === "quiz" ? QUIZ_LENGTH : EXAM_LENGTH);
   }
 
   const [runSet, setRunSet] = useState<ExamQuestion[]>(buildRunSet);

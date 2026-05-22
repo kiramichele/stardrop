@@ -6,6 +6,9 @@ export type QuizMode = "quiz" | "exam";
 /** How many questions a gamified quiz round pulls from the bank. */
 export const QUIZ_LENGTH = 10;
 
+/** Largest a full practice exam gets — questions are sampled at random. */
+export const EXAM_LENGTH = 100;
+
 /** Question-bank categories, used for grouping and filters. */
 export const EXAM_CATEGORIES = [
   "Scripting & C#",
