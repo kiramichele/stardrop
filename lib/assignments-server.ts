@@ -23,6 +23,8 @@ const SELECTS = {
   assignmentWithClass: "*, classes(id, name, period_number)",
   submissionsList:
     "id, user_id, status, submitted_at, updated_at, users(first_name, last_name, username), grades(score, graded_at)",
+  gradingQueue:
+    "id, user_id, assignment_id, submitted_at, status, users(first_name, last_name), assignments(id, title, type, due_date, classes(id, name, period_number))",
   submissionForGrading:
     "*, users(first_name, last_name, username), assignments(title, type, instructions, points, due_date, class_id, interactive_html_url, minimum_word_count, rubric_id), grades(score, feedback, graded_at, rubric_scores)",
   studentAssignmentsList:
@@ -77,6 +79,20 @@ export async function getSubmissionForGrading(submissionId: string) {
     .eq("id", submissionId)
     .single();
   return data;
+}
+
+/**
+ * Every submission still waiting on a grade, across all assignments,
+ * oldest first — backs the teacher grading queue.
+ */
+export async function getGradingQueue() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("submissions")
+    .select(SELECTS.gradingQueue)
+    .eq("status", "submitted")
+    .order("submitted_at", { ascending: true, nullsFirst: false });
+  return data ?? [];
 }
 
 export async function getSubmissionEvents(submissionId: string) {
