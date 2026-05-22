@@ -34,12 +34,13 @@ export async function getExamQuestions(): Promise<ExamQuestion[]> {
   const { data } = await admin
     .from("exam_questions")
     .select(
-      "id, question, choice_a, choice_b, choice_c, choice_d, correct, explanation, category"
+      "id, question, code, choice_a, choice_b, choice_c, choice_d, correct, explanation, category"
     )
     .order("created_at");
   return (data ?? []).map((q) => ({
     id: q.id,
     question: q.question,
+    code: q.code,
     choices: [q.choice_a, q.choice_b, q.choice_c, q.choice_d],
     correctIndex: CHOICE_INDEX[q.correct] ?? 0,
     explanation: q.explanation,
@@ -87,6 +88,8 @@ export type QuizStats = {
   /** Best score as a percentage, or null when never attempted. */
   quizBest: number | null;
   examBest: number | null;
+  /** Fastest perfect-score quick quiz, in seconds, or null. */
+  quizBestTime: number | null;
   attempts: number;
 };
 
@@ -94,11 +97,12 @@ export async function getQuizStats(userId: string): Promise<QuizStats> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("quiz_attempts")
-    .select("mode, score, total")
+    .select("mode, score, total, duration_seconds")
     .eq("user_id", userId);
 
   let quizBest: number | null = null;
   let examBest: number | null = null;
+  let quizBestTime: number | null = null;
   for (const a of data ?? []) {
     if (a.total <= 0) continue;
     const pct = (a.score / a.total) * 100;
@@ -106,21 +110,38 @@ export async function getQuizStats(userId: string): Promise<QuizStats> {
       examBest = examBest === null ? pct : Math.max(examBest, pct);
     } else {
       quizBest = quizBest === null ? pct : Math.max(quizBest, pct);
+      // A best time only counts a perfect run, so it stays a fair target.
+      if (a.score === a.total && a.duration_seconds != null) {
+        quizBestTime =
+          quizBestTime === null
+            ? a.duration_seconds
+            : Math.min(quizBestTime, a.duration_seconds);
+      }
     }
   }
-  return { quizBest, examBest, attempts: (data ?? []).length };
+  return {
+    quizBest,
+    examBest,
+    quizBestTime,
+    attempts: (data ?? []).length,
+  };
 }
 
 export async function recordQuizAttempt(
   userId: string,
   mode: QuizMode,
   score: number,
-  total: number
+  total: number,
+  durationSeconds: number
 ): Promise<void> {
   const admin = createAdminClient();
-  await admin
-    .from("quiz_attempts")
-    .insert({ user_id: userId, mode, score, total });
+  await admin.from("quiz_attempts").insert({
+    user_id: userId,
+    mode,
+    score,
+    total,
+    duration_seconds: durationSeconds,
+  });
 }
 
 /** Load the starter content into any of the three tables that are empty. */

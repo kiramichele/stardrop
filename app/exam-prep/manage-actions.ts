@@ -102,6 +102,7 @@ export async function importGlossaryCsv(
 
 type QuestionInput = {
   question: string;
+  code: string;
   choice_a: string;
   choice_b: string;
   choice_c: string;
@@ -111,10 +112,19 @@ type QuestionInput = {
   category: string;
 };
 
+// A blank value, or one of these placeholders, means "no code part".
+const NO_CODE_VALUES = new Set(["", "none", "n/a", "na", "-"]);
+
+function normalizeCode(raw: string): string {
+  const trimmed = raw.trim();
+  return NO_CODE_VALUES.has(trimmed.toLowerCase()) ? "" : trimmed;
+}
+
 function readQuestion(fd: FormData): QuestionInput {
   const correct = field(fd, "correct").toLowerCase();
   return {
     question: field(fd, "question"),
+    code: normalizeCode((fd.get("code") ?? "").toString()),
     choice_a: field(fd, "choice_a"),
     choice_b: field(fd, "choice_b"),
     choice_c: field(fd, "choice_c"),
@@ -175,6 +185,7 @@ export async function importQuestionsCsv(
   parsed.data.forEach((r, i) => {
     const row: QuestionInput = {
       question: (r.question ?? "").trim(),
+      code: normalizeCode((r.code ?? "").toString()),
       choice_a: (r.choice_a ?? "").trim(),
       choice_b: (r.choice_b ?? "").trim(),
       choice_c: (r.choice_c ?? "").trim(),

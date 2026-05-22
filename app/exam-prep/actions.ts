@@ -13,7 +13,8 @@ import type { QuizMode } from "@/lib/exam-prep";
 export async function saveQuizAttempt(
   mode: QuizMode,
   score: number,
-  total: number
+  total: number,
+  durationSeconds: number
 ): Promise<void> {
   const user = await requireUser();
   if (!Number.isFinite(score) || !Number.isFinite(total) || total <= 0) return;
@@ -21,9 +22,13 @@ export async function saveQuizAttempt(
     user.id,
     mode,
     Math.max(0, Math.min(Math.round(score), Math.round(total))),
-    Math.round(total)
+    Math.round(total),
+    Number.isFinite(durationSeconds)
+      ? Math.max(0, Math.round(durationSeconds))
+      : 0
   );
   revalidatePath("/exam-prep");
+  revalidatePath("/exam-prep/quiz");
 }
 
 /** Teacher action: load the Unity-cert starter content into the database. */

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { getExamPrepCounts, getQuizStats } from "@/lib/exam-prep-server";
+import { formatTime } from "@/lib/exam-prep";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -129,6 +130,14 @@ export default async function ExamPrepHub() {
                         : `${Math.round(stats.examBest)}%`}
                     </span>
                   </p>
+                  {stats.quizBestTime !== null && (
+                    <p className="text-xs text-wood-500 mt-0.5">
+                      Fastest perfect quiz:{" "}
+                      <span className="font-medium tabular-nums">
+                        {formatTime(stats.quizBestTime)}
+                      </span>
+                    </p>
+                  )}
                 </div>
               </div>
             </Card>

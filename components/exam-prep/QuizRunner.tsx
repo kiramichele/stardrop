@@ -5,6 +5,7 @@ import {
   Flame,
   Clock,
   Trophy,
+  Zap,
   CheckCircle2,
   XCircle,
   ChevronLeft,
@@ -16,6 +17,7 @@ import { Card } from "@/components/ui/Card";
 import {
   shuffle,
   scoreBand,
+  formatTime,
   QUIZ_LENGTH,
   type ExamQuestion,
   type QuizMode,
@@ -23,10 +25,6 @@ import {
 import { saveQuizAttempt } from "@/app/exam-prep/actions";
 
 const LETTERS = ["A", "B", "C", "D"];
-
-function formatTime(s: number): string {
-  return `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
-}
 
 /**
  * The quiz engine, shared by the gamified quiz and the full practice exam.
@@ -36,9 +34,12 @@ function formatTime(s: number): string {
 export function QuizRunner({
   questions,
   mode,
+  bestTime = null,
 }: {
   questions: ExamQuestion[];
   mode: QuizMode;
+  /** The student's fastest perfect quick-quiz run, in seconds. */
+  bestTime?: number | null;
 }) {
   function buildRunSet(): ExamQuestion[] {
     const s = shuffle(questions);
@@ -53,6 +54,8 @@ export function QuizRunner({
   const [revealed, setRevealed] = useState(false);
   const [phase, setPhase] = useState<"playing" | "done">("playing");
   const [elapsed, setElapsed] = useState(0);
+  const [sessionBest, setSessionBest] = useState<number | null>(bestTime);
+  const [newBest, setNewBest] = useState(false);
 
   const total = runSet.length;
   const score = useMemo(
@@ -72,12 +75,12 @@ export function QuizRunner({
     return s;
   }, [runSet, answers]);
 
-  // Count-up timer for the practice exam.
+  // Count-up timer — runs for both the quick quiz and the practice exam.
   useEffect(() => {
-    if (mode !== "exam" || phase !== "playing") return;
+    if (phase !== "playing") return;
     const id = setInterval(() => setElapsed((e) => e + 1), 1000);
     return () => clearInterval(id);
-  }, [mode, phase]);
+  }, [phase]);
 
   function restart() {
     setRunSet(buildRunSet());
@@ -86,11 +89,22 @@ export function QuizRunner({
     setRevealed(false);
     setPhase("playing");
     setElapsed(0);
+    setNewBest(false);
   }
 
   // Finishing records the attempt — done from the action, not an effect.
   function finish() {
-    if (total > 0) void saveQuizAttempt(mode, score, total);
+    if (total > 0) void saveQuizAttempt(mode, score, total, elapsed);
+    // A perfect quick quiz that beats the prior best sets a new record.
+    if (
+      mode === "quiz" &&
+      total > 0 &&
+      score === total &&
+      (sessionBest === null || elapsed < sessionBest)
+    ) {
+      setSessionBest(elapsed);
+      setNewBest(true);
+    }
     setPhase("done");
   }
 
@@ -136,6 +150,37 @@ export function QuizRunner({
               Finished in {formatTime(elapsed)}
             </p>
           )}
+          {mode === "quiz" && (
+            <div className="mt-2">
+              <p className="text-sm text-wood-500">
+                Finished in{" "}
+                <span className="font-medium text-wood-700 tabular-nums">
+                  {formatTime(elapsed)}
+                </span>
+              </p>
+              {score === total ? (
+                newBest ? (
+                  <p className="mt-1 inline-flex items-center gap-1.5 text-honey-700 font-semibold">
+                    <Zap className="w-4 h-4" />
+                    New best time!
+                  </p>
+                ) : (
+                  sessionBest !== null && (
+                    <p className="text-sm text-wood-500 mt-0.5">
+                      Your best perfect run:{" "}
+                      <span className="tabular-nums">
+                        {formatTime(sessionBest)}
+                      </span>
+                    </p>
+                  )
+                )
+              ) : (
+                <p className="text-sm text-wood-500 mt-0.5">
+                  Ace all {total} questions to set a best time.
+                </p>
+              )}
+            </div>
+          )}
           <div className="mt-5">
             <Button onClick={restart}>
               <RotateCw className="w-4 h-4" />
@@ -164,6 +209,11 @@ export function QuizRunner({
                       <p className="font-medium text-wood-900">
                         {i + 1}. {q.question}
                       </p>
+                      {q.code && (
+                        <pre className="mt-1.5 bg-cream-100 border border-wood-200 rounded-cozy p-2.5 overflow-x-auto text-xs font-mono text-wood-900 leading-relaxed">
+                          {q.code}
+                        </pre>
+                      )}
                       <p className="text-sm mt-1.5 text-sage-700">
                         Correct: {LETTERS[q.correctIndex]}){" "}
                         {q.choices[q.correctIndex]}
@@ -229,6 +279,10 @@ export function QuizRunner({
             <span className="text-wood-700 font-medium tabular-nums">
               {score} correct
             </span>
+            <span className="inline-flex items-center gap-1 text-wood-500 tabular-nums">
+              <Clock className="w-4 h-4" />
+              {formatTime(elapsed)}
+            </span>
           </span>
         ) : (
           <span className="inline-flex items-center gap-1.5 text-wood-500 tabular-nums">
@@ -248,6 +302,12 @@ export function QuizRunner({
       <Card>
         <p className="label-eyebrow text-wood-400 mb-2">{q.category}</p>
         <p className="font-display text-xl text-wood-900 mb-4">{q.question}</p>
+
+        {q.code && (
+          <pre className="mb-4 bg-cream-100 border border-wood-200 rounded-cozy p-3 overflow-x-auto text-sm font-mono text-wood-900 leading-relaxed">
+            {q.code}
+          </pre>
+        )}
 
         <div className="space-y-2">
           {q.choices.map((choice, i) => (

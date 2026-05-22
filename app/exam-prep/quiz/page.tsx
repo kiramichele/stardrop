@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Gamepad2 } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { getExamQuestions } from "@/lib/exam-prep-server";
+import { getExamQuestions, getQuizStats } from "@/lib/exam-prep-server";
 import { QUIZ_LENGTH } from "@/lib/exam-prep";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -13,6 +13,7 @@ export default async function QuizPage() {
   const user = await requireUser();
   const questions = await getExamQuestions();
   const isTeacher = user.role === "teacher";
+  const stats = isTeacher ? null : await getQuizStats(user.id);
 
   return (
     <>
@@ -45,7 +46,11 @@ export default async function QuizPage() {
           />
         </Card>
       ) : (
-        <QuizRunner questions={questions} mode="quiz" />
+        <QuizRunner
+          questions={questions}
+          mode="quiz"
+          bestTime={stats?.quizBestTime ?? null}
+        />
       )}
     </>
   );

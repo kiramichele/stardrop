@@ -25,6 +25,8 @@ export type GlossaryTerm = {
 export type ExamQuestion = {
   id: string;
   question: string;
+  /** Optional code snippet shown with the question; "" means none. */
+  code: string;
   /** The four answer choices, in order. */
   choices: string[];
   /** Index (0-3) of the correct choice. */
@@ -49,6 +51,13 @@ export function shuffle<T>(items: readonly T[]): T[] {
     [out[i], out[j]] = [out[j], out[i]];
   }
   return out;
+}
+
+/** A duration in seconds as "M:SS". */
+export function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 /** A short verdict for a quiz/exam percentage. */

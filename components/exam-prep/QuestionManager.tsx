@@ -21,8 +21,9 @@ import {
 const LETTERS = ["a", "b", "c", "d"];
 const LETTER_LABEL = ["A", "B", "C", "D"];
 
-const TEMPLATE = `question,choice_a,choice_b,choice_c,choice_d,correct,explanation,category
-Which method runs once per frame?,Awake(),Start(),Update(),FixedUpdate(),c,Update() is called every frame.,Scripting & C#
+const TEMPLATE = `question,choice_a,choice_b,choice_c,choice_d,correct,explanation,category,code
+Which method runs once per frame?,Awake(),Start(),Update(),FixedUpdate(),c,Update() is called every frame.,Scripting & C#,
+What does this code print?,5,10,15,Error,b,x starts at 5 then adds 5.,Scripting & C#,"int x = 5; x += 5; Debug.Log(x);"
 `;
 
 function QuestionFields({ q }: { q?: ExamQuestion }) {
@@ -93,6 +94,20 @@ function QuestionFields({ q }: { q?: ExamQuestion }) {
           defaultValue={q?.explanation ?? ""}
         />
       </div>
+      <div>
+        <Label htmlFor="code">
+          Code snippet{" "}
+          <span className="text-wood-500 font-normal">(optional)</span>
+        </Label>
+        <Textarea
+          id="code"
+          name="code"
+          rows={4}
+          defaultValue={q?.code ?? ""}
+          placeholder="Leave blank for a question with no code part"
+          className="font-mono text-sm"
+        />
+      </div>
     </div>
   );
 }
@@ -131,7 +146,7 @@ export function QuestionManager({
         <div className="mt-4 pt-4 border-t border-wood-100">
           <p className="label-eyebrow mb-2">Bulk import</p>
           <CsvImport
-            columns="question, choice_a, choice_b, choice_c, choice_d, correct, explanation, category"
+            columns="question, choice_a, choice_b, choice_c, choice_d, correct, explanation, category, code (optional)"
             templateName="questions-template.csv"
             templateContent={TEMPLATE}
             onImport={importQuestionsCsv}

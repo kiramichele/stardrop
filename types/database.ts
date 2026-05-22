@@ -552,6 +552,7 @@ export type Database = {
           choice_b: string
           choice_c: string
           choice_d: string
+          code: string
           correct: string
           created_at: string
           explanation: string
@@ -565,6 +566,7 @@ export type Database = {
           choice_b: string
           choice_c: string
           choice_d: string
+          code?: string
           correct: string
           created_at?: string
           explanation?: string
@@ -578,6 +580,7 @@ export type Database = {
           choice_b?: string
           choice_c?: string
           choice_d?: string
+          code?: string
           correct?: string
           created_at?: string
           explanation?: string
@@ -948,6 +951,7 @@ export type Database = {
       quiz_attempts: {
         Row: {
           created_at: string
+          duration_seconds: number | null
           id: string
           mode: string
           score: number
@@ -956,6 +960,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          duration_seconds?: number | null
           id?: string
           mode: string
           score: number
@@ -964,6 +969,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          duration_seconds?: number | null
           id?: string
           mode?: string
           score?: number
