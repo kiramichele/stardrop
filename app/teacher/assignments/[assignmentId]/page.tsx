@@ -1,0 +1,430 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import {
+  ArrowLeft,
+  Award,
+  Users,
+  FileCode2,
+  Download,
+  ExternalLink,
+} from "lucide-react";
+import { computeLateness, type AssignmentType } from "@/lib/assignments";
+import {
+  getAssignment,
+  getSubmissionsForAssignment,
+} from "@/lib/assignments-server";
+import { createClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { ShareLink } from "@/components/ui/ShareLink";
+import { Input, Label, Textarea, Select, FieldHint } from "@/components/ui/Input";
+import { AssignmentTypeBadge } from "@/components/assignments/Badges";
+import { CopyToClassPanel } from "@/components/assignments/CopyToClassPanel";
+import {
+  BulkGradePanel,
+  type BulkSubmissionRow,
+} from "@/components/assignments/BulkGradePanel";
+import { getRubricsForTeacher } from "@/lib/rubrics-server";
+import { rubricMaxPoints } from "@/lib/rubrics";
+import { getUnitsForTeacher } from "@/lib/lessons";
+import { UnitLessonPicker } from "@/components/assignments/UnitLessonPicker";
+import {
+  updateAssignment,
+  deleteAssignment,
+  uploadInteractiveHtml,
+} from "../actions";
+
+export default async function AssignmentDetailPage({
+  params,
+}: {
+  params: Promise<{ assignmentId: string }>;
+}) {
+  const { assignmentId } = await params;
+  const assignment = await getAssignment(assignmentId);
+  if (!assignment) notFound();
+
+  const submissions = await getSubmissionsForAssignment(assignmentId);
+  const rubrics = await getRubricsForTeacher();
+  const klass = Array.isArray(assignment.classes)
+    ? assignment.classes[0]
+    : assignment.classes;
+
+  // Other classes this assignment could be copied into.
+  const supabase = await createClient();
+  const { data: allClasses } = await supabase
+    .from("classes")
+    .select("id, name, period_number")
+    .order("period_number", { ascending: true, nullsFirst: false });
+  const otherClasses = (allClasses ?? [])
+    .filter((c) => c.id !== assignment.class_id)
+    .map((c) => ({
+      id: c.id,
+      name:
+        c.period_number != null
+          ? `${c.name} · Period ${c.period_number}`
+          : c.name,
+    }));
+
+  const units = (await getUnitsForTeacher()).map((u) => ({
+    id: u.id,
+    title: u.title,
+    lessons: u.lessons.map((l) => ({ id: l.id, title: l.title })),
+  }));
+
+  const updateAction = updateAssignment.bind(null, assignmentId);
+  const deleteAction = deleteAssignment.bind(null, assignmentId);
+  const uploadHtmlAction = uploadInteractiveHtml.bind(null, assignmentId);
+
+  const dueLocal = assignment.due_date
+    ? new Date(assignment.due_date).toISOString().slice(0, 16)
+    : "";
+
+  const submittedCount = submissions.filter(
+    (s) => s.status === "submitted" || s.status === "graded"
+  ).length;
+  const gradedCount = submissions.filter((s) => s.status === "graded").length;
+
+  const submissionRows: BulkSubmissionRow[] = submissions.map((s) => {
+    const student = Array.isArray(s.users) ? s.users[0] : s.users;
+    const grade = Array.isArray(s.grades) ? s.grades[0] : s.grades;
+    const { isLate, daysLate } = computeLateness(
+      s.submitted_at,
+      assignment.due_date
+    );
+    const whenLabel = s.submitted_at
+      ? `Submitted ${new Date(s.submitted_at).toLocaleString()}`
+      : s.updated_at
+        ? `Last edited ${new Date(s.updated_at).toLocaleString()}`
+        : "Not started";
+    return {
+      id: s.id,
+      studentId: s.user_id,
+      studentName:
+        `${student?.first_name ?? ""} ${student?.last_name ?? ""}`.trim() ||
+        "Unknown student",
+      status: s.status,
+      score: grade?.score ?? null,
+      hasGrade: !!grade,
+      isLate,
+      daysLate,
+      whenLabel,
+    };
+  });
+
+  const isInteractive = assignment.type === "interactive_html";
+  const hasInteractiveHtml = !!assignment.interactive_html_url;
+  const isTextual =
+    assignment.type === "short_answer" || assignment.type === "discussion";
+
+  return (
+    <>
+      <Link
+        href="/teacher/assignments"
+        className="inline-flex items-center gap-1.5 text-sm text-wood-600 hover:text-terracotta-700 transition-colors mb-4"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" />
+        Back to assignments
+      </Link>
+
+      <PageHeader
+        eyebrow={klass?.name ?? "Assignment"}
+        title={assignment.title}
+        description={
+          <span className="inline-flex items-center gap-2 mt-1">
+            <AssignmentTypeBadge type={assignment.type as AssignmentType} />
+            <span className="text-sm text-wood-500">
+              {assignment.points} pts
+              {assignment.due_date &&
+                ` · due ${new Date(assignment.due_date).toLocaleString()}`}
+              {assignment.minimum_word_count &&
+                isTextual &&
+                ` · min ${assignment.minimum_word_count} words`}
+            </span>
+          </span>
+        }
+      />
+
+      {isInteractive && !hasInteractiveHtml && (
+        <Card className="mb-6 bg-honey-50 border-honey-200">
+          <div className="flex items-start gap-3">
+            <FileCode2
+              className="w-5 h-5 text-honey-700 flex-shrink-0 mt-0.5"
+              strokeWidth={1.75}
+            />
+            <div>
+              <p className="font-display text-base text-honey-900">
+                Upload the interactive HTML file
+              </p>
+              <p className="text-sm text-honey-800">
+                Students can&apos;t see this assignment until you upload its
+                HTML file (in the settings panel on the right). Need a starting
+                point?{" "}
+                <a
+                  href="/interactive-html-template.html"
+                  download
+                  className="underline font-medium hover:text-honey-900"
+                >
+                  Download the template
+                </a>
+                .
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <Card padded={false} className="p-4">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-wood-500" strokeWidth={1.75} />
+                <p className="label-eyebrow">Started</p>
+              </div>
+              <p className="font-display text-2xl text-wood-900 mt-1">
+                {submissions.length}
+              </p>
+            </Card>
+            <Card padded={false} className="p-4">
+              <p className="label-eyebrow">Submitted</p>
+              <p className="font-display text-2xl text-wood-900 mt-1">
+                {submittedCount}
+              </p>
+            </Card>
+            <Card padded={false} className="p-4 bg-sage-50 border-sage-200">
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4 text-sage-700" strokeWidth={1.75} />
+                <p className="label-eyebrow text-sage-700">Graded</p>
+              </div>
+              <p className="font-display text-2xl text-sage-900 mt-1">
+                {gradedCount}
+              </p>
+            </Card>
+          </div>
+
+          <h2 className="font-display text-xl text-wood-800 pt-2">
+            Submissions
+          </h2>
+
+          <BulkGradePanel
+            assignmentId={assignmentId}
+            assignmentType={assignment.type as AssignmentType}
+            maxPoints={assignment.points}
+            rows={submissionRows}
+          />
+        </div>
+
+        <div className="space-y-4">
+          <ShareLink
+            path={`/assignments/${assignmentId}`}
+            description="A link for Canvas — students open it once they're signed in, and it takes them straight to this assignment."
+            warning={
+              assignment.published
+                ? isInteractive && !hasInteractiveHtml
+                  ? "Upload the HTML file above for the link to work."
+                  : null
+                : "Publish this assignment for the link to work."
+            }
+          />
+
+          {isInteractive && (
+            <Card>
+              <h3 className="font-display text-lg text-wood-900 mb-1">
+                Interactive HTML
+              </h3>
+              <p className="text-xs text-wood-500 mb-3">
+                {hasInteractiveHtml
+                  ? "File uploaded. Re-uploading replaces it."
+                  : "Upload the activity file to make this assignment visible to students."}
+              </p>
+              <form action={uploadHtmlAction} className="space-y-3">
+                <div className="flex items-start gap-2 p-2 rounded-cozy border border-dashed border-wood-300 bg-cream-50">
+                  <FileCode2
+                    className="w-5 h-5 text-wood-400 flex-shrink-0 mt-0.5"
+                    strokeWidth={1.5}
+                  />
+                  <Input
+                    id="html_file"
+                    name="html_file"
+                    type="file"
+                    accept=".html,text/html"
+                    required
+                    className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded-cozy file:border-0 file:bg-terracotta-100 file:text-terracotta-800 file:text-xs file:font-medium hover:file:bg-terracotta-200 file:cursor-pointer"
+                  />
+                </div>
+                <Button type="submit" size="sm" className="w-full">
+                  Upload HTML
+                </Button>
+              </form>
+
+              {hasInteractiveHtml && assignment.interactive_html_url && (
+                <a
+                  href={assignment.interactive_html_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs text-terracotta-700 hover:text-terracotta-800 transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Preview in new tab
+                </a>
+              )}
+
+              <a
+                href="/interactive-html-template.html"
+                download
+                className="mt-3 inline-flex items-center gap-1.5 text-xs text-wood-600 hover:text-terracotta-700 transition-colors ml-4"
+              >
+                <Download className="w-3 h-3" />
+                Template
+              </a>
+            </Card>
+          )}
+
+          <Card>
+            <h3 className="font-display text-lg text-wood-900 mb-4">
+              Settings
+            </h3>
+            <form action={updateAction} className="space-y-4">
+              <div>
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  type="text"
+                  defaultValue={assignment.title}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="instructions">Instructions</Label>
+                <Textarea
+                  id="instructions"
+                  name="instructions"
+                  rows={5}
+                  defaultValue={assignment.instructions ?? ""}
+                />
+              </div>
+
+              <UnitLessonPicker
+                units={units}
+                initialLessonId={assignment.lesson_id}
+                initialIsUnitQuiz={assignment.is_unit_quiz}
+              />
+
+              <div>
+                <Label htmlFor="due_date">Due date</Label>
+                <Input
+                  id="due_date"
+                  name="due_date"
+                  type="datetime-local"
+                  defaultValue={dueLocal}
+                />
+              </div>
+              <div>
+                <Label htmlFor="points">Points</Label>
+                <Input
+                  id="points"
+                  name="points"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  defaultValue={assignment.points}
+                />
+              </div>
+              {isTextual && (
+                <div>
+                  <Label htmlFor="minimum_word_count">
+                    Minimum word count{" "}
+                    <span className="text-wood-500 font-normal">(optional)</span>
+                  </Label>
+                  <Input
+                    id="minimum_word_count"
+                    name="minimum_word_count"
+                    type="number"
+                    min="1"
+                    defaultValue={assignment.minimum_word_count ?? ""}
+                  />
+                  <FieldHint>Leave blank for no minimum.</FieldHint>
+                </div>
+              )}
+              <div>
+                <Label htmlFor="rubric_id">
+                  Rubric{" "}
+                  <span className="text-wood-500 font-normal">(optional)</span>
+                </Label>
+                <Select
+                  id="rubric_id"
+                  name="rubric_id"
+                  defaultValue={assignment.rubric_id ?? ""}
+                >
+                  <option value="">No rubric (single score)</option>
+                  {rubrics.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} — {rubricMaxPoints(r.criteria)} pts
+                    </option>
+                  ))}
+                </Select>
+                <FieldHint>
+                  Per-criterion scoring during grading.{" "}
+                  <Link
+                    href="/teacher/rubrics"
+                    className="text-terracotta-700 hover:text-terracotta-800 underline"
+                    target="_blank"
+                  >
+                    Manage rubrics
+                  </Link>
+                </FieldHint>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="published"
+                  name="published"
+                  defaultChecked={assignment.published}
+                  className="w-4 h-4 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
+                />
+                <Label htmlFor="published" className="mb-0">
+                  Published (visible to students)
+                </Label>
+              </div>
+              {isInteractive && !hasInteractiveHtml && (
+                <FieldHint>
+                  Students won&apos;t see this even when published until the
+                  HTML file is uploaded above.
+                </FieldHint>
+              )}
+              <Button type="submit" size="sm" className="w-full">
+                Save changes
+              </Button>
+            </form>
+          </Card>
+
+          <CopyToClassPanel
+            assignmentId={assignmentId}
+            classes={otherClasses}
+          />
+
+          <Card className="border-terracotta-200 bg-terracotta-50/50">
+            <h3 className="font-display text-base text-terracotta-900 mb-1">
+              Danger zone
+            </h3>
+            <p className="text-xs text-terracotta-800 mb-3">
+              Deleting an assignment also deletes its submissions.
+            </p>
+            <form action={deleteAction}>
+              <Button
+                type="submit"
+                variant="danger"
+                size="sm"
+                className="w-full"
+              >
+                Delete assignment
+              </Button>
+            </form>
+          </Card>
+        </div>
+      </div>
+    </>
+  );
+}

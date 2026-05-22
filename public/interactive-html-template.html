@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Stardrop Interactive Assignment Template</title>
+<!--
+  =======================================================================
+  STARDROP INTERACTIVE HTML PROTOCOL
+  =======================================================================
+
+  This template is a working mixed-format quiz (multiple choice + short
+  answer) that demonstrates everything you need to build an interactive
+  assignment. Copy it, modify the questions and styling, upload.
+
+  HOW IT WORKS
+  ------------
+  Your HTML runs in a sandboxed iframe inside Stardrop. It cannot read
+  cookies or talk to Stardrop's database directly. Instead, it sends
+  messages to Stardrop using `window.parent.postMessage(...)`.
+
+  MESSAGES YOUR HTML SENDS TO STARDROP
+
+  1. { type: 'stardrop:ready' }
+     Once on page load. Stardrop responds with previously saved state.
+
+  2. { type: 'stardrop:progress', data: <object> }
+     Whenever the student makes progress. Stardrop autosaves this.
+
+  3. { type: 'stardrop:complete', data: <object>, score?: {earned, max} }
+     When the student finishes. The score field is optional and only
+     for self-grading activities.
+
+  MESSAGE STARDROP SENDS TO YOUR HTML
+
+  1. { type: 'stardrop:init', initialData, readOnly }
+     In response to 'stardrop:ready'. Restore state from initialData;
+     disable inputs if readOnly is true.
+
+  =======================================================================
+  RECOMMENDED `data` SHAPE FOR THE GRADING VIEW
+  =======================================================================
+
+  If you send a `responses` array, Stardrop's grading view shows each
+  question and answer paired nicely instead of raw JSON:
+
+    {
+      answers: { ... },     // raw state (whatever shape you want — used for restore)
+      responses: [
+        {
+          id: 'q1',                       // unique key
+          prompt: 'What does Update do?', // question text
+          type: 'multiple_choice',        // or 'short_answer'
+          answer: 'Runs every frame...',  // the student's response, as text
+          // Optional self-grading hints (omit for opinion / open-ended Qs):
+          correct_answer: 'Runs every frame while the script is enabled',
+          is_correct: true
+        },
+        { id: 'q2', prompt: '...', type: 'short_answer', answer: 'Their text here' }
+      ],
+      score: { earned: 1, max: 1 }  // optional, only if self-gradable
+    }
+
+  You can send any JSON shape you want. Stardrop falls back to a raw
+  view if the responses array is missing.
+  =======================================================================
+-->
+<style>
+  :root {
+    --terracotta: #d56f3e;
+    --terracotta-dark: #a1442b;
+    --terracotta-soft: #fae9dd;
+    --sage: #5d8753;
+    --sage-soft: #e5ede0;
+    --cream: #fbf6ea;
+    --cream-soft: #fefcf8;
+    --wood: #4c362a;
+    --wood-soft: #876043;
+    --wood-line: #e1cfb3;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--cream);
+    color: var(--wood);
+    padding: 24px;
+    line-height: 1.5;
+  }
+
+  h1 {
+    font-family: Georgia, serif;
+    font-size: 1.75rem;
+    color: var(--terracotta-dark);
+    margin: 0 0 8px;
+  }
+
+  .intro {
+    color: var(--wood-soft);
+    margin: 0 0 24px;
+  }
+
+  .question {
+    background: var(--cream-soft);
+    border: 1px solid var(--wood-line);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .question h2 {
+    font-size: 1rem;
+    margin: 0 0 12px;
+    color: var(--wood);
+    font-weight: 600;
+  }
+
+  .question-type-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--wood-soft);
+    margin-bottom: 6px;
+  }
+
+  .options { display: grid; gap: 8px; }
+
+  .option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--wood-line);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 120ms, border-color 120ms;
+  }
+
+  .option:hover { background: var(--cream); border-color: var(--terracotta); }
+  .option input[type="radio"] { accent-color: var(--terracotta); }
+  .option.selected { background: var(--terracotta-soft); border-color: var(--terracotta); }
+
+  textarea.short-answer {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px 12px;
+    border: 1px solid var(--wood-line);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--wood);
+    background: white;
+    resize: vertical;
+    transition: border-color 120ms;
+  }
+
+  textarea.short-answer:focus {
+    outline: none;
+    border-color: var(--terracotta);
+    box-shadow: 0 0 0 3px rgba(213, 111, 62, 0.18);
+  }
+
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--wood-line);
+  }
+
+  .progress { color: var(--wood-soft); font-size: 0.9rem; }
+
+  button#finish {
+    background: var(--terracotta);
+    color: white;
+    border: 0;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 120ms;
+  }
+
+  button#finish:hover:not(:disabled) { background: var(--terracotta-dark); }
+  button#finish:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .complete-banner {
+    display: none;
+    background: var(--sage-soft);
+    border: 1px solid #cadbc1;
+    color: #2f472d;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+  .complete-banner.show { display: block; }
+
+  .readonly-banner {
+    display: none;
+    background: var(--cream-soft);
+    border: 1px solid var(--wood-line);
+    color: var(--wood-soft);
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-style: italic;
+  }
+  .readonly-banner.show { display: block; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Sample Quiz</h1>
+  <p class="intro">
+    A short mixed-format quiz demonstrating multiple choice + short
+    answer questions. Edit <code>QUESTIONS</code> in the script to add
+    your own.
+  </p>
+
+  <div id="readonly-banner" class="readonly-banner">
+    This submission has been graded. Your answers are locked.
+  </div>
+
+  <div id="complete-banner" class="complete-banner">
+    ✓ You answered every question. Click Submit below the activity in
+    Stardrop to turn it in.
+  </div>
+
+  <div id="quiz"></div>
+
+  <div class="footer">
+    <p class="progress" id="progress">0 of 0 answered</p>
+    <button id="finish" disabled>Mark complete</button>
+  </div>
+</main>
+
+<script>
+  // ===================================================================
+  // QUIZ DATA — replace with your own questions.
+  //
+  // Each question has:
+  //   id: unique string
+  //   type: 'multiple_choice' OR 'short_answer'
+  //   prompt: the question text
+  //
+  // Multiple choice also has:
+  //   options: array of strings
+  //   correct: index into options (optional — omit for opinion Qs)
+  // ===================================================================
+  const QUESTIONS = [
+    {
+      id: "q1",
+      type: "multiple_choice",
+      prompt: "What does Update() do in a Unity MonoBehaviour?",
+      options: [
+        "Runs once when the script loads",
+        "Runs every frame while the script is enabled",
+        "Runs only when the object is clicked",
+        "Runs once at the end of the game",
+      ],
+      correct: 1,
+    },
+    {
+      id: "q2",
+      type: "short_answer",
+      prompt:
+        "Describe a game you'd like to make this semester. (2-3 sentences)",
+      // No `correct` — open-ended, graded manually.
+    },
+    {
+      id: "q3",
+      type: "multiple_choice",
+      prompt: "Which Vector3 represents 'up' in Unity's coordinate system?",
+      options: [
+        "Vector3(1, 0, 0)",
+        "Vector3(0, 0, 1)",
+        "Vector3(0, 1, 0)",
+        "Vector3(-1, 0, 0)",
+      ],
+      correct: 2,
+    },
+    {
+      id: "q4",
+      type: "short_answer",
+      prompt: "What's one thing about Unity you'd like to learn this year?",
+    },
+  ];
+
+  // ===================================================================
+  // STATE
+  // ===================================================================
+  // answers: { q1: 1 (index), q2: "text", q3: 2, q4: "text" }
+  let answers = {};
+  let readOnly = false;
+
+  const quizEl = document.getElementById("quiz");
+  const progressEl = document.getElementById("progress");
+  const finishBtn = document.getElementById("finish");
+  const completeBanner = document.getElementById("complete-banner");
+  const readonlyBanner = document.getElementById("readonly-banner");
+
+  // ===================================================================
+  // RENDERING
+  // ===================================================================
+  function render() {
+    quizEl.innerHTML = "";
+
+    QUESTIONS.forEach((q, qIdx) => {
+      const card = document.createElement("div");
+      card.className = "question";
+
+      const tag = document.createElement("p");
+      tag.className = "question-type-tag";
+      tag.textContent = q.type === "multiple_choice" ? "Multiple choice" : "Short answer";
+      card.appendChild(tag);
+
+      const h2 = document.createElement("h2");
+      h2.textContent = `${qIdx + 1}. ${q.prompt}`;
+      card.appendChild(h2);
+
+      if (q.type === "multiple_choice") {
+        const optsWrap = document.createElement("div");
+        optsWrap.className = "options";
+        q.options.forEach((optText, optIdx) => {
+          const label = document.createElement("label");
+          label.className =
+            "option" + (answers[q.id] === optIdx ? " selected" : "");
+
+          const input = document.createElement("input");
+          input.type = "radio";
+          input.name = q.id;
+          input.value = String(optIdx);
+          input.checked = answers[q.id] === optIdx;
+          input.disabled = readOnly;
+          input.addEventListener("change", () => onAnswer(q.id, optIdx));
+
+          const span = document.createElement("span");
+          span.textContent = optText;
+
+          label.appendChild(input);
+          label.appendChild(span);
+          optsWrap.appendChild(label);
+        });
+        card.appendChild(optsWrap);
+      } else if (q.type === "short_answer") {
+        const ta = document.createElement("textarea");
+        ta.className = "short-answer";
+        ta.rows = 4;
+        ta.placeholder = "Type your answer here…";
+        ta.value = answers[q.id] ?? "";
+        ta.disabled = readOnly;
+        ta.addEventListener("input", () => onAnswer(q.id, ta.value));
+        card.appendChild(ta);
+      }
+
+      quizEl.appendChild(card);
+    });
+
+    updateProgress();
+    readonlyBanner.classList.toggle("show", readOnly);
+  }
+
+  function isAnswered(q) {
+    const a = answers[q.id];
+    if (q.type === "multiple_choice") return typeof a === "number";
+    if (q.type === "short_answer") return typeof a === "string" && a.trim().length > 0;
+    return false;
+  }
+
+  function updateProgress() {
+    const answered = QUESTIONS.filter(isAnswered).length;
+    const total = QUESTIONS.length;
+    progressEl.textContent = `${answered} of ${total} answered`;
+    finishBtn.disabled = readOnly || answered < total;
+    completeBanner.classList.toggle("show", answered === total && !readOnly);
+  }
+
+  // ===================================================================
+  // INTERACTION
+  // ===================================================================
+  let progressTimer = null;
+
+  function onAnswer(questionId, value) {
+    if (readOnly) return;
+    answers[questionId] = value;
+    updateProgress();
+    // Re-render only for MC so the .selected class updates;
+    // for short_answer we don't want to lose focus on the textarea.
+    const q = QUESTIONS.find((qq) => qq.id === questionId);
+    if (q && q.type === "multiple_choice") render();
+    debouncedSave();
+  }
+
+  function debouncedSave() {
+    if (progressTimer) clearTimeout(progressTimer);
+    progressTimer = setTimeout(sendProgress, 800);
+  }
+
+  // ===================================================================
+  // DATA SHAPE — build the responses array Stardrop renders nicely
+  // ===================================================================
+  function buildData() {
+    const responses = QUESTIONS.map((q) => {
+      const raw = answers[q.id];
+      const response = { id: q.id, prompt: q.prompt, type: q.type };
+
+      if (q.type === "multiple_choice") {
+        response.answer =
+          typeof raw === "number" ? q.options[raw] : "(not answered)";
+        if (typeof q.correct === "number") {
+          response.correct_answer = q.options[q.correct];
+          response.is_correct = raw === q.correct;
+        }
+      } else if (q.type === "short_answer") {
+        response.answer =
+          typeof raw === "string" && raw.trim().length > 0
+            ? raw.trim()
+            : "(not answered)";
+      }
+
+      return response;
+    });
+
+    // Self-graded score from MC questions that have a `correct` index
+    let earned = 0;
+    let max = 0;
+    QUESTIONS.forEach((q) => {
+      if (q.type === "multiple_choice" && typeof q.correct === "number") {
+        max += 1;
+        if (answers[q.id] === q.correct) earned += 1;
+      }
+    });
+
+    const data = { answers, responses };
+    if (max > 0) data.score = { earned, max };
+    return data;
+  }
+
+  function sendProgress() {
+    window.parent.postMessage(
+      { type: "stardrop:progress", data: buildData() },
+      "*"
+    );
+  }
+
+  finishBtn.addEventListener("click", () => {
+    if (readOnly) return;
+    const data = buildData();
+    window.parent.postMessage(
+      {
+        type: "stardrop:complete",
+        data,
+        score: data.score,
+      },
+      "*"
+    );
+    finishBtn.textContent = "Marked complete ✓";
+    finishBtn.disabled = true;
+  });
+
+  // ===================================================================
+  // STARDROP: receive init
+  // ===================================================================
+  window.addEventListener("message", (event) => {
+    const msg = event.data;
+    if (!msg || typeof msg !== "object" || msg.type !== "stardrop:init") return;
+
+    if (msg.initialData && typeof msg.initialData === "object") {
+      // Prefer `answers` (raw state) if present
+      if (msg.initialData.answers && typeof msg.initialData.answers === "object") {
+        answers = msg.initialData.answers;
+      }
+    }
+    readOnly = !!msg.readOnly;
+    render();
+  });
+
+  // ===================================================================
+  // STARDROP: announce ready
+  // ===================================================================
+  window.parent.postMessage({ type: "stardrop:ready" }, "*");
+
+  // Initial render in case Stardrop never responds (e.g., previewing alone)
+  render();
+</script>
+</body>
+</html>
