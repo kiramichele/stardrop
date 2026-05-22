@@ -26,6 +26,11 @@ function parseMinimumWordCount(raw: string | undefined): number | null {
   return n;
 }
 
+/** A datetime-local form value → ISO string, or null when blank. */
+function parseDate(raw: string | undefined): string | null {
+  return raw && raw.trim() !== "" ? new Date(raw).toISOString() : null;
+}
+
 export async function createAssignment(formData: FormData) {
   await requireTeacher();
 
@@ -46,7 +51,9 @@ export async function createAssignment(formData: FormData) {
   if (!VALID_TYPES.includes(type)) throw new Error("Invalid assignment type");
 
   const points = pointsRaw ? Number.parseInt(pointsRaw, 10) : 100;
-  const dueDate = dueDateRaw ? new Date(dueDateRaw).toISOString() : null;
+  const dueDate = parseDate(dueDateRaw);
+  const dueDate1_5x = parseDate(formData.get("due_date_1_5x")?.toString());
+  const dueDate2x = parseDate(formData.get("due_date_2x")?.toString());
   const minimumWordCount = parseMinimumWordCount(minWordsRaw);
 
   const supabase = await createClient();
@@ -60,6 +67,8 @@ export async function createAssignment(formData: FormData) {
       type,
       instructions,
       due_date: dueDate,
+      due_date_1_5x: dueDate1_5x,
+      due_date_2x: dueDate2x,
       points,
       minimum_word_count: minimumWordCount,
       rubric_id: rubricId,
@@ -91,7 +100,9 @@ export async function updateAssignment(
 
   if (!title) throw new Error("Title required");
   const points = pointsRaw ? Number.parseInt(pointsRaw, 10) : 100;
-  const dueDate = dueDateRaw ? new Date(dueDateRaw).toISOString() : null;
+  const dueDate = parseDate(dueDateRaw);
+  const dueDate1_5x = parseDate(formData.get("due_date_1_5x")?.toString());
+  const dueDate2x = parseDate(formData.get("due_date_2x")?.toString());
   const minimumWordCount = parseMinimumWordCount(minWordsRaw);
 
   const supabase = await createClient();
@@ -101,6 +112,8 @@ export async function updateAssignment(
       title,
       instructions,
       due_date: dueDate,
+      due_date_1_5x: dueDate1_5x,
+      due_date_2x: dueDate2x,
       points,
       published,
       minimum_word_count: minimumWordCount,
@@ -218,6 +231,8 @@ export async function copyAssignmentToClasses(
         type: src.type,
         instructions: src.instructions,
         due_date: src.due_date,
+        due_date_1_5x: src.due_date_1_5x,
+        due_date_2x: src.due_date_2x,
         points: src.points,
         minimum_word_count: src.minimum_word_count,
         rubric_id: src.rubric_id,

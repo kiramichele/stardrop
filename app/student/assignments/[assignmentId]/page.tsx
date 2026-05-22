@@ -11,6 +11,7 @@ import {
 import { requireStudent } from "@/lib/auth";
 import {
   computeLateness,
+  effectiveDueDate,
   parseSubmissionMedia,
   type AssignmentType,
 } from "@/lib/assignments";
@@ -49,13 +50,11 @@ export default async function StudentAssignmentPage({
     submission && Array.isArray(submission.grades)
       ? submission.grades[0]
       : submission?.grades;
-  const { isLate, daysLate } = computeLateness(
-    submission?.submitted_at,
-    assignment.due_date
-  );
+  const due = effectiveDueDate(assignment, user.extended_time);
+  const { isLate, daysLate } = computeLateness(submission?.submitted_at, due);
 
-  const dueText = assignment.due_date
-    ? new Date(assignment.due_date).toLocaleString(undefined, {
+  const dueText = due
+    ? new Date(due).toLocaleString(undefined, {
         weekday: "long",
         month: "short",
         day: "numeric",

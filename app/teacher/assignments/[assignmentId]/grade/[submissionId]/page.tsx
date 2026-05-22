@@ -6,6 +6,9 @@ import {
   computeAutoGrade,
   countWords,
   parseSubmissionMedia,
+  effectiveDueDate,
+  asExtendedTime,
+  EXTENDED_TIME_LABELS,
   type AssignmentType,
 } from "@/lib/assignments";
 import {
@@ -86,9 +89,10 @@ export default async function GradeSubmissionPage({
     ? submission.grades[0]
     : submission.grades;
 
+  const tier = asExtendedTime(student?.extended_time);
   const { isLate, daysLate } = computeLateness(
     submission.submitted_at,
-    assignment?.due_date
+    assignment ? effectiveDueDate(assignment, tier) : null
   );
 
   const assignmentType = assignment?.type as AssignmentType | undefined;
@@ -140,7 +144,11 @@ export default async function GradeSubmissionPage({
       />
 
       <PageHeader
-        eyebrow={`${student?.first_name} ${student?.last_name}`}
+        eyebrow={
+          tier === "none"
+            ? `${student?.first_name} ${student?.last_name}`
+            : `${student?.first_name} ${student?.last_name} · ${EXTENDED_TIME_LABELS[tier]}`
+        }
         title={assignment?.title ?? "Submission"}
         action={<KeyboardShortcuts shortcuts={GRADING_SHORTCUTS} />}
         description={

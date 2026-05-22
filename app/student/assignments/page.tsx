@@ -3,6 +3,7 @@ import { ClipboardList, ArrowRight, Clock, GraduationCap } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import {
   computeLateness,
+  effectiveDueDate,
   groupAssignmentsByUnit,
   type AssignmentType,
 } from "@/lib/assignments";
@@ -88,12 +89,13 @@ export default async function StudentAssignmentsPage() {
                           sub && Array.isArray(sub.grades)
                             ? sub.grades[0]
                             : sub?.grades;
+                        const due = effectiveDueDate(a, user.extended_time);
                         const { isLate, daysLate } = computeLateness(
                           sub?.submitted_at,
-                          a.due_date
+                          due
                         );
-                        const dueText = a.due_date
-                          ? new Date(a.due_date).toLocaleString(undefined, {
+                        const dueText = due
+                          ? new Date(due).toLocaleString(undefined, {
                               month: "short",
                               day: "numeric",
                               hour: "numeric",
@@ -101,9 +103,9 @@ export default async function StudentAssignmentsPage() {
                             })
                           : "No due date";
                         const dueSoon =
-                          a.due_date &&
+                          due &&
                           !sub?.submitted_at &&
-                          new Date(a.due_date).getTime() - Date.now() <
+                          new Date(due).getTime() - Date.now() <
                             24 * 60 * 60 * 1000;
                         const isExcused = excused.has(a.id);
 

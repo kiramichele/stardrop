@@ -8,7 +8,11 @@ import {
   Download,
   ExternalLink,
 } from "lucide-react";
-import { computeLateness, type AssignmentType } from "@/lib/assignments";
+import {
+  computeLateness,
+  effectiveDueDate,
+  type AssignmentType,
+} from "@/lib/assignments";
 import {
   getAssignment,
   getSubmissionsForAssignment,
@@ -79,6 +83,12 @@ export default async function AssignmentDetailPage({
   const dueLocal = assignment.due_date
     ? new Date(assignment.due_date).toISOString().slice(0, 16)
     : "";
+  const due1_5xLocal = assignment.due_date_1_5x
+    ? new Date(assignment.due_date_1_5x).toISOString().slice(0, 16)
+    : "";
+  const due2xLocal = assignment.due_date_2x
+    ? new Date(assignment.due_date_2x).toISOString().slice(0, 16)
+    : "";
 
   const submittedCount = submissions.filter(
     (s) => s.status === "submitted" || s.status === "graded"
@@ -90,7 +100,7 @@ export default async function AssignmentDetailPage({
     const grade = Array.isArray(s.grades) ? s.grades[0] : s.grades;
     const { isLate, daysLate } = computeLateness(
       s.submitted_at,
-      assignment.due_date
+      effectiveDueDate(assignment, student?.extended_time)
     );
     const whenLabel = s.submitted_at
       ? `Submitted ${new Date(s.submitted_at).toLocaleString()}`
@@ -320,6 +330,40 @@ export default async function AssignmentDetailPage({
                   type="datetime-local"
                   defaultValue={dueLocal}
                 />
+              </div>
+              <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
+                <p className="text-sm font-medium text-wood-800 mb-2">
+                  Extended-time due dates{" "}
+                  <span className="text-wood-500 font-normal">(optional)</span>
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="due_date_1_5x" className="text-xs">
+                      1.5× time
+                    </Label>
+                    <Input
+                      id="due_date_1_5x"
+                      name="due_date_1_5x"
+                      type="datetime-local"
+                      defaultValue={due1_5xLocal}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="due_date_2x" className="text-xs">
+                      2× (double) time
+                    </Label>
+                    <Input
+                      id="due_date_2x"
+                      name="due_date_2x"
+                      type="datetime-local"
+                      defaultValue={due2xLocal}
+                    />
+                  </div>
+                </div>
+                <FieldHint>
+                  Students in an extended-time group are held to their
+                  group&apos;s date. Blank falls back to the regular due date.
+                </FieldHint>
               </div>
               <div>
                 <Label htmlFor="points">Points</Label>

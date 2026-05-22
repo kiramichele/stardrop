@@ -2,7 +2,11 @@ import Link from "next/link";
 import { ArrowRight, ClipboardCheck } from "lucide-react";
 import { requireTeacher } from "@/lib/auth";
 import { getGradingQueue } from "@/lib/assignments-server";
-import { computeLateness, type AssignmentType } from "@/lib/assignments";
+import {
+  computeLateness,
+  effectiveDueDate,
+  type AssignmentType,
+} from "@/lib/assignments";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -60,7 +64,7 @@ export default async function GradingQueuePage({
       : null;
     const { isLate, daysLate } = computeLateness(
       s.submitted_at,
-      assignment?.due_date
+      assignment ? effectiveDueDate(assignment, student?.extended_time) : null
     );
     return {
       id: s.id,

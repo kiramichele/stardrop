@@ -133,6 +133,8 @@ export type Database = {
           class_id: string
           created_at: string | null
           due_date: string | null
+          due_date_1_5x: string | null
+          due_date_2x: string | null
           id: string
           instructions: string | null
           interactive_html_url: string | null
@@ -150,6 +152,8 @@ export type Database = {
           class_id: string
           created_at?: string | null
           due_date?: string | null
+          due_date_1_5x?: string | null
+          due_date_2x?: string | null
           id?: string
           instructions?: string | null
           interactive_html_url?: string | null
@@ -167,6 +171,8 @@ export type Database = {
           class_id?: string
           created_at?: string | null
           due_date?: string | null
+          due_date_1_5x?: string | null
+          due_date_2x?: string | null
           id?: string
           instructions?: string | null
           interactive_html_url?: string | null
@@ -1332,6 +1338,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string | null
           email_notifications: boolean
+          extended_time: string
           first_name: string
           id: string
           last_name: string
@@ -1347,6 +1354,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           email_notifications?: boolean
+          extended_time?: string
           first_name: string
           id: string
           last_name: string
@@ -1362,6 +1370,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           email_notifications?: boolean
+          extended_time?: string
           first_name?: string
           id?: string
           last_name?: string

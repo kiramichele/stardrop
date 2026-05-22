@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { asProfile, type UserProfile } from "@/lib/profile";
-import { isAssignmentReady } from "@/lib/assignments";
+import { isAssignmentReady, effectiveDueDate } from "@/lib/assignments";
 import { getExcusalsForStudent } from "@/lib/excusals-server";
 
 // Teacher-facing: everything about one student in a single view.
@@ -65,12 +65,16 @@ export async function getStudentOverview(
     type: string;
     points: number;
     due_date: string | null;
+    due_date_1_5x: string | null;
+    due_date_2x: string | null;
     interactive_html_url: string | null;
   }> = [];
   if (classIds.length > 0) {
     const { data } = await admin
       .from("assignments")
-      .select("id, title, type, points, due_date, interactive_html_url")
+      .select(
+        "id, title, type, points, due_date, due_date_1_5x, due_date_2x, interactive_html_url"
+      )
       .in("class_id", classIds)
       .eq("published", true)
       .order("due_date", { ascending: true, nullsFirst: false });
@@ -100,7 +104,7 @@ export async function getStudentOverview(
       title: a.title,
       type: a.type,
       points: a.points,
-      dueDate: a.due_date,
+      dueDate: effectiveDueDate(a, student.extended_time),
       status: sub?.status ?? null,
       submissionId: sub?.id ?? null,
       score: grade?.score ?? null,

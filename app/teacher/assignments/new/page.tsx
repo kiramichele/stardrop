@@ -135,6 +135,40 @@ export default async function NewAssignmentPage() {
             </div>
           </div>
 
+          <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
+            <p className="text-sm font-medium text-wood-800 mb-2">
+              Extended-time due dates{" "}
+              <span className="text-wood-500 font-normal">(optional)</span>
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="due_date_1_5x" className="text-xs">
+                  1.5× time
+                </Label>
+                <Input
+                  id="due_date_1_5x"
+                  name="due_date_1_5x"
+                  type="datetime-local"
+                />
+              </div>
+              <div>
+                <Label htmlFor="due_date_2x" className="text-xs">
+                  2× (double) time
+                </Label>
+                <Input
+                  id="due_date_2x"
+                  name="due_date_2x"
+                  type="datetime-local"
+                />
+              </div>
+            </div>
+            <FieldHint>
+              Students in an extended-time group are held to their
+              group&apos;s date. Leave blank to fall back to the regular due
+              date.
+            </FieldHint>
+          </div>
+
           <div>
             <Label htmlFor="minimum_word_count">
               Minimum word count{" "}

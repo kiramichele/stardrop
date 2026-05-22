@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isAssignmentReady } from "@/lib/assignments";
+import { isAssignmentReady, effectiveDueDate } from "@/lib/assignments";
 import { getAllExcusals } from "@/lib/excusals-server";
 
 // Teacher analytics. Admin-client based — the calling page is
@@ -82,12 +82,14 @@ export async function getStrugglingStudents(): Promise<StrugglingStudent[]> {
   ] = await Promise.all([
     admin
       .from("users")
-      .select("id, first_name, last_name")
+      .select("id, first_name, last_name, extended_time")
       .eq("role", "student"),
     admin.from("enrollments").select("user_id, class_id"),
     admin
       .from("assignments")
-      .select("id, class_id, points, due_date, type, interactive_html_url")
+      .select(
+        "id, class_id, points, due_date, due_date_1_5x, due_date_2x, type, interactive_html_url"
+      )
       .eq("published", true),
     admin
       .from("submissions")
@@ -145,7 +147,8 @@ export async function getStrugglingStudents(): Promise<StrugglingStudent[]> {
         possible += a.points;
         gradedCount++;
       }
-      const due = a.due_date ? new Date(a.due_date).getTime() : null;
+      const effDue = effectiveDueDate(a, stu.extended_time);
+      const due = effDue ? new Date(effDue).getTime() : null;
       const submitted =
         sub && (sub.status === "submitted" || sub.status === "graded");
       if (due !== null && due < now && !submitted) missingCount++;

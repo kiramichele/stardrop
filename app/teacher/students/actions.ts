@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireTeacher } from "@/lib/auth";
 import { setExcused } from "@/lib/excusals-server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { asExtendedTime } from "@/lib/assignments";
 import { parseCanvasTemplate } from "@/lib/gradebook";
 import {
   saveTemplate,
@@ -95,17 +96,18 @@ export async function clearGradebookTemplate(): Promise<void> {
   revalidatePath("/teacher/students");
 }
 
-/** Set or clear one student's district / SIS student id. */
-export async function updateStudentId(
+/** Update a student's SIS id and extended-time accommodation tier. */
+export async function updateStudentDetails(
   studentId: string,
   formData: FormData
 ): Promise<void> {
   await requireTeacher();
-  const raw = (formData.get("student_id") ?? "").toString().trim();
+  const rawId = (formData.get("student_id") ?? "").toString().trim();
+  const extendedTime = asExtendedTime(formData.get("extended_time"));
   const admin = createAdminClient();
   await admin
     .from("users")
-    .update({ student_id: raw || null })
+    .update({ student_id: rawId || null, extended_time: extendedTime })
     .eq("id", studentId);
   revalidatePath(`/teacher/students/${studentId}`);
 }

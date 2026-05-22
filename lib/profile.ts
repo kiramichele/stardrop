@@ -5,6 +5,8 @@
 // migration. asProfile() bridges that gap by reading them defensively off
 // a raw users row — it stays correct once the columns are properly typed.
 
+import { asExtendedTime, type ExtendedTime } from "@/lib/assignments";
+
 export type UserProfile = {
   id: string;
   first_name: string;
@@ -17,6 +19,8 @@ export type UserProfile = {
   reduced_motion: boolean;
   /** District / SIS student number. Used to match Canvas gradebook rows. */
   student_id: string | null;
+  /** Extended-time accommodation tier. */
+  extended_time: ExtendedTime;
 };
 
 export function asProfile(row: unknown): UserProfile {
@@ -30,6 +34,7 @@ export function asProfile(row: unknown): UserProfile {
     role: r.role === "teacher" ? "teacher" : "student",
     avatar_url: typeof r.avatar_url === "string" ? r.avatar_url : null,
     student_id: typeof r.student_id === "string" ? r.student_id : null,
+    extended_time: asExtendedTime(r.extended_time),
     // default-on for notifications, default-off for reduced motion
     email_notifications: r.email_notifications !== false,
     reduced_motion: r.reduced_motion === true,

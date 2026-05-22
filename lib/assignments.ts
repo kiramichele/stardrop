@@ -139,6 +139,50 @@ export function computeLateness(
   return { isLate: true, daysLate };
 }
 
+// =============================================================
+// Extended-time accommodations
+// =============================================================
+
+/** A student's extended-time tier. */
+export type ExtendedTime = "none" | "1.5x" | "2x";
+
+export const EXTENDED_TIME_VALUES: ExtendedTime[] = ["none", "1.5x", "2x"];
+
+export const EXTENDED_TIME_LABELS: Record<ExtendedTime, string> = {
+  none: "Regular time",
+  "1.5x": "1.5× extended time",
+  "2x": "2× (double) time",
+};
+
+/** Coerce an unknown value to a valid extended-time tier. */
+export function asExtendedTime(value: unknown): ExtendedTime {
+  return value === "1.5x" || value === "2x" ? value : "none";
+}
+
+/**
+ * The due date a student is actually held to, given their tier. A blank
+ * tier date falls back to the next-shorter one, ending at the regular date.
+ * Accepts a raw `string` tier so it works directly on database rows.
+ */
+export function effectiveDueDate(
+  assignment: {
+    due_date: string | null;
+    due_date_1_5x?: string | null;
+    due_date_2x?: string | null;
+  },
+  tier: string | null | undefined
+): string | null {
+  if (tier === "2x") {
+    return (
+      assignment.due_date_2x ?? assignment.due_date_1_5x ?? assignment.due_date
+    );
+  }
+  if (tier === "1.5x") {
+    return assignment.due_date_1_5x ?? assignment.due_date;
+  }
+  return assignment.due_date;
+}
+
 export function isAssignmentReady(a: {
   type: string;
   interactive_html_url?: string | null;
