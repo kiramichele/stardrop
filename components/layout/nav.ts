@@ -9,7 +9,7 @@ import {
   Calendar,
   Award,
   Trophy,
-  BookMarked,
+  GraduationCap,
   Presentation,
   UserRound,
   BarChart3,
@@ -40,7 +40,7 @@ export const teacherNav: NavItem[] = [
   { label: "Discussions", href: "/discussions", icon: MessagesSquare },
   { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "Assets", href: "/assets", icon: Library },
-  { label: "Glossary", href: "/teacher/glossary", icon: BookMarked, comingSoon: true },
+  { label: "Exam Prep", href: "/exam-prep", icon: GraduationCap },
 ];
 
 export const studentNav: NavItem[] = [
@@ -54,5 +54,5 @@ export const studentNav: NavItem[] = [
   { label: "Discussions", href: "/discussions", icon: MessagesSquare },
   { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "Assets", href: "/assets", icon: Library },
-  { label: "Glossary", href: "/student/glossary", icon: BookMarked, comingSoon: true },
+  { label: "Exam Prep", href: "/exam-prep", icon: GraduationCap },
 ];

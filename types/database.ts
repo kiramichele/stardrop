@@ -308,6 +308,36 @@ export type Database = {
         }
         Relationships: []
       }
+      code_examples: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          description: string
+          id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string
+          code: string
+          created_at?: string
+          description?: string
+          id?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          description?: string
+          id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       daily_class_plans: {
         Row: {
           class_id: string
@@ -514,6 +544,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      exam_questions: {
+        Row: {
+          category: string
+          choice_a: string
+          choice_b: string
+          choice_c: string
+          choice_d: string
+          correct: string
+          created_at: string
+          explanation: string
+          id: string
+          question: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string
+          choice_a: string
+          choice_b: string
+          choice_c: string
+          choice_d: string
+          correct: string
+          created_at?: string
+          explanation?: string
+          id?: string
+          question: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          choice_a?: string
+          choice_b?: string
+          choice_c?: string
+          choice_d?: string
+          correct?: string
+          created_at?: string
+          explanation?: string
+          id?: string
+          question?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       feedback_messages: {
         Row: {
@@ -872,6 +944,41 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      quiz_attempts: {
+        Row: {
+          created_at: string
+          id: string
+          mode: string
+          score: number
+          total: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mode: string
+          score: number
+          total: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mode?: string
+          score?: number
+          total?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_attempts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resources: {
         Row: {
