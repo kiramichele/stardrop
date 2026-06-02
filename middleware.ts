@@ -35,7 +35,9 @@ export async function middleware(request: NextRequest) {
   const isLoginPage = path === "/login";
   // Public, shareable lesson pages — the links teachers post to Canvas.
   const isPublicLesson = path.startsWith("/lessons/");
-  const isPublic = path === "/" || isLoginPage || isPublicLesson;
+  // The interactive demo — fully self-contained sample data, no auth.
+  const isDemo = path === "/demo" || path.startsWith("/demo/");
+  const isPublic = path === "/" || isLoginPage || isPublicLesson || isDemo;
 
   // Not signed in + accessing protected route -> /login, remembering where
   // they were headed so we can bounce them back after they sign in.

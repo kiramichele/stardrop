@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { GraduationCap, UserRound } from "lucide-react";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 import { LoginForm } from "./LoginForm";
 import { ForgotPassword } from "./ForgotPassword";
@@ -59,6 +61,32 @@ export default async function LoginPage({
           </div>
 
           <LoginForm next={safeNext} />
+
+          {/* Demo entry — explore Stardrop with sample data, no account needed */}
+          <div className="mt-7 pt-6 border-t border-wood-100">
+            <p className="text-center text-xs uppercase tracking-wide-label text-wood-500 font-semibold mb-3">
+              Just looking? Try the demo
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                href="/demo/teacher"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-cozy text-sm font-medium text-wood-700 bg-cream-100 border border-wood-200 hover:bg-cream-200 hover:border-wood-300 transition-colors"
+              >
+                <GraduationCap className="w-4 h-4" strokeWidth={1.75} />
+                Teacher
+              </Link>
+              <Link
+                href="/demo/student"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-cozy text-sm font-medium text-wood-700 bg-cream-100 border border-wood-200 hover:bg-cream-200 hover:border-wood-300 transition-colors"
+              >
+                <UserRound className="w-4 h-4" strokeWidth={1.75} />
+                Student
+              </Link>
+            </div>
+            <p className="text-center text-xs text-wood-400 mt-2.5">
+              Sample data only — no real student information.
+            </p>
+          </div>
         </div>
 
         <ForgotPassword />
