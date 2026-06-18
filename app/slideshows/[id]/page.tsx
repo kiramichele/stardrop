@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { LessonViewer } from "@/components/lessons/LessonViewer";
 import { SlideshowForm } from "@/components/slideshows/SlideshowForm";
+import { ShareLink } from "@/components/ui/ShareLink";
 import { updateSlideshow, deleteSlideshow } from "../actions";
 
 export default async function SlideshowPage({
@@ -140,6 +141,12 @@ export default async function SlideshowPage({
 
           {isTeacher && (
             <>
+              <ShareLink
+                path={`/slideshows/${slideshow.id}`}
+                title="Share link"
+                description="Paste into Canvas — students need to be signed in to Stardrop to view."
+              />
+
               <Card>
                 <h3 className="font-display text-lg text-wood-900 mb-4">
                   Edit slideshow
