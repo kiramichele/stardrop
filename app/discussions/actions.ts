@@ -17,6 +17,8 @@ import {
   createNotifications,
   type NewNotification,
 } from "@/lib/notifications-server";
+import { notifyTeachersBySms } from "@/lib/sms-server";
+import { appBaseUrl } from "@/lib/email";
 import { asProfile, type UserProfile } from "@/lib/profile";
 
 // =============================================================
@@ -270,6 +272,25 @@ export async function createPost(
   });
 
   const threadId = parentId ?? post.id;
+
+  // SMS heads-up to teachers who opted in (only for student posts —
+  // teachers know about their own).
+  if (user.role === "student") {
+    const base = appBaseUrl();
+    const url = base
+      ? `${base}/discussions/${board.id}/${threadId}`
+      : "";
+    const studentName =
+      `${user.first_name} ${user.last_name}`.trim() || "A student";
+    const snippet = body.trim().slice(0, 60);
+    const smsBody = `💬 ${studentName} posted in "${board.title}"${
+      snippet
+        ? `: "${snippet}${body.length > 60 ? "…" : ""}"`
+        : ""
+    }${url ? ` — ${url}` : ""}`;
+    void notifyTeachersBySms("discussion", smsBody);
+  }
+
   revalidatePath(`/discussions/${boardId}`);
   revalidatePath(`/discussions/${boardId}/${threadId}`);
   return { ok: true, threadId };

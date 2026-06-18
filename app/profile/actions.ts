@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { updateProfileColumns } from "@/lib/profile-server";
+import { updateSmsColumns } from "@/lib/sms-server";
+import {
+  normalizePhone,
+  startPhoneVerification,
+  checkPhoneVerification,
+} from "@/lib/sms";
 import { generatePassword } from "@/lib/csv";
 import { sendNewPasswordEmail } from "@/lib/email";
 
@@ -110,5 +116,111 @@ export async function updatePreferences(prefs: {
 
   revalidatePath("/profile");
   revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+// =============================================================
+// SMS notifications (teacher-only opt-in)
+// =============================================================
+
+type SmsPrefKey = "feedback" | "discussion" | "showcase";
+
+function isSmsPrefKey(v: string): v is SmsPrefKey {
+  return v === "feedback" || v === "discussion" || v === "showcase";
+}
+
+/** Text a verification code to a phone number (Twilio Verify). */
+export async function startSmsVerification(
+  rawPhone: string
+): Promise<{ ok: true; phone: string } | { ok: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "teacher") {
+    return { ok: false, error: "Not authorized" };
+  }
+  const phone = normalizePhone(rawPhone);
+  if (!phone) {
+    return {
+      ok: false,
+      error: "That doesn't look like a phone number — try (555) 123-4567.",
+    };
+  }
+  const result = await startPhoneVerification(phone);
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true, phone };
+}
+
+/** Confirm the texted code and store the (now verified) phone number. */
+export async function confirmSmsVerification(
+  phone: string,
+  code: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "teacher") {
+    return { ok: false, error: "Not authorized" };
+  }
+  const cleanPhone = normalizePhone(phone);
+  if (!cleanPhone) return { ok: false, error: "Invalid phone." };
+  const cleanCode = code.trim();
+  if (!/^\d{4,10}$/.test(cleanCode)) {
+    return { ok: false, error: "Enter the code from your text." };
+  }
+
+  const check = await checkPhoneVerification(cleanPhone, cleanCode);
+  if (!check.ok) return { ok: false, error: check.error };
+
+  const saved = await updateSmsColumns(user.id, {
+    phone_number: cleanPhone,
+    phone_verified_at: new Date().toISOString(),
+  });
+  if (!saved.ok) return { ok: false, error: saved.error ?? "Couldn't save." };
+
+  revalidatePath("/profile");
+  return { ok: true };
+}
+
+/** Drop the phone number and turn every SMS toggle off. */
+export async function removeSmsPhone(): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "teacher") {
+    return { ok: false, error: "Not authorized" };
+  }
+  const saved = await updateSmsColumns(user.id, {
+    phone_number: null,
+    phone_verified_at: null,
+    sms_on_feedback: false,
+    sms_on_discussion: false,
+    sms_on_showcase: false,
+  });
+  if (!saved.ok) return { ok: false, error: saved.error ?? "Couldn't save." };
+
+  revalidatePath("/profile");
+  return { ok: true };
+}
+
+/** Flip one of the per-event SMS toggles. */
+export async function setSmsPreference(
+  key: string,
+  enabled: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "teacher") {
+    return { ok: false, error: "Not authorized" };
+  }
+  if (!isSmsPrefKey(key)) return { ok: false, error: "Unknown preference." };
+
+  const col =
+    key === "feedback"
+      ? "sms_on_feedback"
+      : key === "discussion"
+        ? "sms_on_discussion"
+        : "sms_on_showcase";
+
+  const saved = await updateSmsColumns(user.id, { [col]: enabled });
+  if (!saved.ok) return { ok: false, error: saved.error ?? "Couldn't save." };
+
+  revalidatePath("/profile");
   return { ok: true };
 }

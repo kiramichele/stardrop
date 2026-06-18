@@ -13,6 +13,8 @@ import {
   insertCommentRecord,
   deleteCommentRecord,
 } from "@/lib/showcase-server";
+import { notifyTeachersBySms } from "@/lib/sms-server";
+import { appBaseUrl } from "@/lib/email";
 
 const TITLE_MAX = 120;
 const DESCRIPTION_MAX = 2000;
@@ -81,11 +83,24 @@ export async function setShowcasePublished(
     user.role === "teacher",
     published
   );
-  if (result.ok) {
-    revalidatePath("/showcase");
-    revalidatePath(`/showcase/${projectId}`);
+  if (!result.ok) return result;
+
+  revalidatePath("/showcase");
+  revalidatePath(`/showcase/${projectId}`);
+
+  // Fire a one-time "new project" SMS the first time a student publishes.
+  if (result.justPublished && user.role === "student") {
+    const base = appBaseUrl();
+    const url = base ? `${base}/showcase/${projectId}` : "";
+    const studentName =
+      `${user.first_name} ${user.last_name}`.trim() || "A student";
+    const body = `🎮 ${studentName} published "${result.title}" to the showcase${
+      url ? ` — ${url}` : ""
+    }`;
+    void notifyTeachersBySms("showcase", body);
   }
-  return result;
+
+  return { ok: true };
 }
 
 /** Edit a project's title / description. */

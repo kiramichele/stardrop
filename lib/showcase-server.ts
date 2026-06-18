@@ -263,19 +263,31 @@ export async function finalizeProjectRecord(
   return { ok: true };
 }
 
-/** Publish / unpublish. Owner or teacher only. */
+/**
+ * Publish / unpublish. Owner or teacher only. Returns `justPublished`
+ * when the call transitioned a draft to published — the caller uses that
+ * to fire a one-time "new project" notification.
+ */
 export async function setProjectPublishedRecord(
   projectId: string,
   userId: string,
   isTeacher: boolean,
   published: boolean
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<
+  | {
+      ok: true;
+      justPublished: boolean;
+      title: string;
+      ownerId: string;
+    }
+  | { ok: false; error: string }
+> {
   const admin = createAdminClient();
   const { data: project } = await shim<ShowcaseProject>(
     admin,
     "showcase_projects"
   )
-    .select("user_id, index_path")
+    .select("user_id, index_path, published, title")
     .eq("id", projectId)
     .maybeSingle();
   if (!project) return { ok: false, error: "Project not found" };
@@ -290,7 +302,13 @@ export async function setProjectPublishedRecord(
     .update({ published, updated_at: new Date().toISOString() })
     .eq("id", projectId);
   if (error) return { ok: false, error: error.message };
-  return { ok: true };
+
+  return {
+    ok: true,
+    justPublished: published && !project.published,
+    title: project.title,
+    ownerId: project.user_id,
+  };
 }
 
 /** Edit a project's title / description. Owner or teacher only. */

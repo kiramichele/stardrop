@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireTeacher, getCurrentUser } from "@/lib/auth";
 import { sendEmail, escapeHtml, appBaseUrl } from "@/lib/email";
+import { notifyTeachersBySms } from "@/lib/sms-server";
 import { computeAutoGrade, type AssignmentType } from "@/lib/assignments";
 import { asProfile } from "@/lib/profile";
 import type { Json } from "@/types/database";
@@ -704,4 +705,10 @@ async function notifyTeachersOfStudentReply(args: {
     `.trim(),
     text: `${fullName} replied to your feedback on ${title}:\n\n${args.body}${link ? `\n\n${link}` : ""}`,
   });
+
+  // SMS heads-up to teachers who opted in (best-effort).
+  const smsBody = `📝 ${
+    args.author.first_name || "A student"
+  } replied to feedback on "${title}"${link ? ` — ${link}` : ""}`;
+  await notifyTeachersBySms("feedback", smsBody);
 }

@@ -13,8 +13,20 @@ import {
   updatePreferences,
 } from "./actions";
 import type { UserProfile } from "@/lib/profile";
+import {
+  SmsNotificationsCard,
+  type SmsCardSettings,
+} from "@/components/profile/SmsNotificationsCard";
 
-export function ProfilePanels({ profile }: { profile: UserProfile }) {
+export function ProfilePanels({
+  profile,
+  smsSettings,
+  smsConfigured,
+}: {
+  profile: UserProfile;
+  smsSettings?: SmsCardSettings | null;
+  smsConfigured?: boolean;
+}) {
   const router = useRouter();
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
   const [emailNotif, setEmailNotif] = useState(profile.email_notifications);
@@ -243,6 +255,13 @@ export function ProfilePanels({ profile }: { profile: UserProfile }) {
           </label>
         </div>
       </Card>
+
+      {profile.role === "teacher" && smsSettings && (
+        <SmsNotificationsCard
+          settings={smsSettings}
+          isConfigured={smsConfigured ?? false}
+        />
+      )}
     </div>
   );
 }
