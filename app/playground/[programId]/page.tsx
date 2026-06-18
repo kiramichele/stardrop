@@ -4,6 +4,7 @@ import {
   getProgram,
   getProgramsForUser,
 } from "@/lib/playground-server";
+import { getUnitySimulationEnabled } from "@/lib/app-settings-server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PlaygroundClient } from "@/components/playground/PlaygroundClient";
@@ -20,10 +21,12 @@ export default async function PlaygroundProgramPage({
 
   // Owner gets their full saved list in the sidebar; visitors only see
   // the one program they came for (no leaking their library).
-  const savedPrograms =
+  const [savedPrograms, unityEnabled] = await Promise.all([
     program.user_id === viewer.id
-      ? await getProgramsForUser(viewer.id)
-      : [program];
+      ? getProgramsForUser(viewer.id)
+      : Promise.resolve([program]),
+    getUnitySimulationEnabled(),
+  ]);
 
   const ownerLabel =
     program.user_id === viewer.id ? null : await ownerName(program.user_id);
@@ -43,6 +46,7 @@ export default async function PlaygroundProgramPage({
         savedPrograms={savedPrograms}
         initialProgram={program}
         currentUserId={viewer.id}
+        unitySimulationEnabled={unityEnabled}
       />
     </>
   );

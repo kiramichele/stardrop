@@ -21,6 +21,7 @@ import {
 } from "@/lib/assignments-server";
 import { getFeedbackThread } from "@/lib/feedback-server";
 import { getLesson } from "@/lib/lessons";
+import { getUnitySimulationEnabled } from "@/lib/app-settings-server";
 import { FeedbackThread } from "@/components/feedback/FeedbackThread";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -149,6 +150,7 @@ export default async function StudentAssignmentPage({
                 ((assignment as { code_run_mode?: string }).code_run_mode ??
                   "both") as "none" | "csharp" | "unity" | "both"
               }
+              unitySimulationEnabled={await getUnitySimulationEnabled()}
             />
           )}
 

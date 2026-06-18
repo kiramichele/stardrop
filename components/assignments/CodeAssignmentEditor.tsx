@@ -24,8 +24,14 @@ interface CodeAssignmentEditorProps {
   initialStatus: "draft" | "submitted" | "graded";
   initialSubmissionId: string | null;
   starterCode?: string;
-  /** Which run buttons the assignment exposes. Default 'both'. */
+  /** Which run button the assignment exposes. Default 'both' (legacy). */
   codeRunMode?: CodeRunMode;
+  /**
+   * Class-wide kill switch for the Unity simulation. False hides the
+   * Run button on unity-mode assignments without changing anything
+   * else. Defaults true so the editor still works in isolation.
+   */
+  unitySimulationEnabled?: boolean;
 }
 
 const AUTOSAVE_DEBOUNCE_MS = 1500;
@@ -37,6 +43,7 @@ export function CodeAssignmentEditor({
   initialSubmissionId,
   starterCode,
   codeRunMode = "both",
+  unitySimulationEnabled = true,
 }: CodeAssignmentEditorProps) {
   // Starter for a brand-new submission: explicit prop wins, otherwise
   // derive from the run mode (csharp → console boilerplate, anything
@@ -176,7 +183,11 @@ export function CodeAssignmentEditor({
             <h3 className="font-display text-lg text-wood-900 mb-3">
               Try it out
             </h3>
-            <CodeRunner getCode={() => code} runAs={runAs} />
+            <CodeRunner
+              getCode={() => code}
+              runAs={runAs}
+              unitySimulationEnabled={unitySimulationEnabled}
+            />
           </Card>
         );
       })()}

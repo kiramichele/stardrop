@@ -1,11 +1,15 @@
 import { requireUser } from "@/lib/auth";
 import { getProgramsForUser } from "@/lib/playground-server";
+import { getUnitySimulationEnabled } from "@/lib/app-settings-server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PlaygroundClient } from "@/components/playground/PlaygroundClient";
 
 export default async function PlaygroundPage() {
   const user = await requireUser();
-  const programs = await getProgramsForUser(user.id);
+  const [programs, unityEnabled] = await Promise.all([
+    getProgramsForUser(user.id),
+    getUnitySimulationEnabled(),
+  ]);
 
   return (
     <>
@@ -18,6 +22,7 @@ export default async function PlaygroundPage() {
         savedPrograms={programs}
         initialProgram={null}
         currentUserId={user.id}
+        unitySimulationEnabled={unityEnabled}
       />
     </>
   );

@@ -17,6 +17,7 @@ import {
   Video,
   Sparkles,
   Terminal,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 
@@ -47,6 +48,7 @@ export const teacherNav: NavItem[] = [
   { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "Assets", href: "/assets", icon: Library },
   { label: "Exam Prep", href: "/exam-prep", icon: GraduationCap },
+  { label: "Settings", href: "/teacher/settings", icon: Settings },
 ];
 
 export const studentNav: NavItem[] = [

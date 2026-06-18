@@ -77,18 +77,23 @@ export function PlaygroundClient({
   savedPrograms,
   initialProgram,
   currentUserId,
+  unitySimulationEnabled = true,
 }: {
   savedPrograms: PlaygroundProgram[];
   initialProgram: PlaygroundProgram | null;
   currentUserId: string;
+  unitySimulationEnabled?: boolean;
 }) {
   const router = useRouter();
   const codeRef = useRef<string>(initialProgram?.code ?? DEFAULT_STARTER);
 
   const [title, setTitle] = useState(initialProgram?.title ?? "");
   const [language, setLanguage] = useState(
-    initialProgram?.language ?? "csharp"
+    initialProgram?.language ?? "csharp_unity"
   );
+  // Bumped any time we replace the editor contents so Monaco re-mounts
+  // and picks up the new defaultValue.
+  const [editorVersion, setEditorVersion] = useState(0);
   // Stored separately so the Save button reflects edits even before
   // Monaco emits an onChange (controlled value would also trigger
   // editor reflow per keystroke — uncontrolled is smoother for Monaco).
@@ -120,7 +125,55 @@ export function PlaygroundClient({
     setError(null);
     setShareCopied(false);
     setShowTemplatePicker(false);
+    setEditorVersion((v) => v + 1); // force Monaco to pick up the new code
     router.push("/playground");
+  }
+
+  /**
+   * Changing the language pill should swap the boilerplate when the
+   * student hasn't started writing anything custom yet — otherwise it
+   * just switches the label (their code is preserved).
+   *
+   * "Custom" means: code that doesn't match either known starter or the
+   * loaded program's saved code.
+   */
+  function onLanguageChange(nextLang: string) {
+    if (nextLang === language) return;
+    const current = codeRef.current.trim();
+    const knownStarters = [
+      CSHARP_CONSOLE_STARTER.trim(),
+      CSHARP_UNITY_STARTER.trim(),
+    ];
+    const savedSnapshot = loadedProgram?.code.trim();
+    const isUntouched =
+      current === "" ||
+      knownStarters.includes(current) ||
+      (savedSnapshot !== undefined && current === savedSnapshot);
+
+    if (isUntouched && !loadedProgram) {
+      // Brand-new editor on a starter — silently swap to the other one.
+      codeRef.current =
+        nextLang === "csharp_unity"
+          ? CSHARP_UNITY_STARTER
+          : CSHARP_CONSOLE_STARTER;
+      setLanguage(nextLang);
+      setEditorVersion((v) => v + 1);
+      return;
+    }
+
+    // Saved program OR custom code — confirm before replacing.
+    const flavour = nextLang === "csharp_unity" ? "C# (Unity)" : "C#";
+    const wantsReset = confirm(
+      `Replace the editor with the ${flavour} starter code? Your current code will be lost.`
+    );
+    if (wantsReset) {
+      codeRef.current =
+        nextLang === "csharp_unity"
+          ? CSHARP_UNITY_STARTER
+          : CSHARP_CONSOLE_STARTER;
+      setEditorVersion((v) => v + 1);
+    }
+    setLanguage(nextLang);
   }
 
   function save() {
@@ -275,7 +328,7 @@ export function PlaygroundClient({
           />
           <Select
             value={language}
-            onChange={(e) => setLanguage(e.target.value)}
+            onChange={(e) => onLanguageChange(e.target.value)}
             aria-label="Language"
             className="w-auto"
           >
@@ -302,7 +355,7 @@ export function PlaygroundClient({
               automaticLayout: true,
               wordWrap: "on",
             }}
-            key={loadedProgram?.id ?? "blank"}
+            key={`${loadedProgram?.id ?? "blank"}-${editorVersion}`}
           />
         </div>
 
@@ -448,6 +501,7 @@ export function PlaygroundClient({
         <CodeRunner
           getCode={() => codeRef.current}
           runAs={language === "csharp_unity" ? "unity" : "csharp"}
+          unitySimulationEnabled={unitySimulationEnabled}
         />
       </Card>
     </div>

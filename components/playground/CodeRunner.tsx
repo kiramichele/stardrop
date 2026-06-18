@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   Check,
   Clock,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { runCode, type RunResult } from "@/app/playground/actions";
@@ -25,18 +26,50 @@ import type { RunAs } from "@/lib/playground";
 export function CodeRunner({
   getCode,
   runAs,
+  unitySimulationEnabled = true,
 }: {
   getCode: () => string;
   runAs: RunAs;
+  /**
+   * Class-wide kill switch for the Unity simulation. When false and
+   * runAs is "unity", the button is replaced with a small note.
+   */
+  unitySimulationEnabled?: boolean;
 }) {
   const [result, setResult] = useState<RunResult | null>(null);
   const [pending, start] = useTransition();
 
+  const unityLocked = runAs === "unity" && !unitySimulationEnabled;
+
   function go() {
+    if (unityLocked) return;
     start(async () => {
       const out = await runCode(getCode(), runAs);
       setResult(out);
     });
+  }
+
+  if (unityLocked) {
+    return (
+      <div>
+        <div className="mb-3 flex items-start gap-3 rounded-cozy border border-wood-200 bg-cream-50 px-4 py-3">
+          <Lock
+            className="w-4 h-4 mt-0.5 flex-shrink-0 text-wood-500"
+            strokeWidth={2}
+          />
+          <div className="text-sm text-wood-700">
+            <p className="font-medium text-wood-900">
+              Unity simulation is off right now.
+            </p>
+            <p className="text-wood-600 mt-0.5">
+              Your teacher will turn it on once the class has covered Unity
+              scripting. You can still write and save your code.
+            </p>
+          </div>
+        </div>
+        <ResultPanel result={null} pending={false} />
+      </div>
+    );
   }
 
   const label =

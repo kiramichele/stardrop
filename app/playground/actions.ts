@@ -10,6 +10,7 @@ import {
   deleteProgramRecord,
   getProgram,
 } from "@/lib/playground-server";
+import { getUnitySimulationEnabled } from "@/lib/app-settings-server";
 
 const TITLE_MAX = 120;
 const CODE_MAX = 40_000;
@@ -65,6 +66,16 @@ export async function runCode(
   }
 
   // mode === "unity"
+  // Teacher-controlled kill switch — also enforced in the UI, but a
+  // server-side check stops anyone from poking the action directly.
+  if (!(await getUnitySimulationEnabled())) {
+    return {
+      mode: "unity",
+      ok: false,
+      error:
+        "Unity simulation is currently turned off by your teacher.",
+    };
+  }
   if (!isAnthropicConfigured()) {
     return {
       mode: "unity",
