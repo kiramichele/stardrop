@@ -32,6 +32,7 @@ import { TextAssignmentEditor } from "@/components/assignments/TextAssignmentEdi
 import { DiscussionFeed } from "@/components/assignments/DiscussionFeed";
 import { UnityUploadAssignment } from "@/components/assignments/UnityUploadAssignment";
 import { DevlogSubmission } from "@/components/assignments/DevlogSubmission";
+import { VideoResponseSubmission } from "@/components/assignments/VideoResponseSubmission";
 
 export default async function StudentAssignmentPage({
   params,
@@ -256,6 +257,27 @@ export default async function StudentAssignmentPage({
             </>
           )}
 
+          {(assignment.type as AssignmentType) === "video_response" && (
+            <>
+              {assignment.interactive_html_url && (
+                <Card padded={false} className="overflow-hidden">
+                  <iframe
+                    src={assignment.interactive_html_url}
+                    title="Prompt"
+                    sandbox="allow-same-origin allow-scripts"
+                    className="w-full min-h-[320px] bg-white"
+                  />
+                </Card>
+              )}
+              <VideoResponseSubmission
+                assignmentId={assignment.id}
+                initialMedia={parseSubmissionMedia(submission?.uploaded_files)}
+                initialStatus={submission?.status ?? "draft"}
+                initialSubmissionId={submission?.id ?? null}
+              />
+            </>
+          )}
+
           {!(
             [
               "code",
@@ -264,6 +286,7 @@ export default async function StudentAssignmentPage({
               "discussion",
               "unity_upload",
               "devlog",
+              "video_response",
             ] as AssignmentType[]
           ).includes(assignment.type as AssignmentType) && (
             <Card>

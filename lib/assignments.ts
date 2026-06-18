@@ -11,6 +11,7 @@ export type AssignmentType =
   | "discussion"
   | "unity_upload"
   | "devlog"
+  | "video_response"
   | "check_in";
 
 export const ASSIGNMENT_TYPE_LABELS: Record<AssignmentType, string> = {
@@ -20,6 +21,7 @@ export const ASSIGNMENT_TYPE_LABELS: Record<AssignmentType, string> = {
   discussion: "Discussion post",
   unity_upload: "Unity project upload",
   devlog: "Dev log (screen recording or video)",
+  video_response: "Video response (camera / screen / upload)",
   check_in: "Check-in",
 };
 
@@ -30,6 +32,7 @@ export const SUPPORTED_TYPES: AssignmentType[] = [
   "discussion",
   "unity_upload",
   "devlog",
+  "video_response",
 ];
 
 export type Assignment = {

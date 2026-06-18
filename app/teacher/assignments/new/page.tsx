@@ -88,8 +88,8 @@ export default async function NewAssignmentPage() {
             </Select>
             <FieldHint>
               Code, Interactive HTML, Short answer, Discussion, Unity upload,
-              and Dev log are available. Check-in is being retired in favor of
-              Dev log.
+              Dev log, and Video response are all available. Check-in is being
+              retired in favor of Dev log.
             </FieldHint>
           </div>
 

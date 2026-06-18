@@ -18,6 +18,7 @@ const VALID_TYPES: AssignmentType[] = [
   "discussion",
   "unity_upload",
   "devlog",
+  "video_response",
   "check_in",
 ];
 

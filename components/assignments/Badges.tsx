@@ -49,6 +49,11 @@ const typeMeta: Record<
     label: "Devlog",
     tint: "bg-terracotta-100 text-terracotta-800",
   },
+  video_response: {
+    icon: Video,
+    label: "Video",
+    tint: "bg-sage-100 text-sage-800",
+  },
   check_in: {
     icon: Smile,
     label: "Check-in",

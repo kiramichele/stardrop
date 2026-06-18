@@ -235,14 +235,21 @@ export default async function GradeSubmissionPage({
             </div>
           )}
 
-          {(assignmentType as AssignmentType) === "devlog" && (
+          {((assignmentType as AssignmentType) === "devlog" ||
+            (assignmentType as AssignmentType) === "video_response") && (
             <div>
               <div className="flex items-center justify-between mb-3 gap-3">
-                <p className="label-eyebrow">Devlog video</p>
-                <DevlogVisibilityChip
-                  submissionId={submissionId}
-                  initialIsPublic={devlogIsPublic}
-                />
+                <p className="label-eyebrow">
+                  {(assignmentType as AssignmentType) === "devlog"
+                    ? "Devlog video"
+                    : "Video response"}
+                </p>
+                {(assignmentType as AssignmentType) === "devlog" && (
+                  <DevlogVisibilityChip
+                    submissionId={submissionId}
+                    initialIsPublic={devlogIsPublic}
+                  />
+                )}
               </div>
               {(() => {
                 const video = parseSubmissionMedia(
@@ -252,7 +259,7 @@ export default async function GradeSubmissionPage({
                   return (
                     <Card>
                       <p className="text-sm text-wood-500 italic text-center py-4">
-                        No devlog submitted yet.
+                        No video submitted yet.
                       </p>
                     </Card>
                   );
