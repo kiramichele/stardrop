@@ -3,11 +3,14 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { asProfile, type UserProfile } from "@/lib/profile";
+import { getClassColorMap } from "@/lib/class-colors-server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Select } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ClassColorDot } from "@/components/ui/ClassColorDot";
+import { ClassColorPicker } from "@/components/classes/ClassColorPicker";
 import { updateClass, deleteClass } from "../actions";
 import { StudentRow } from "./StudentRow";
 
@@ -19,12 +22,16 @@ export default async function ClassDetailPage({
   const { classId } = await params;
   const supabase = await createClient();
 
-  const { data: klass } = await supabase
-    .from("classes")
-    .select("id, name, period_number, term")
-    .eq("id", classId)
-    .single();
+  const [{ data: klass }, colorMap] = await Promise.all([
+    supabase
+      .from("classes")
+      .select("id, name, period_number, term")
+      .eq("id", classId)
+      .single(),
+    getClassColorMap(),
+  ]);
   if (!klass) notFound();
+  const classColor = colorMap.get(classId) ?? null;
 
   // Roster: get enrolled users with their profile info
   const { data: enrollments } = await supabase
@@ -70,7 +77,12 @@ export default async function ClassDetailPage({
       </Link>
 
       <PageHeader
-        eyebrow={klass.period_number ? `Period ${klass.period_number}` : "Class"}
+        eyebrow={
+          <span className="inline-flex items-center gap-1.5">
+            <ClassColorDot color={classColor} />
+            {klass.period_number ? `Period ${klass.period_number}` : "Class"}
+          </span>
+        }
         title={klass.name}
         description={`${klass.term} · ${students.length} ${students.length === 1 ? "student" : "students"}`}
       />
@@ -156,6 +168,16 @@ export default async function ClassDetailPage({
                 Save changes
               </Button>
             </form>
+          </Card>
+
+          <Card>
+            <h3 className="font-display text-lg text-wood-900 mb-1">
+              Color tag
+            </h3>
+            <p className="text-xs text-wood-500 mb-3">
+              A quick visual cue for telling this period apart across Stardrop.
+            </p>
+            <ClassColorPicker classId={classId} current={classColor} />
           </Card>
 
           <Card className="border-terracotta-200 bg-terracotta-50/50">

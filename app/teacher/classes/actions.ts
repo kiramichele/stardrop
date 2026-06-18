@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireTeacher } from "@/lib/auth";
 import { updateProfileColumns } from "@/lib/profile-server";
+import { setClassColorRecord } from "@/lib/class-colors-server";
+import { isClassColorKey } from "@/lib/class-colors";
 import { generatePassword } from "@/lib/csv";
 import { sendNewPasswordEmail } from "@/lib/email";
 
@@ -37,6 +39,26 @@ export async function updateClass(classId: string, formData: FormData) {
 
   revalidatePath("/teacher/classes");
   revalidatePath(`/teacher/classes/${classId}`);
+}
+
+/** Set or clear a class's color tag. Pass null to clear it. */
+export async function setClassColor(
+  classId: string,
+  color: string | null
+): Promise<{ ok: boolean; error?: string }> {
+  await requireTeacher();
+
+  if (color !== null && !isClassColorKey(color)) {
+    return { ok: false, error: "Unknown color." };
+  }
+
+  const result = await setClassColorRecord(classId, color);
+  if (!result.ok) return result;
+
+  revalidatePath("/teacher/classes");
+  revalidatePath(`/teacher/classes/${classId}`);
+  revalidatePath("/teacher/grading");
+  return { ok: true };
 }
 
 export async function deleteClass(classId: string) {

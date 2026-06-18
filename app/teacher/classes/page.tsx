@@ -1,18 +1,23 @@
 import Link from "next/link";
 import { Users, Upload, ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getClassColorMap } from "@/lib/class-colors-server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ClassColorDot } from "@/components/ui/ClassColorDot";
 
 export default async function ClassesPage() {
   const supabase = await createClient();
 
-  const { data: classes } = await supabase
-    .from("classes")
-    .select("id, name, period_number, term, enrollments(count)")
-    .order("period_number", { ascending: true, nullsFirst: false });
+  const [{ data: classes }, colorMap] = await Promise.all([
+    supabase
+      .from("classes")
+      .select("id, name, period_number, term, enrollments(count)")
+      .order("period_number", { ascending: true, nullsFirst: false }),
+    getClassColorMap(),
+  ]);
 
   return (
     <>
@@ -62,11 +67,14 @@ export default async function ClassesPage() {
                 <Card hoverable className="group h-full">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      {c.period_number && (
-                        <p className="label-eyebrow mb-1.5">
-                          Period {c.period_number}
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <ClassColorDot color={colorMap.get(c.id) ?? null} />
+                        <p className="label-eyebrow">
+                          {c.period_number
+                            ? `Period ${c.period_number}`
+                            : "Class"}
                         </p>
-                      )}
+                      </div>
                       <h3 className="font-display text-xl text-wood-900 truncate">
                         {c.name}
                       </h3>

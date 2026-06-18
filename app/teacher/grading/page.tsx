@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ClipboardCheck } from "lucide-react";
 import { requireTeacher } from "@/lib/auth";
 import { getGradingQueue } from "@/lib/assignments-server";
+import { getClassColorMap } from "@/lib/class-colors-server";
 import {
   computeLateness,
   effectiveDueDate,
@@ -10,6 +11,7 @@ import {
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { ClassColorDot } from "@/components/ui/ClassColorDot";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 
 // How long a submission has been waiting, as a compact label.
@@ -38,6 +40,7 @@ type QueueRow = {
   type: AssignmentType;
   classId: string;
   classLabel: string;
+  classColor: string | null;
   submittedAt: string | null;
   isLate: boolean;
   daysLate: number;
@@ -50,7 +53,10 @@ export default async function GradingQueuePage({
 }) {
   await requireTeacher();
   const { class: classFilter } = await searchParams;
-  const queue = await getGradingQueue();
+  const [queue, classColors] = await Promise.all([
+    getGradingQueue(),
+    getClassColorMap(),
+  ]);
 
   const rows: QueueRow[] = queue.map((s) => {
     const student = Array.isArray(s.users) ? s.users[0] : s.users;
@@ -80,6 +86,7 @@ export default async function GradingQueuePage({
           ? `${klass.name} · Period ${klass.period_number}`
           : klass.name
         : "Unknown class",
+      classColor: klass?.id ? classColors.get(klass.id) ?? null : null,
       submittedAt: s.submitted_at,
       isLate,
       daysLate,
@@ -87,10 +94,15 @@ export default async function GradingQueuePage({
   });
 
   // Distinct classes with ungraded work — drives the filter chips.
-  const classMap = new Map<string, { label: string; count: number }>();
+  const classMap = new Map<
+    string,
+    { label: string; color: string | null; count: number }
+  >();
   for (const r of rows) {
     if (!r.classId) continue;
-    const entry = classMap.get(r.classId) ?? { label: r.classLabel, count: 0 };
+    const entry =
+      classMap.get(r.classId) ??
+      { label: r.classLabel, color: r.classColor, count: 0 };
     entry.count += 1;
     classMap.set(r.classId, entry);
   }
@@ -137,6 +149,7 @@ export default async function GradingQueuePage({
                   label={c.label}
                   count={c.count}
                   active={activeClass === c.id}
+                  color={c.color}
                 />
               ))}
             </div>
@@ -170,10 +183,13 @@ export default async function GradingQueuePage({
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-wood-500 truncate mt-0.5">
-                            {r.assignmentTitle}
-                            <span className="text-wood-400">
-                              {" · "}
+                          <p className="text-xs text-wood-500 truncate mt-0.5 inline-flex items-center gap-1.5">
+                            <span className="truncate">
+                              {r.assignmentTitle}
+                            </span>
+                            <span className="text-wood-400 inline-flex items-center gap-1">
+                              ·
+                              <ClassColorDot color={r.classColor} />
                               {r.classLabel}
                             </span>
                           </p>
@@ -213,11 +229,13 @@ function FilterChip({
   label,
   count,
   active,
+  color,
 }: {
   href: string;
   label: string;
   count: number;
   active: boolean;
+  color?: string | null;
 }) {
   return (
     <Link
@@ -229,6 +247,7 @@ function FilterChip({
           : "bg-cream-200 text-wood-700 hover:bg-cream-300",
       ].join(" ")}
     >
+      {color !== undefined && <ClassColorDot color={color} />}
       {label}
       <span
         className={[
