@@ -297,6 +297,40 @@ export async function bulkSetAssignmentsPublished(
   return { ok: true, count: assignmentIds.length };
 }
 
+/**
+ * Bulk delete assignments. Submissions + grades cascade via FK. The
+ * interactive-HTML files are cleaned out of storage best-effort.
+ */
+export async function bulkDeleteAssignments(
+  assignmentIds: string[]
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  await requireTeacher();
+  if (assignmentIds.length === 0) {
+    return { ok: false, error: "No assignments selected." };
+  }
+
+  const admin = createAdminClient();
+  try {
+    await admin.storage
+      .from("lessons")
+      .remove(assignmentIds.map((id) => `assignments/${id}.html`));
+  } catch {
+    // ignore — the row delete below is what matters
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("assignments")
+    .delete()
+    .in("id", assignmentIds);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/teacher/assignments");
+  revalidatePath("/student/assignments");
+  revalidatePath("/teacher/grading");
+  return { ok: true, count: assignmentIds.length };
+}
+
 // =============================================================
 // Grading
 // =============================================================

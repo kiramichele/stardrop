@@ -3,14 +3,18 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeOff, X, GraduationCap } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, X, GraduationCap, Trash2 } from "lucide-react";
 import { type AssignmentType } from "@/lib/assignments";
 import { Card } from "@/components/ui/Card";
+import { ConfirmTypedDelete } from "@/components/ui/ConfirmTypedDelete";
 import {
   AssignmentTypeBadge,
   PublishBadge,
 } from "@/components/assignments/Badges";
-import { bulkSetAssignmentsPublished } from "@/app/teacher/assignments/actions";
+import {
+  bulkSetAssignmentsPublished,
+  bulkDeleteAssignments,
+} from "@/app/teacher/assignments/actions";
 
 export type BoardAssignment = {
   id: string;
@@ -41,6 +45,9 @@ export function TeacherAssignmentBoard({ groups }: { groups: BoardGroup[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [isPending, start] = useTransition();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletePending, deleteStart] = useTransition();
 
   function toggle(id: string) {
     setError(null);
@@ -76,6 +83,21 @@ export function TeacherAssignmentBoard({ groups }: { groups: BoardGroup[] }) {
         router.refresh();
       } else {
         setError(r.error);
+      }
+    });
+  }
+
+  function confirmDelete() {
+    setDeleteError(null);
+    const ids = [...selected];
+    deleteStart(async () => {
+      const r = await bulkDeleteAssignments(ids);
+      if (r.ok) {
+        setSelected(new Set());
+        setDeleteOpen(false);
+        router.refresh();
+      } else {
+        setDeleteError(r.error);
       }
     });
   }
@@ -230,7 +252,7 @@ export function TeacherAssignmentBoard({ groups }: { groups: BoardGroup[] }) {
             <div className="flex items-center gap-1.5 ml-auto">
               <button
                 onClick={() => run(true)}
-                disabled={isPending}
+                disabled={isPending || deletePending}
                 className="inline-flex items-center gap-1.5 rounded-full bg-terracotta-500 hover:bg-terracotta-600 disabled:opacity-50 disabled:hover:bg-terracotta-500 px-3.5 py-1.5 text-sm font-medium transition-colors"
               >
                 <Eye className="w-3.5 h-3.5" strokeWidth={2} />
@@ -238,15 +260,23 @@ export function TeacherAssignmentBoard({ groups }: { groups: BoardGroup[] }) {
               </button>
               <button
                 onClick={() => run(false)}
-                disabled={isPending}
+                disabled={isPending || deletePending}
                 className="inline-flex items-center gap-1.5 rounded-full bg-wood-700 hover:bg-wood-600 disabled:opacity-50 disabled:hover:bg-wood-700 px-3.5 py-1.5 text-sm font-medium transition-colors"
               >
                 <EyeOff className="w-3.5 h-3.5" strokeWidth={2} />
                 Unpublish
               </button>
               <button
+                onClick={() => setDeleteOpen(true)}
+                disabled={isPending || deletePending}
+                className="inline-flex items-center gap-1.5 rounded-full bg-terracotta-700 hover:bg-terracotta-800 disabled:opacity-50 disabled:hover:bg-terracotta-700 px-3.5 py-1.5 text-sm font-medium transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
+                Delete
+              </button>
+              <button
                 onClick={() => setSelected(new Set())}
-                disabled={isPending}
+                disabled={isPending || deletePending}
                 aria-label="Clear selection"
                 className="inline-flex items-center justify-center w-8 h-8 rounded-full text-cream-300 hover:text-cream-50 hover:bg-wood-700 disabled:opacity-50 transition-colors"
               >
@@ -256,6 +286,36 @@ export function TeacherAssignmentBoard({ groups }: { groups: BoardGroup[] }) {
           </div>
         </div>
       )}
+
+      <ConfirmTypedDelete
+        open={deleteOpen}
+        onClose={() => {
+          if (!deletePending) {
+            setDeleteOpen(false);
+            setDeleteError(null);
+          }
+        }}
+        onConfirm={confirmDelete}
+        title={
+          selected.size === 1
+            ? "Delete this assignment?"
+            : `Delete ${selected.size} assignments?`
+        }
+        description={
+          <>
+            This permanently removes{" "}
+            {selected.size === 1
+              ? "the assignment"
+              : `${selected.size} assignments`}
+            , along with every submission, grade, and feedback thread
+            attached. <strong>This can't be undone.</strong>
+          </>
+        }
+        itemCount={selected.size}
+        itemNoun="assignment"
+        pending={deletePending}
+        error={deleteError}
+      />
     </>
   );
 }

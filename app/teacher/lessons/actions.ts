@@ -64,6 +64,45 @@ export async function deleteUnit(unitId: string) {
   redirect("/teacher/lessons");
 }
 
+/**
+ * Bulk delete units. Their lessons cascade away via FK; the lesson HTML
+ * files are cleaned out of storage best-effort first so nothing's orphaned.
+ */
+export async function bulkDeleteUnits(
+  unitIds: string[]
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  await requireTeacher();
+  if (unitIds.length === 0) {
+    return { ok: false, error: "No units selected." };
+  }
+
+  const supabase = await createClient();
+
+  // Storage cleanup: every lesson HTML file in these units.
+  const { data: lessons } = await supabase
+    .from("lessons")
+    .select("id")
+    .in("unit_id", unitIds);
+  const lessonIds = (lessons ?? []).map((l) => l.id);
+  if (lessonIds.length > 0) {
+    const admin = createAdminClient();
+    try {
+      await admin.storage
+        .from("lessons")
+        .remove(lessonIds.map((id) => `${id}.html`));
+    } catch {
+      // ignore — the row delete below is what matters
+    }
+  }
+
+  const { error } = await supabase.from("units").delete().in("id", unitIds);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/teacher/lessons");
+  revalidatePath("/student/lessons");
+  return { ok: true, count: unitIds.length };
+}
+
 // =============================================================
 // Lessons
 // =============================================================
