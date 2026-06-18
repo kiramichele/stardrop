@@ -86,14 +86,21 @@ export function PlaygroundClient({
 }) {
   const router = useRouter();
   const codeRef = useRef<string>(initialProgram?.code ?? DEFAULT_STARTER);
+  // The live Monaco editor instance. We bypass React when swapping
+  // contents (defaultValue is only read on mount, and switching to a
+  // controlled `value` makes typing noticeably laggy).
+  const editorRef = useRef<{ setValue: (v: string) => void } | null>(null);
 
   const [title, setTitle] = useState(initialProgram?.title ?? "");
   const [language, setLanguage] = useState(
     initialProgram?.language ?? "csharp_unity"
   );
-  // Bumped any time we replace the editor contents so Monaco re-mounts
-  // and picks up the new defaultValue.
-  const [editorVersion, setEditorVersion] = useState(0);
+
+  /** Replace the editor's buffer AND our cached ref in one go. */
+  function replaceEditorContents(next: string) {
+    codeRef.current = next;
+    editorRef.current?.setValue(next);
+  }
   // Stored separately so the Save button reflects edits even before
   // Monaco emits an onChange (controlled value would also trigger
   // editor reflow per keystroke — uncontrolled is smoother for Monaco).
@@ -118,14 +125,13 @@ export function PlaygroundClient({
 
   function newFrom(template: NewTemplate) {
     if (!confirm("Start a new program? Unsaved changes will be lost.")) return;
-    codeRef.current = templateCode(template);
+    replaceEditorContents(templateCode(template));
     setTitle("");
     setLanguage(templateLanguage(template));
     setLoadedProgram(null);
     setError(null);
     setShareCopied(false);
     setShowTemplatePicker(false);
-    setEditorVersion((v) => v + 1); // force Monaco to pick up the new code
     router.push("/playground");
   }
 
@@ -150,14 +156,15 @@ export function PlaygroundClient({
       knownStarters.includes(current) ||
       (savedSnapshot !== undefined && current === savedSnapshot);
 
+    const starterForNext =
+      nextLang === "csharp_unity"
+        ? CSHARP_UNITY_STARTER
+        : CSHARP_CONSOLE_STARTER;
+
     if (isUntouched && !loadedProgram) {
       // Brand-new editor on a starter — silently swap to the other one.
-      codeRef.current =
-        nextLang === "csharp_unity"
-          ? CSHARP_UNITY_STARTER
-          : CSHARP_CONSOLE_STARTER;
+      replaceEditorContents(starterForNext);
       setLanguage(nextLang);
-      setEditorVersion((v) => v + 1);
       return;
     }
 
@@ -166,13 +173,7 @@ export function PlaygroundClient({
     const wantsReset = confirm(
       `Replace the editor with the ${flavour} starter code? Your current code will be lost.`
     );
-    if (wantsReset) {
-      codeRef.current =
-        nextLang === "csharp_unity"
-          ? CSHARP_UNITY_STARTER
-          : CSHARP_CONSOLE_STARTER;
-      setEditorVersion((v) => v + 1);
-    }
+    if (wantsReset) replaceEditorContents(starterForNext);
     setLanguage(nextLang);
   }
 
@@ -346,6 +347,9 @@ export function PlaygroundClient({
             language={MONACO_LANG[language] ?? "plaintext"}
             defaultValue={codeRef.current}
             onChange={onCodeChange}
+            onMount={(editor) => {
+              editorRef.current = editor;
+            }}
             theme="vs"
             options={{
               minimap: { enabled: false },
@@ -355,7 +359,7 @@ export function PlaygroundClient({
               automaticLayout: true,
               wordWrap: "on",
             }}
-            key={`${loadedProgram?.id ?? "blank"}-${editorVersion}`}
+            key={loadedProgram?.id ?? "blank"}
           />
         </div>
 
