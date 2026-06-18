@@ -132,6 +132,124 @@ export async function submitAssignment(
 }
 
 // =============================================================
+// Devlog submissions
+// -------------------------------------------------------------
+// Devlog videos can be hundreds of MB, so the browser uploads them
+// straight to the `devlogs` bucket (bypassing the server-action body
+// limit). Two thin actions wrap that: one to mint the submission row /
+// storage prefix before the upload, and one to record the final file
+// and mark the submission submitted afterward.
+// =============================================================
+
+/**
+ * Create the draft submission and hand back the IDs the browser needs
+ * to upload to `devlogs/<userId>/<submissionId>/<file>`.
+ */
+export async function prepareDevlogSubmission(
+  assignmentId: string
+): Promise<
+  | { ok: true; submissionId: string; userId: string }
+  | { ok: false; error: string }
+> {
+  const user = await requireStudent();
+  const supabase = await createClient();
+
+  const { data: existing } = await supabase
+    .from("submissions")
+    .select("id, status")
+    .eq("assignment_id", assignmentId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    if (existing.status === "graded") {
+      return { ok: false, error: "Submission already graded — can't replace." };
+    }
+    return { ok: true, submissionId: existing.id, userId: user.id };
+  }
+
+  const { data: created, error } = await supabase
+    .from("submissions")
+    .insert({ assignment_id: assignmentId, user_id: user.id, status: "draft" })
+    .select("id")
+    .single();
+  if (error || !created) {
+    return { ok: false, error: error?.message ?? "Couldn't start a submission." };
+  }
+  return { ok: true, submissionId: created.id, userId: user.id };
+}
+
+/**
+ * Record the just-uploaded devlog file as THE submission's media and
+ * mark the submission submitted. Any prior devlog file for this
+ * submission is removed from storage so we never accumulate.
+ */
+export async function finalizeDevlogSubmission(
+  submissionId: string,
+  args: { fileId: string; storagePath: string; mime: string; size: number }
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireStudent();
+  const supabase = await createClient();
+
+  const { data: sub } = await supabase
+    .from("submissions")
+    .select("id, user_id, status, submitted_at, assignment_id, uploaded_files")
+    .eq("id", submissionId)
+    .single();
+
+  if (!sub || sub.user_id !== user.id) {
+    return { ok: false, error: "Not authorized" };
+  }
+  if (sub.status === "graded") {
+    return { ok: false, error: "Submission already graded — can't replace." };
+  }
+
+  const admin = createAdminClient();
+
+  // Clear any prior devlog file so we never accumulate stale uploads.
+  const previous = parseSubmissionMedia(sub.uploaded_files).filter(
+    (m) => m.bucket === "devlogs" && m.storagePath !== args.storagePath
+  );
+  if (previous.length > 0) {
+    try {
+      await admin.storage
+        .from("devlogs")
+        .remove(previous.map((m) => m.storagePath));
+    } catch {
+      // best-effort — the DB update below is what matters
+    }
+  }
+
+  const media: SubmissionMedia = {
+    id: args.fileId,
+    kind: "video",
+    storagePath: args.storagePath,
+    mime: args.mime,
+    size: args.size,
+    createdAt: new Date().toISOString(),
+    bucket: "devlogs",
+  };
+
+  const update: SubmissionUpdate = {
+    uploaded_files: [media] as unknown as Json,
+    status: "submitted",
+  };
+  if (!sub.submitted_at) {
+    update.submitted_at = new Date().toISOString();
+  }
+
+  const { error } = await supabase
+    .from("submissions")
+    .update(update)
+    .eq("id", submissionId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/student/assignments/${sub.assignment_id}`);
+  revalidatePath("/student/assignments");
+  return { ok: true };
+}
+
+// =============================================================
 // Unity-upload media: capture + manage attached files
 // =============================================================
 

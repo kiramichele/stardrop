@@ -31,6 +31,7 @@ import { InteractiveHtmlAssignment } from "@/components/assignments/InteractiveH
 import { TextAssignmentEditor } from "@/components/assignments/TextAssignmentEditor";
 import { DiscussionFeed } from "@/components/assignments/DiscussionFeed";
 import { UnityUploadAssignment } from "@/components/assignments/UnityUploadAssignment";
+import { DevlogSubmission } from "@/components/assignments/DevlogSubmission";
 
 export default async function StudentAssignmentPage({
   params,
@@ -231,13 +232,25 @@ export default async function StudentAssignmentPage({
             />
           )}
 
-          {![
-            "code",
-            "interactive_html",
-            "short_answer",
-            "discussion",
-            "unity_upload",
-          ].includes(assignment.type) && (
+          {(assignment.type as AssignmentType) === "devlog" && (
+            <DevlogSubmission
+              assignmentId={assignment.id}
+              initialMedia={parseSubmissionMedia(submission?.uploaded_files)}
+              initialStatus={submission?.status ?? "draft"}
+              initialSubmissionId={submission?.id ?? null}
+            />
+          )}
+
+          {!(
+            [
+              "code",
+              "interactive_html",
+              "short_answer",
+              "discussion",
+              "unity_upload",
+              "devlog",
+            ] as AssignmentType[]
+          ).includes(assignment.type as AssignmentType) && (
             <Card>
               <p className="text-sm text-wood-600 text-center py-6">
                 This assignment type is still being built. Check back soon!

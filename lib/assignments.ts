@@ -10,6 +10,7 @@ export type AssignmentType =
   | "short_answer"
   | "discussion"
   | "unity_upload"
+  | "devlog"
   | "check_in";
 
 export const ASSIGNMENT_TYPE_LABELS: Record<AssignmentType, string> = {
@@ -18,6 +19,7 @@ export const ASSIGNMENT_TYPE_LABELS: Record<AssignmentType, string> = {
   short_answer: "Short answer",
   discussion: "Discussion post",
   unity_upload: "Unity project upload",
+  devlog: "Dev log (screen recording or video)",
   check_in: "Check-in",
 };
 
@@ -27,6 +29,7 @@ export const SUPPORTED_TYPES: AssignmentType[] = [
   "short_answer",
   "discussion",
   "unity_upload",
+  "devlog",
 ];
 
 export type Assignment = {
@@ -77,8 +80,12 @@ export type Grade = {
 };
 
 /**
- * One file uploaded as part of a unity_upload submission. The full list
- * lives on `submissions.uploaded_files` (JSONB).
+ * One file uploaded as part of a unity_upload or devlog submission. The
+ * full list lives on `submissions.uploaded_files` (JSONB).
+ *
+ * `bucket` distinguishes the storage bucket the file lives in. Older
+ * records (unity_upload) predate this field — when it's missing, the
+ * file lives in the `submissions` bucket.
  */
 export type SubmissionMedia = {
   id: string;
@@ -87,6 +94,7 @@ export type SubmissionMedia = {
   mime: string;
   size: number;
   createdAt: string;
+  bucket?: "submissions" | "devlogs";
 };
 
 /** One submitted discussion post, flattened with its author for rendering. */
@@ -109,6 +117,16 @@ export function parseSubmissionMedia(value: unknown): SubmissionMedia[] {
       typeof (item as SubmissionMedia).id === "string" &&
       typeof (item as SubmissionMedia).storagePath === "string"
   );
+}
+
+/**
+ * Path of the auth-gated proxy route for one submission media file.
+ * Picks the right proxy by bucket so unity_upload (submissions bucket)
+ * and devlog (devlogs bucket) both Just Work.
+ */
+export function submissionMediaUrl(m: SubmissionMedia): string {
+  const bucket = m.bucket ?? "submissions";
+  return `/api/files/${bucket}/${m.storagePath}`;
 }
 
 // =============================================================

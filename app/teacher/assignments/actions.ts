@@ -17,6 +17,7 @@ const VALID_TYPES: AssignmentType[] = [
   "short_answer",
   "discussion",
   "unity_upload",
+  "devlog",
   "check_in",
 ];
 
@@ -65,7 +66,9 @@ export async function createAssignment(formData: FormData) {
       lesson_id: lessonId,
       is_unit_quiz: isUnitQuiz,
       title,
-      type,
+      // Cast: "devlog" isn't in the regenerated enum until the matching
+      // migration is applied + types regen runs.
+      type: type as unknown as "code",
       instructions,
       due_date: dueDate,
       due_date_1_5x: dueDate1_5x,

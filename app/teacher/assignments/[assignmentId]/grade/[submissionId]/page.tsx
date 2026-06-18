@@ -6,6 +6,7 @@ import {
   computeAutoGrade,
   countWords,
   parseSubmissionMedia,
+  submissionMediaUrl,
   effectiveDueDate,
   asExtendedTime,
   EXTENDED_TIME_LABELS,
@@ -228,6 +229,52 @@ export default async function GradeSubmissionPage({
             </div>
           )}
 
+          {(assignmentType as AssignmentType) === "devlog" && (
+            <div>
+              <p className="label-eyebrow mb-3">Devlog video</p>
+              {(() => {
+                const video = parseSubmissionMedia(
+                  submission.uploaded_files
+                ).find((m) => m.kind === "video");
+                if (!video) {
+                  return (
+                    <Card>
+                      <p className="text-sm text-wood-500 italic text-center py-4">
+                        No devlog submitted yet.
+                      </p>
+                    </Card>
+                  );
+                }
+                const url = submissionMediaUrl(video);
+                return (
+                  <Card padded={false} className="overflow-hidden">
+                    <video
+                      src={url}
+                      controls
+                      preload="metadata"
+                      className="w-full max-h-[600px] bg-black"
+                    />
+                    <div className="px-4 py-2 flex items-center justify-between text-xs text-wood-500">
+                      <span>
+                        {(video.size / 1024 / 1024).toFixed(1)} MB ·{" "}
+                        {new Date(video.createdAt).toLocaleString()}
+                      </span>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-terracotta-700 hover:text-terracotta-800"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Open in new tab
+                      </a>
+                    </div>
+                  </Card>
+                );
+              })()}
+            </div>
+          )}
+
           {assignmentType === "unity_upload" && (
             <div>
               <p className="label-eyebrow mb-3">Uploaded files</p>
@@ -245,7 +292,7 @@ export default async function GradeSubmissionPage({
                 return (
                   <div className="space-y-3">
                     {files.map((m) => {
-                      const url = `/api/files/submissions/${m.storagePath}`;
+                      const url = submissionMediaUrl(m);
                       return (
                         <Card key={m.id} padded={false} className="overflow-hidden">
                           {m.kind === "image" ? (

@@ -87,8 +87,9 @@ export default async function NewAssignmentPage() {
               })}
             </Select>
             <FieldHint>
-              Code, Interactive HTML, Short answer, and Discussion are
-              available. Unity upload and Check-in are coming.
+              Code, Interactive HTML, Short answer, Discussion, Unity upload,
+              and Dev log are available. Check-in is being retired in favor of
+              Dev log.
             </FieldHint>
           </div>
 

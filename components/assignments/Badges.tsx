@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Award,
   Sparkles,
+  Video,
 } from "lucide-react";
 import type { AssignmentType } from "@/lib/assignments";
 
@@ -42,6 +43,11 @@ const typeMeta: Record<
     icon: Upload,
     label: "Upload",
     tint: "bg-cream-300 text-wood-800",
+  },
+  devlog: {
+    icon: Video,
+    label: "Devlog",
+    tint: "bg-terracotta-100 text-terracotta-800",
   },
   check_in: {
     icon: Smile,
