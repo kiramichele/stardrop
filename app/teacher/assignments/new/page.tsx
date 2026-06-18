@@ -117,6 +117,37 @@ export default async function NewAssignmentPage() {
             />
           </div>
 
+          <div>
+            <Label htmlFor="html_file">
+              HTML prompt / activity{" "}
+              <span className="text-wood-500 font-normal">(optional)</span>
+            </Label>
+            <div className="flex items-start gap-2 p-2 rounded-cozy border border-dashed border-wood-300 bg-cream-50">
+              <Input
+                id="html_file"
+                name="html_file"
+                type="file"
+                accept=".html,text/html"
+                className="text-xs file:mr-2 file:py-1 file:px-2 file:rounded-cozy file:border-0 file:bg-terracotta-100 file:text-terracotta-800 file:text-xs file:font-medium hover:file:bg-terracotta-200 file:cursor-pointer"
+              />
+            </div>
+            <FieldHint>
+              For <strong>Interactive HTML</strong>, this IS the activity
+              students complete. For <strong>Dev log</strong> and{" "}
+              <strong>Video response</strong>, this renders above the
+              recorder as a rich prompt. Other types ignore it. Need a
+              template?{" "}
+              <Link
+                href="/interactive-html-template.html"
+                download
+                className="text-terracotta-700 hover:text-terracotta-800 underline"
+              >
+                Download
+              </Link>
+              .
+            </FieldHint>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="due_date">Due date</Label>

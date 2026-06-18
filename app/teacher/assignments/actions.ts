@@ -87,6 +87,26 @@ export async function createAssignment(formData: FormData) {
     .single();
   if (error || !data) throw new Error(error?.message ?? "Failed to create");
 
+  // Optional HTML prompt — uploaded right here so the user doesn't have
+  // to save then upload as a second step. Only the assignment types that
+  // render the prompt iframe (interactive_html, devlog, video_response)
+  // actually surface it to students.
+  const htmlFile = formData.get("html_file");
+  if (htmlFile instanceof File && htmlFile.size > 0) {
+    try {
+      await uploadAssignmentHtml(data.id, htmlFile);
+    } catch (err) {
+      // Don't fail assignment creation if the upload hiccups — surface
+      // an error message but keep the new assignment intact. The
+      // teacher can re-upload from the detail page.
+      throw new Error(
+        err instanceof Error
+          ? `Assignment saved, but HTML upload failed: ${err.message}`
+          : "Assignment saved, but HTML upload failed."
+      );
+    }
+  }
+
   revalidatePath("/teacher/assignments");
   redirect(`/teacher/assignments/${data.id}`);
 }
@@ -163,13 +183,12 @@ export async function deleteAssignment(assignmentId: string) {
 // Interactive HTML upload
 // =============================================================
 
-export async function uploadInteractiveHtml(
-  assignmentId: string,
-  formData: FormData
-) {
-  await requireTeacher();
-  const file = formData.get("html_file") as File | null;
-  if (!file || file.size === 0) throw new Error("No file provided");
+/**
+ * Upload an HTML file for an assignment and record its proxy URL.
+ * Shared between the dedicated upload form on the assignment detail
+ * page and the optional file input on the create-assignment form.
+ */
+async function uploadAssignmentHtml(assignmentId: string, file: File) {
   if (!file.name.toLowerCase().endsWith(".html")) {
     throw new Error("File must be an .html file");
   }
@@ -197,6 +216,16 @@ export async function uploadInteractiveHtml(
     .update({ interactive_html_url: proxyUrl })
     .eq("id", assignmentId);
   if (error) throw new Error(error.message);
+}
+
+export async function uploadInteractiveHtml(
+  assignmentId: string,
+  formData: FormData
+) {
+  await requireTeacher();
+  const file = formData.get("html_file") as File | null;
+  if (!file || file.size === 0) throw new Error("No file provided");
+  await uploadAssignmentHtml(assignmentId, file);
 
   revalidatePath(`/teacher/assignments/${assignmentId}`);
 }
