@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CodeEditor } from "@/components/editor/CodeEditor";
 import { CodeRunner } from "@/components/playground/CodeRunner";
-import { starterCodeFor, type CodeRunMode } from "@/lib/playground";
+import {
+  starterCodeFor,
+  resolveRunAs,
+  type CodeRunMode,
+} from "@/lib/playground";
 import {
   ensureSubmission,
   saveDraft,
@@ -164,16 +168,18 @@ export function CodeAssignmentEditor({
         height="60vh"
       />
 
-      {codeRunMode !== "none" && (
-        <Card>
-          <h3 className="font-display text-lg text-wood-900 mb-3">Try it out</h3>
-          <CodeRunner
-            getCode={() => code}
-            mode={codeRunMode}
-            language="csharp"
-          />
-        </Card>
-      )}
+      {(() => {
+        const runAs = resolveRunAs(codeRunMode);
+        if (!runAs) return null;
+        return (
+          <Card>
+            <h3 className="font-display text-lg text-wood-900 mb-3">
+              Try it out
+            </h3>
+            <CodeRunner getCode={() => code} runAs={runAs} />
+          </Card>
+        );
+      })()}
 
       <div className="flex items-center justify-between gap-4">
         <div className="text-sm text-wood-500 min-h-[1.5rem]">

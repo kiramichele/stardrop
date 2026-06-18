@@ -442,13 +442,12 @@ export function PlaygroundClient({
         )}
       </Card>
 
-      {/* Run buttons + output */}
+      {/* Run button + output — action follows the selected C# flavour. */}
       <Card>
         <h3 className="font-display text-lg text-wood-900 mb-3">Run it</h3>
         <CodeRunner
           getCode={() => codeRef.current}
-          mode="both"
-          language={language}
+          runAs={language === "csharp_unity" ? "unity" : "csharp"}
         />
       </Card>
     </div>

@@ -61,13 +61,13 @@ export async function createAssignment(formData: FormData) {
 
   const autoPublishToStarhub =
     formData.get("auto_publish_to_starhub") === "on";
+  // Form only offers none / csharp / unity; "both" is a legacy stored
+  // value we still accept but never write fresh.
   const codeRunModeRaw =
-    formData.get("code_run_mode")?.toString() ?? "both";
-  const codeRunMode = ["none", "csharp", "unity", "both"].includes(
-    codeRunModeRaw
-  )
+    formData.get("code_run_mode")?.toString() ?? "unity";
+  const codeRunMode = ["none", "csharp", "unity"].includes(codeRunModeRaw)
     ? codeRunModeRaw
-    : "both";
+    : "unity";
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -145,13 +145,13 @@ export async function updateAssignment(
 
   const autoPublishToStarhub =
     formData.get("auto_publish_to_starhub") === "on";
+  // Form only offers none / csharp / unity; "both" is a legacy stored
+  // value we still accept but never write fresh.
   const codeRunModeRaw =
-    formData.get("code_run_mode")?.toString() ?? "both";
-  const codeRunMode = ["none", "csharp", "unity", "both"].includes(
-    codeRunModeRaw
-  )
+    formData.get("code_run_mode")?.toString() ?? "unity";
+  const codeRunMode = ["none", "csharp", "unity"].includes(codeRunModeRaw)
     ? codeRunModeRaw
-    : "both";
+    : "unity";
 
   const supabase = await createClient();
   const { error } = await supabase

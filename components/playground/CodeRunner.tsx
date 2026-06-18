@@ -11,96 +11,65 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { runCode, type RunResult } from "@/app/playground/actions";
-import { csharpEnabled, unityEnabled, type CodeRunMode } from "@/lib/playground";
+import type { RunAs } from "@/lib/playground";
 
 /**
- * Reusable run-buttons + output panel. Drops under any code editor.
- * Owns its own result state — caller just hands in the latest code
- * via a getter (so the editor's controlled value flows through here).
+ * Single-button run panel. The button's action is decided by `runAs`:
+ *   - "csharp" → compile + execute through Piston
+ *   - "unity"  → ask the AI to narrate what the script would do
+ *
+ * Drops under any code editor; owns its own result state. The caller
+ * hands in the latest editor content via a getter (so we don't have
+ * to re-render the editor on each keystroke).
  */
 export function CodeRunner({
   getCode,
-  mode = "both",
-  language = "csharp",
+  runAs,
 }: {
-  /** Called on each Run click. Returns the latest editor content. */
   getCode: () => string;
-  /** Which run buttons to show. */
-  mode?: CodeRunMode;
-  /** Helps explain which mode is appropriate to the student. */
-  language?: string;
+  runAs: RunAs;
 }) {
   const [result, setResult] = useState<RunResult | null>(null);
   const [pending, start] = useTransition();
-  const [busyMode, setBusyMode] = useState<"csharp" | "unity" | null>(null);
 
-  if (mode === "none") return null;
-
-  const showCSharp = csharpEnabled(mode);
-  const showUnity = unityEnabled(mode);
-  const isCsharpLang = language === "csharp";
-
-  function go(which: "csharp" | "unity") {
-    setBusyMode(which);
+  function go() {
     start(async () => {
-      const out = await runCode(getCode(), which);
+      const out = await runCode(getCode(), runAs);
       setResult(out);
-      setBusyMode(null);
     });
   }
 
+  const label =
+    runAs === "csharp" ? "Run as C#" : "Simulate in Unity";
+  const tooltip =
+    runAs === "csharp"
+      ? "Compile and execute as plain C# (no Unity APIs)"
+      : "Have the AI describe what this Unity script would do in the Editor";
+  const Icon = runAs === "csharp" ? Play : Sparkles;
+  const variant = runAs === "csharp" ? "primary" : "secondary";
+  const busyLabel = runAs === "csharp" ? "Running…" : "Simulating…";
+
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        {showCSharp && (
-          <Button
-            onClick={() => go("csharp")}
-            disabled={pending}
-            title={
-              isCsharpLang
-                ? "Compile and execute as plain C# (no Unity APIs)"
-                : "Will try to run as C# even though the editor language is something else"
-            }
-          >
-            {busyMode === "csharp" ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Running…
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4" strokeWidth={2} />
-                Run as C#
-              </>
-            )}
-          </Button>
-        )}
-        {showUnity && (
-          <Button
-            variant="secondary"
-            onClick={() => go("unity")}
-            disabled={pending}
-            title="Have the AI describe what this Unity script would do in the Editor"
-          >
-            {busyMode === "unity" ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Simulating…
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" strokeWidth={2} />
-                Simulate in Unity
-              </>
-            )}
-          </Button>
-        )}
-        {showCSharp && showUnity && (
-          <p className="text-xs text-wood-500 ml-1">
-            <strong>Run as C#</strong> for plain console code;{" "}
-            <strong>Simulate in Unity</strong> for Unity scripts.
-          </p>
-        )}
+      <div className="mb-3">
+        <Button
+          onClick={go}
+          disabled={pending}
+          title={tooltip}
+          variant={variant}
+        >
+          {pending ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {busyLabel}
+            </>
+          ) : (
+            <>
+              <Icon className="w-4 h-4" strokeWidth={2} />
+              {label}
+            </>
+          )}
+        </Button>
       </div>
 
       <ResultPanel result={result} pending={pending} />

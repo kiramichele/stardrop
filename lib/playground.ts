@@ -1,7 +1,13 @@
 // Client-safe: playground types + the assignment-level CodeRunMode union.
 // Server queries / shim live in lib/playground-server.ts.
 
-/** Which run buttons show under a code assignment / in the playground. */
+/**
+ * Which run button shows under a code assignment / in the playground.
+ *
+ * "both" is a legacy value from an earlier two-button design — when we
+ * see it in the database, we resolve it to "unity" (this is a Unity-
+ * focused class). It's no longer offered as a form option.
+ */
 export type CodeRunMode = "none" | "csharp" | "unity" | "both";
 
 export function isCodeRunMode(value: string): value is CodeRunMode {
@@ -10,20 +16,24 @@ export function isCodeRunMode(value: string): value is CodeRunMode {
   );
 }
 
-export function csharpEnabled(mode: CodeRunMode): boolean {
-  return mode === "csharp" || mode === "both";
+/** What kind of run button the UI should show. null = no button. */
+export type RunAs = "csharp" | "unity";
+
+/** Map a stored CodeRunMode to the single run action it produces. */
+export function resolveRunAs(mode: CodeRunMode): RunAs | null {
+  if (mode === "none") return null;
+  if (mode === "csharp") return "csharp";
+  return "unity"; // "unity" or legacy "both"
 }
 
-export function unityEnabled(mode: CodeRunMode): boolean {
-  return mode === "unity" || mode === "both";
-}
-
-/** Labels for the assignment-form select. */
-export const CODE_RUN_MODE_LABELS: Record<CodeRunMode, string> = {
-  none: "No run buttons (submission-only)",
-  csharp: "Only \"Run as C#\"",
-  unity: "Only \"Simulate in Unity\"",
-  both: "Both — Run as C# and Simulate in Unity",
+/** Labels for the assignment-form select (the only 3 we offer now). */
+export const CODE_RUN_MODE_LABELS: Record<
+  Exclude<CodeRunMode, "both">,
+  string
+> = {
+  none: "No run button (submission-only)",
+  csharp: "Run as C#",
+  unity: "Simulate in Unity",
 };
 
 /** A row from playground_programs. */

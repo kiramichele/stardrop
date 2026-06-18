@@ -443,7 +443,7 @@ export default async function AssignmentDetailPage({
               </div>
               <div>
                 <Label htmlFor="code_run_mode">
-                  Code run buttons{" "}
+                  Code run button{" "}
                   <span className="text-wood-500 font-normal">
                     (Code assignments only)
                   </span>
@@ -451,23 +451,26 @@ export default async function AssignmentDetailPage({
                 <Select
                   id="code_run_mode"
                   name="code_run_mode"
-                  defaultValue={
-                    (
+                  defaultValue={(() => {
+                    const stored = (
                       assignment as { code_run_mode?: string }
-                    ).code_run_mode ?? "both"
-                  }
+                    ).code_run_mode;
+                    // Legacy "both" rows collapse to "unity" — the form
+                    // no longer offers a "both" option.
+                    if (!stored || stored === "both") return "unity";
+                    return stored;
+                  })()}
                 >
-                  <option value="none">No run buttons (submission-only)</option>
-                  <option value="csharp">Only &quot;Run as C#&quot;</option>
-                  <option value="unity">Only &quot;Simulate in Unity&quot;</option>
-                  <option value="both">
-                    Both &mdash; Run as C# and Simulate in Unity
-                  </option>
+                  <option value="none">No run button (submission-only)</option>
+                  <option value="csharp">Run as C#</option>
+                  <option value="unity">Simulate in Unity</option>
                 </Select>
                 <FieldHint>
-                  <strong>Run as C#</strong> compiles + executes;{" "}
-                  <strong>Simulate in Unity</strong> has the AI describe what
-                  the script would do in the Editor.
+                  Picks the kind of starter code the student sees AND what
+                  the single Run button does. <strong>Run as C#</strong>{" "}
+                  compiles + executes; <strong>Simulate in Unity</strong>{" "}
+                  has the AI describe what the script would do in the
+                  Editor.
                 </FieldHint>
               </div>
 

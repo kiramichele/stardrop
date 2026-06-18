@@ -222,7 +222,7 @@ export default async function NewAssignmentPage() {
 
           <div>
             <Label htmlFor="code_run_mode">
-              Code run buttons{" "}
+              Code run button{" "}
               <span className="text-wood-500 font-normal">
                 (code-type assignments)
               </span>
@@ -230,7 +230,7 @@ export default async function NewAssignmentPage() {
             <Select
               id="code_run_mode"
               name="code_run_mode"
-              defaultValue="both"
+              defaultValue="unity"
             >
               {(
                 Object.keys(CODE_RUN_MODE_LABELS) as Array<
@@ -243,9 +243,10 @@ export default async function NewAssignmentPage() {
               ))}
             </Select>
             <FieldHint>
-              Only matters for Code assignments. <strong>Run as C#</strong>{" "}
-              compiles + executes; <strong>Simulate in Unity</strong> has the
-              AI describe what the script would do in the Editor.
+              Picks the kind of starter code the student sees AND what the
+              single Run button does. <strong>Run as C#</strong> compiles +
+              executes; <strong>Simulate in Unity</strong> has the AI describe
+              what the script would do in the Editor.
             </FieldHint>
           </div>
 
