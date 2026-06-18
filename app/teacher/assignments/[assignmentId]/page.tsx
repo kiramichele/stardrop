@@ -441,6 +441,36 @@ export default async function AssignmentDetailPage({
                   Published (visible to students)
                 </Label>
               </div>
+              <div>
+                <Label htmlFor="code_run_mode">
+                  Code run buttons{" "}
+                  <span className="text-wood-500 font-normal">
+                    (Code assignments only)
+                  </span>
+                </Label>
+                <Select
+                  id="code_run_mode"
+                  name="code_run_mode"
+                  defaultValue={
+                    (
+                      assignment as { code_run_mode?: string }
+                    ).code_run_mode ?? "both"
+                  }
+                >
+                  <option value="none">No run buttons (submission-only)</option>
+                  <option value="csharp">Only &quot;Run as C#&quot;</option>
+                  <option value="unity">Only &quot;Simulate in Unity&quot;</option>
+                  <option value="both">
+                    Both &mdash; Run as C# and Simulate in Unity
+                  </option>
+                </Select>
+                <FieldHint>
+                  <strong>Run as C#</strong> compiles + executes;{" "}
+                  <strong>Simulate in Unity</strong> has the AI describe what
+                  the script would do in the Editor.
+                </FieldHint>
+              </div>
+
               <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
                 <label className="flex items-start gap-2 cursor-pointer">
                   <input

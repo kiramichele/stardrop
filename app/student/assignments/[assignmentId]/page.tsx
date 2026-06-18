@@ -145,6 +145,10 @@ export default async function StudentAssignmentPage({
               initialContent={submission?.content ?? ""}
               initialStatus={submission?.status ?? "draft"}
               initialSubmissionId={submission?.id ?? null}
+              codeRunMode={
+                ((assignment as { code_run_mode?: string }).code_run_mode ??
+                  "both") as "none" | "csharp" | "unity" | "both"
+              }
             />
           )}
 

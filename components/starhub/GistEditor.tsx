@@ -15,6 +15,7 @@ import {
   FieldError,
 } from "@/components/ui/Input";
 import { GIST_LANGUAGES } from "@/lib/starhub";
+import type { PlaygroundProgram } from "@/lib/playground";
 import {
   createGist,
   updateGist,
@@ -60,6 +61,7 @@ export function GistEditor({
   initialCode = "",
   initialIsPublic = false,
   context,
+  savedPrograms = [],
 }: {
   initialTitle?: string;
   initialDescription?: string;
@@ -67,6 +69,8 @@ export function GistEditor({
   initialCode?: string;
   initialIsPublic?: boolean;
   context: GistEditorMode;
+  /** When creating a new gist, lets the student start from a Playground program. */
+  savedPrograms?: PlaygroundProgram[];
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initialTitle);
@@ -123,9 +127,45 @@ export function GistEditor({
     });
   }
 
+  function loadFromProgram(programId: string) {
+    const program = savedPrograms.find((p) => p.id === programId);
+    if (!program) return;
+    setTitle(program.title);
+    setLanguage(program.language);
+    setCode(program.code);
+  }
+
   return (
     <Card className="max-w-3xl">
       <div className="space-y-4">
+        {context.mode === "create" && savedPrograms.length > 0 && (
+          <div>
+            <Label htmlFor="gist-from-program">
+              Start from a saved program{" "}
+              <span className="text-wood-500 font-normal">(optional)</span>
+            </Label>
+            <Select
+              id="gist-from-program"
+              defaultValue=""
+              onChange={(e) => {
+                if (e.target.value) loadFromProgram(e.target.value);
+              }}
+              disabled={pending || deletePending}
+            >
+              <option value="">— Start from scratch —</option>
+              {savedPrograms.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title} ({p.language})
+                </option>
+              ))}
+            </Select>
+            <FieldHint>
+              Pulls in the title, language, and code from one of your
+              Playground programs. You can edit before posting.
+            </FieldHint>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="gist-title">Title</Label>

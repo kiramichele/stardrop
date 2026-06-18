@@ -61,6 +61,13 @@ export async function createAssignment(formData: FormData) {
 
   const autoPublishToStarhub =
     formData.get("auto_publish_to_starhub") === "on";
+  const codeRunModeRaw =
+    formData.get("code_run_mode")?.toString() ?? "both";
+  const codeRunMode = ["none", "csharp", "unity", "both"].includes(
+    codeRunModeRaw
+  )
+    ? codeRunModeRaw
+    : "both";
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -80,8 +87,9 @@ export async function createAssignment(formData: FormData) {
       points,
       minimum_word_count: minimumWordCount,
       rubric_id: rubricId,
-      // Cast: column not in regen'd types until the matching migration lands.
+      // Cast: columns not in regen'd types until the matching migration lands.
       auto_publish_to_starhub: autoPublishToStarhub,
+      code_run_mode: codeRunMode,
     } as never)
     .select("id")
     .single();
@@ -137,6 +145,13 @@ export async function updateAssignment(
 
   const autoPublishToStarhub =
     formData.get("auto_publish_to_starhub") === "on";
+  const codeRunModeRaw =
+    formData.get("code_run_mode")?.toString() ?? "both";
+  const codeRunMode = ["none", "csharp", "unity", "both"].includes(
+    codeRunModeRaw
+  )
+    ? codeRunModeRaw
+    : "both";
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -154,6 +169,7 @@ export async function updateAssignment(
       lesson_id: lessonId,
       is_unit_quiz: isUnitQuiz,
       auto_publish_to_starhub: autoPublishToStarhub,
+      code_run_mode: codeRunMode,
     } as never)
     .eq("id", assignmentId);
   if (error) throw new Error(error.message);

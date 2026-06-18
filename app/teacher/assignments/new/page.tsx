@@ -7,6 +7,7 @@ import {
   SUPPORTED_TYPES,
   type AssignmentType,
 } from "@/lib/assignments";
+import { CODE_RUN_MODE_LABELS } from "@/lib/playground";
 import { getRubricsForTeacher } from "@/lib/rubrics-server";
 import { rubricMaxPoints } from "@/lib/rubrics";
 import { getUnitsForTeacher } from "@/lib/lessons";
@@ -216,6 +217,35 @@ export default async function NewAssignmentPage() {
             <FieldHint>
               Only applies to Short answer and Discussion. Submit is disabled
               until the student hits the threshold. Leave blank for no minimum.
+            </FieldHint>
+          </div>
+
+          <div>
+            <Label htmlFor="code_run_mode">
+              Code run buttons{" "}
+              <span className="text-wood-500 font-normal">
+                (code-type assignments)
+              </span>
+            </Label>
+            <Select
+              id="code_run_mode"
+              name="code_run_mode"
+              defaultValue="both"
+            >
+              {(
+                Object.keys(CODE_RUN_MODE_LABELS) as Array<
+                  keyof typeof CODE_RUN_MODE_LABELS
+                >
+              ).map((key) => (
+                <option key={key} value={key}>
+                  {CODE_RUN_MODE_LABELS[key]}
+                </option>
+              ))}
+            </Select>
+            <FieldHint>
+              Only matters for Code assignments. <strong>Run as C#</strong>{" "}
+              compiles + executes; <strong>Simulate in Unity</strong> has the
+              AI describe what the script would do in the Editor.
             </FieldHint>
           </div>
 
