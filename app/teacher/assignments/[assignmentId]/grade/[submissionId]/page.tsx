@@ -34,6 +34,8 @@ import { GradingForm } from "@/components/assignments/GradingForm";
 import { GradingNav } from "@/components/assignments/GradingNav";
 import { InteractiveResponseView } from "@/components/assignments/InteractiveResponseView";
 import { StudentNoteCallout } from "@/components/students/StudentNoteCallout";
+import { DevlogVisibilityChip } from "@/components/devlogs/DevlogVisibilityChip";
+import { getSubmissionIsPublic } from "@/lib/devlog-wall-server";
 
 const GRADING_SHORTCUTS: Shortcut[] = [
   { keys: ["J"], label: "Go to the next submission" },
@@ -115,6 +117,10 @@ export default async function GradeSubmissionPage({
 
   const feedbackEntries = await getFeedbackThread(submissionId);
   const studentNotes = await getStudentNotes(submission.user_id);
+  const devlogIsPublic =
+    assignmentType === ("devlog" as AssignmentType)
+      ? await getSubmissionIsPublic(submissionId)
+      : false;
 
   const isTextual =
     assignmentType === "short_answer" || assignmentType === "discussion";
@@ -231,7 +237,13 @@ export default async function GradeSubmissionPage({
 
           {(assignmentType as AssignmentType) === "devlog" && (
             <div>
-              <p className="label-eyebrow mb-3">Devlog video</p>
+              <div className="flex items-center justify-between mb-3 gap-3">
+                <p className="label-eyebrow">Devlog video</p>
+                <DevlogVisibilityChip
+                  submissionId={submissionId}
+                  initialIsPublic={devlogIsPublic}
+                />
+              </div>
               {(() => {
                 const video = parseSubmissionMedia(
                   submission.uploaded_files

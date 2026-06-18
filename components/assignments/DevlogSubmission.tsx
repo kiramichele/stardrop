@@ -20,6 +20,8 @@ import {
   Loader2,
   Camera,
   CameraOff,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -33,12 +35,14 @@ import {
   prepareDevlogSubmission,
   finalizeDevlogSubmission,
 } from "@/app/student/assignments/actions";
+import { setDevlogPublic } from "@/app/devlogs/actions";
 
 interface DevlogSubmissionProps {
   assignmentId: string;
   initialMedia: SubmissionMedia[];
   initialStatus: "draft" | "submitted" | "graded";
   initialSubmissionId: string | null;
+  initialIsPublic: boolean;
 }
 
 type Mode = "record" | "upload";
@@ -51,6 +55,7 @@ export function DevlogSubmission({
   initialMedia,
   initialStatus,
   initialSubmissionId,
+  initialIsPublic,
 }: DevlogSubmissionProps) {
   const [status, setStatus] = useState(initialStatus);
   const [submissionId, setSubmissionId] = useState<string | null>(
@@ -59,6 +64,9 @@ export function DevlogSubmission({
   const [submittedMedia, setSubmittedMedia] = useState<SubmissionMedia | null>(
     initialMedia[0] ?? null
   );
+  const [isPublic, setIsPublic] = useState(initialIsPublic);
+  // Visibility chosen in the preview/upload form, applied at submit.
+  const [pendingIsPublic, setPendingIsPublic] = useState(initialIsPublic);
 
   const [mode, setMode] = useState<Mode>("record");
   const [includePip, setIncludePip] = useState(false);
@@ -311,6 +319,23 @@ export function DevlogSubmission({
     setError(null);
   }
 
+  function togglePublicOnSubmitted() {
+    if (!submissionId || isUploading) return;
+    const next = !isPublic;
+    setIsPublic(next); // optimistic
+    setPendingIsPublic(next);
+    startTransition(async () => {
+      const result = await setDevlogPublic(submissionId, next);
+      if (!result.ok) {
+        setIsPublic(!next);
+        setPendingIsPublic(!next);
+        setError(result.error ?? "Couldn't update visibility.");
+      } else {
+        setError(null);
+      }
+    });
+  }
+
   function onFilePicked(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -366,6 +391,13 @@ export function DevlogSubmission({
         return;
       }
 
+      // If they asked to share with the class, flip visibility too —
+      // best-effort: a failure here surfaces but the submission still saved.
+      if (pendingIsPublic !== isPublic) {
+        const vis = await setDevlogPublic(sid, pendingIsPublic);
+        if (vis.ok) setIsPublic(pendingIsPublic);
+      }
+
       // Success — flip into submitted state and surface the new video.
       const newMedia: SubmissionMedia = {
         id: fileId,
@@ -410,8 +442,8 @@ export function DevlogSubmission({
 
       {submittedMedia && status !== "draft" && (
         <Card padded={false} className="overflow-hidden">
-          <div className="px-4 py-3 border-b border-wood-100 flex items-center justify-between">
-            <div>
+          <div className="px-4 py-3 border-b border-wood-100 flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <p className="label-eyebrow">
                 {status === "graded" ? "Submitted devlog" : "Your latest submission"}
               </p>
@@ -420,6 +452,36 @@ export function DevlogSubmission({
                 {new Date(submittedMedia.createdAt).toLocaleString()}
               </p>
             </div>
+            {!isLocked && (
+              <button
+                type="button"
+                onClick={togglePublicOnSubmitted}
+                className={[
+                  "flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                  isPublic
+                    ? "bg-sage-100 text-sage-800 border-sage-200 hover:bg-sage-200"
+                    : "bg-cream-100 text-wood-600 border-wood-200 hover:bg-cream-200",
+                ].join(" ")}
+                aria-pressed={isPublic}
+                title={
+                  isPublic
+                    ? "Shared on the Devlogs wall — click to make private"
+                    : "Private — click to share on the Devlogs wall"
+                }
+              >
+                {isPublic ? (
+                  <>
+                    <Eye className="h-3.5 w-3.5" />
+                    Shared with class
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="h-3.5 w-3.5" />
+                    Private
+                  </>
+                )}
+              </button>
+            )}
           </div>
           <video
             src={submissionMediaUrl(submittedMedia)}
@@ -570,6 +632,25 @@ export function DevlogSubmission({
           <p className="text-xs text-wood-500 mt-2">
             {(previewSize / 1024 / 1024).toFixed(1)} MB · {previewMime}
           </p>
+
+          <label className="mt-4 flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={pendingIsPublic}
+              onChange={(e) => setPendingIsPublic(e.target.checked)}
+              disabled={isUploading}
+              className="w-4 h-4 mt-0.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
+            />
+            <span>
+              <span className="block text-sm font-medium text-wood-900">
+                Share with the class on the Devlogs wall
+              </span>
+              <span className="block text-xs text-wood-500">
+                Classmates can watch, like, and leave comments. You can
+                change this any time.
+              </span>
+            </span>
+          </label>
 
           <div className="flex flex-wrap items-center gap-2 mt-4">
             <Button onClick={submit} disabled={isUploading} size="lg">

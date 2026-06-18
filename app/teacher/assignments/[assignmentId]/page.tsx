@@ -123,6 +123,10 @@ export default async function AssignmentDetailPage({
   });
 
   const isInteractive = assignment.type === "interactive_html";
+  // Devlog assignments also use the interactive_html_url column — for
+  // them it's an optional rich-HTML prompt rendered above the recorder.
+  const isDevlog = (assignment.type as AssignmentType) === "devlog";
+  const acceptsHtml = isInteractive || isDevlog;
   const hasInteractiveHtml = !!assignment.interactive_html_url;
   const isTextual =
     assignment.type === "short_answer" || assignment.type === "discussion";
@@ -238,15 +242,17 @@ export default async function AssignmentDetailPage({
             }
           />
 
-          {isInteractive && (
+          {acceptsHtml && (
             <Card>
               <h3 className="font-display text-lg text-wood-900 mb-1">
-                Interactive HTML
+                {isDevlog ? "HTML prompt" : "Interactive HTML"}
               </h3>
               <p className="text-xs text-wood-500 mb-3">
                 {hasInteractiveHtml
                   ? "File uploaded. Re-uploading replaces it."
-                  : "Upload the activity file to make this assignment visible to students."}
+                  : isDevlog
+                    ? "Optional — upload an HTML file to render a rich prompt above the recorder."
+                    : "Upload the activity file to make this assignment visible to students."}
               </p>
               <form action={uploadHtmlAction} className="space-y-3">
                 <div className="flex items-start gap-2 p-2 rounded-cozy border border-dashed border-wood-300 bg-cream-50">

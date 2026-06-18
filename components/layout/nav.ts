@@ -14,6 +14,7 @@ import {
   UserRound,
   BarChart3,
   Gamepad2,
+  Video,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ export const teacherNav: NavItem[] = [
   { label: "Grading", href: "/teacher/grading", icon: ClipboardCheck },
   { label: "Slideshows", href: "/slideshows", icon: Presentation },
   { label: "Showcase", href: "/showcase", icon: Gamepad2 },
+  { label: "Devlogs", href: "/devlogs", icon: Video },
   { label: "Discussions", href: "/discussions", icon: MessagesSquare },
   { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "Assets", href: "/assets", icon: Library },
@@ -51,6 +53,7 @@ export const studentNav: NavItem[] = [
   { label: "Achievements", href: "/student/achievements", icon: Trophy },
   { label: "Slideshows", href: "/slideshows", icon: Presentation },
   { label: "Showcase", href: "/showcase", icon: Gamepad2 },
+  { label: "Devlogs", href: "/devlogs", icon: Video },
   { label: "Discussions", href: "/discussions", icon: MessagesSquare },
   { label: "Calendar", href: "/calendar", icon: Calendar },
   { label: "Assets", href: "/assets", icon: Library },

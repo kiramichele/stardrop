@@ -233,12 +233,27 @@ export default async function StudentAssignmentPage({
           )}
 
           {(assignment.type as AssignmentType) === "devlog" && (
-            <DevlogSubmission
-              assignmentId={assignment.id}
-              initialMedia={parseSubmissionMedia(submission?.uploaded_files)}
-              initialStatus={submission?.status ?? "draft"}
-              initialSubmissionId={submission?.id ?? null}
-            />
+            <>
+              {assignment.interactive_html_url && (
+                <Card padded={false} className="overflow-hidden">
+                  <iframe
+                    src={assignment.interactive_html_url}
+                    title="Prompt"
+                    sandbox="allow-same-origin allow-scripts"
+                    className="w-full min-h-[320px] bg-white"
+                  />
+                </Card>
+              )}
+              <DevlogSubmission
+                assignmentId={assignment.id}
+                initialMedia={parseSubmissionMedia(submission?.uploaded_files)}
+                initialStatus={submission?.status ?? "draft"}
+                initialSubmissionId={submission?.id ?? null}
+                initialIsPublic={Boolean(
+                  (submission as { is_public?: boolean } | null)?.is_public
+                )}
+              />
+            </>
           )}
 
           {!(
