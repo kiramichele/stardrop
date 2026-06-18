@@ -3,57 +3,71 @@
 @theme {
   /* =============================================================
      Colors
+     -------------------------------------------------------------
+     The legacy names (terracotta / sage / cream / wood / honey)
+     are now semantic tokens, not literal colors:
+       terracotta = primary accent (bright emerald — buttons / links)
+       sage       = success / positive (teal — published, graded)
+       cream      = surfaces (cool white / very light blue)
+       wood       = text + borders (deep navy / slate)
+       honey      = warnings + highlights (amber, unchanged in role)
      ============================================================= */
-  --color-terracotta-50: #fdf6f1;
-  --color-terracotta-100: #fae9dd;
-  --color-terracotta-200: #f4d0b6;
-  --color-terracotta-300: #ecb087;
-  --color-terracotta-400: #e28d5c;
-  --color-terracotta-500: #d56f3e;
-  --color-terracotta-600: #c25831;
-  --color-terracotta-700: #a1442b;
-  --color-terracotta-800: #823829;
-  --color-terracotta-900: #6b3025;
 
-  --color-sage-50: #f4f7f2;
-  --color-sage-100: #e5ede0;
-  --color-sage-200: #cadbc1;
-  --color-sage-300: #a4c197;
-  --color-sage-400: #7ca36e;
-  --color-sage-500: #5d8753;
-  --color-sage-600: #476c40;
-  --color-sage-700: #395735;
-  --color-sage-800: #2f472d;
-  --color-sage-900: #283b27;
+  /* terracotta — primary accent (was orange, now emerald) */
+  --color-terracotta-50: #ecfdf5;
+  --color-terracotta-100: #d1fae5;
+  --color-terracotta-200: #a7f3d0;
+  --color-terracotta-300: #6ee7b7;
+  --color-terracotta-400: #34d399;
+  --color-terracotta-500: #10b981;
+  --color-terracotta-600: #059669;
+  --color-terracotta-700: #047857;
+  --color-terracotta-800: #065f46;
+  --color-terracotta-900: #064e3b;
 
-  --color-cream-50: #fefcf8;
-  --color-cream-100: #fbf6ea;
-  --color-cream-200: #f6ecd1;
-  --color-cream-300: #efdfb1;
-  --color-cream-400: #e6cd87;
-  --color-cream-500: #dbb961;
+  /* sage — success / positive (was forest green, now teal for differentiation) */
+  --color-sage-50: #f0fdfa;
+  --color-sage-100: #ccfbf1;
+  --color-sage-200: #99f6e4;
+  --color-sage-300: #5eead4;
+  --color-sage-400: #2dd4bf;
+  --color-sage-500: #14b8a6;
+  --color-sage-600: #0d9488;
+  --color-sage-700: #0f766e;
+  --color-sage-800: #115e59;
+  --color-sage-900: #134e4a;
 
-  --color-wood-50: #faf6f1;
-  --color-wood-100: #f1e8db;
-  --color-wood-200: #e1cfb3;
-  --color-wood-300: #cdb088;
-  --color-wood-400: #b89066;
-  --color-wood-500: #a17651;
-  --color-wood-600: #876043;
-  --color-wood-700: #6e4d39;
-  --color-wood-800: #5b4030;
-  --color-wood-900: #4c362a;
+  /* cream — surfaces (was warm off-white, now cool white) */
+  --color-cream-50: #ffffff;
+  --color-cream-100: #f5f9fd;
+  --color-cream-200: #e8f1f9;
+  --color-cream-300: #d4e3f3;
+  --color-cream-400: #b8cfeb;
+  --color-cream-500: #94b3df;
 
-  --color-honey-50: #fef9ec;
-  --color-honey-100: #fcefc8;
-  --color-honey-200: #f8de8c;
-  --color-honey-300: #f3c558;
-  --color-honey-400: #eeac34;
-  --color-honey-500: #d68a1d;
-  --color-honey-600: #b66916;
-  --color-honey-700: #914d15;
-  --color-honey-800: #783e18;
-  --color-honey-900: #643418;
+  /* wood — text + borders (was warm brown, now deep navy/slate) */
+  --color-wood-50: #f4f8fc;
+  --color-wood-100: #e4ecf5;
+  --color-wood-200: #c9d6e6;
+  --color-wood-300: #9eb2cc;
+  --color-wood-400: #6f8aac;
+  --color-wood-500: #4f6c8d;
+  --color-wood-600: #3a5475;
+  --color-wood-700: #2b4060;
+  --color-wood-800: #1f304a;
+  --color-wood-900: #15243a;
+
+  /* honey — warnings + highlights (amber, slightly cleaner) */
+  --color-honey-50: #fffbeb;
+  --color-honey-100: #fef3c7;
+  --color-honey-200: #fde68a;
+  --color-honey-300: #fcd34d;
+  --color-honey-400: #fbbf24;
+  --color-honey-500: #f59e0b;
+  --color-honey-600: #d97706;
+  --color-honey-700: #b45309;
+  --color-honey-800: #92400e;
+  --color-honey-900: #78350f;
 
   /* =============================================================
      Fonts — wired to next/font CSS variables
@@ -69,12 +83,13 @@
   --radius-cozy-lg: 0.875rem;
 
   /* =============================================================
-     Shadows
+     Shadows — rgba based on wood-900 (deep navy) for a cool drop,
+     and emerald for the focus ring (the new primary accent).
      ============================================================= */
-  --shadow-soft: 0 1px 2px rgba(107, 48, 37, 0.04), 0 1px 1px rgba(107, 48, 37, 0.03);
-  --shadow-cozy: 0 1px 3px rgba(107, 48, 37, 0.06), 0 4px 12px rgba(107, 48, 37, 0.04);
-  --shadow-cozy-lg: 0 2px 6px rgba(107, 48, 37, 0.06), 0 12px 28px rgba(107, 48, 37, 0.08);
-  --shadow-focus-warm: 0 0 0 3px rgba(213, 111, 62, 0.18);
+  --shadow-soft: 0 1px 2px rgba(21, 36, 58, 0.05), 0 1px 1px rgba(21, 36, 58, 0.03);
+  --shadow-cozy: 0 1px 3px rgba(21, 36, 58, 0.07), 0 4px 12px rgba(21, 36, 58, 0.05);
+  --shadow-cozy-lg: 0 2px 6px rgba(21, 36, 58, 0.08), 0 12px 28px rgba(21, 36, 58, 0.10);
+  --shadow-focus-warm: 0 0 0 3px rgba(16, 185, 129, 0.25);
 
   /* =============================================================
      Tracking
@@ -88,9 +103,11 @@
   --animate-fade-in-up: fadeInUp 320ms ease-out;
 
   /* =============================================================
-     Paper texture background image
+     Paper texture background image — subtle cool-gray noise so the
+     surfaces don't read as completely flat. Tinted with wood-900 RGB
+     at very low alpha.
      ============================================================= */
-  --background-image-paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.42 0 0 0 0 0.27 0 0 0 0 0.16 0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --background-image-paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.08 0 0 0 0 0.14 0 0 0 0 0.23 0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 
 /* =============================================================

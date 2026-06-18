@@ -33,7 +33,7 @@ function Starfield() {
       aria-hidden
     >
       {stars.map((s, i) => (
-        <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#d56f3e" opacity={s.o} />
+        <circle key={i} cx={s.x} cy={s.y} r={s.r} fill="#10b981" opacity={s.o} />
       ))}
     </svg>
   );

@@ -96,7 +96,7 @@ export async function sendNewPasswordEmail(
     subject: "Your Stardrop password was reset",
     html: `<p>Hi ${escapeHtml(firstName)},</p>
 <p>Your Stardrop password has been reset. Your new password is:</p>
-<p style="font-size:1.25em;font-family:monospace;background:#fbf6ea;padding:0.4em 0.7em;border-radius:8px;display:inline-block;"><strong>${escapeHtml(
+<p style="font-size:1.25em;font-family:monospace;background:#f5f9fd;padding:0.4em 0.7em;border-radius:8px;display:inline-block;"><strong>${escapeHtml(
       password
     )}</strong></p>
 <p>Sign in with your username and this password. You can change it again any time from your profile page.</p>`,
