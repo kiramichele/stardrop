@@ -250,9 +250,22 @@ export default async function StudentAssignmentPage({
                 initialMedia={parseSubmissionMedia(submission?.uploaded_files)}
                 initialStatus={submission?.status ?? "draft"}
                 initialSubmissionId={submission?.id ?? null}
-                initialIsPublic={Boolean(
-                  (submission as { is_public?: boolean } | null)?.is_public
-                )}
+                initialIsPublic={
+                  // Use the stored value if there's a submission already,
+                  // otherwise pre-fill from the assignment's auto-publish flag.
+                  submission
+                    ? Boolean(
+                        (submission as { is_public?: boolean } | null)
+                          ?.is_public
+                      )
+                    : Boolean(
+                        (
+                          assignment as {
+                            auto_publish_to_starhub?: boolean;
+                          }
+                        ).auto_publish_to_starhub
+                      )
+                }
               />
             </>
           )}
@@ -274,6 +287,20 @@ export default async function StudentAssignmentPage({
                 initialMedia={parseSubmissionMedia(submission?.uploaded_files)}
                 initialStatus={submission?.status ?? "draft"}
                 initialSubmissionId={submission?.id ?? null}
+                initialIsPublic={
+                  submission
+                    ? Boolean(
+                        (submission as { is_public?: boolean } | null)
+                          ?.is_public
+                      )
+                    : Boolean(
+                        (
+                          assignment as {
+                            auto_publish_to_starhub?: boolean;
+                          }
+                        ).auto_publish_to_starhub
+                      )
+                }
               />
             </>
           )}

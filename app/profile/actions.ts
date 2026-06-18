@@ -10,8 +10,12 @@ import {
   startPhoneVerification,
   checkPhoneVerification,
 } from "@/lib/sms";
+import { updateIdentityFields } from "@/lib/starhub-server";
 import { generatePassword } from "@/lib/csv";
 import { sendNewPasswordEmail } from "@/lib/email";
+
+const BIO_MAX = 600;
+const STUDIO_MAX = 60;
 
 export async function uploadAvatar(
   formData: FormData
@@ -222,5 +226,30 @@ export async function setSmsPreference(
   if (!saved.ok) return { ok: false, error: saved.error ?? "Couldn't save." };
 
   revalidatePath("/profile");
+  return { ok: true };
+}
+
+
+// =============================================================
+// StarHub identity (bio + studio/role)
+// =============================================================
+
+export async function updateStarHubIdentity(args: {
+  bio: string;
+  studio: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Not signed in" };
+
+  const bio = args.bio.trim().slice(0, BIO_MAX) || null;
+  const studio = args.studio.trim().slice(0, STUDIO_MAX) || null;
+
+  const saved = await updateIdentityFields(user.id, { bio, studio });
+  if (!saved.ok) {
+    return { ok: false, error: saved.error ?? "Couldn't save." };
+  }
+
+  revalidatePath("/profile");
+  revalidatePath(`/starhub/${user.username}`);
   return { ok: true };
 }

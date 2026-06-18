@@ -242,7 +242,13 @@ export async function getSubmissionComments(
 // Writes
 // =============================================================
 
-/** Owner or teacher only. */
+/**
+ * Owner or teacher only.
+ *
+ * Video consent guard: a teacher may HIDE a student's video (set
+ * isPublic=false) but never publish one on the student's behalf. Video
+ * consent always comes from the student themselves.
+ */
 export async function setSubmissionPublicRecord(
   submissionId: string,
   userId: string,
@@ -252,13 +258,31 @@ export async function setSubmissionPublicRecord(
   const admin = createAdminClient();
   const { data: sub } = await admin
     .from("submissions")
-    .select("user_id")
+    .select("user_id, assignment_id")
     .eq("id", submissionId)
     .maybeSingle();
   if (!sub) return { ok: false, error: "Submission not found" };
   if (!isTeacher && sub.user_id !== userId) {
     return { ok: false, error: "Not authorized" };
   }
+
+  // Video consent: teacher cannot publish a student's video.
+  if (isPublic && isTeacher && sub.user_id !== userId) {
+    const { data: assignment } = await admin
+      .from("assignments")
+      .select("type")
+      .eq("id", sub.assignment_id)
+      .maybeSingle();
+    const type = assignment?.type as string | undefined;
+    if (type === "devlog" || type === "video_response") {
+      return {
+        ok: false,
+        error:
+          "Only the student can share a video. You can hide it, but not publish it for them.",
+      };
+    }
+  }
+
   const { error } = await shim(admin, "submissions")
     .update({ is_public: isPublic })
     .eq("id", submissionId);

@@ -20,6 +20,8 @@ import {
   Camera,
   Monitor,
   Layers,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -32,12 +34,15 @@ import {
   prepareDevlogSubmission,
   finalizeDevlogSubmission,
 } from "@/app/student/assignments/actions";
+import { setDevlogPublic } from "@/app/devlogs/actions";
 
 interface VideoResponseSubmissionProps {
   assignmentId: string;
   initialMedia: SubmissionMedia[];
   initialStatus: "draft" | "submitted" | "graded";
   initialSubmissionId: string | null;
+  /** Pre-fills the share toggle on first submit. Never auto-set. */
+  initialIsPublic: boolean;
 }
 
 type Mode = "record" | "upload";
@@ -51,6 +56,7 @@ export function VideoResponseSubmission({
   initialMedia,
   initialStatus,
   initialSubmissionId,
+  initialIsPublic,
 }: VideoResponseSubmissionProps) {
   const [status, setStatus] = useState(initialStatus);
   const [submissionId, setSubmissionId] = useState<string | null>(
@@ -59,6 +65,8 @@ export function VideoResponseSubmission({
   const [submittedMedia, setSubmittedMedia] = useState<SubmissionMedia | null>(
     initialMedia[0] ?? null
   );
+  const [isPublic, setIsPublic] = useState(initialIsPublic);
+  const [pendingIsPublic, setPendingIsPublic] = useState(initialIsPublic);
 
   const [mode, setMode] = useState<Mode>("record");
   const [recordMode, setRecordMode] = useState<RecordMode>("camera");
@@ -325,6 +333,23 @@ export function VideoResponseSubmission({
     setError(null);
   }
 
+  function togglePublicOnSubmitted() {
+    if (!submissionId || isUploading) return;
+    const next = !isPublic;
+    setIsPublic(next);
+    setPendingIsPublic(next);
+    void (async () => {
+      const result = await setDevlogPublic(submissionId, next);
+      if (!result.ok) {
+        setIsPublic(!next);
+        setPendingIsPublic(!next);
+        setError(result.error ?? "Couldn't update visibility.");
+      } else {
+        setError(null);
+      }
+    })();
+  }
+
   function onFilePicked(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -380,6 +405,12 @@ export function VideoResponseSubmission({
         return;
       }
 
+      // Apply the student's share-with-class choice (independent of save).
+      if (pendingIsPublic !== isPublic) {
+        const vis = await setDevlogPublic(sid, pendingIsPublic);
+        if (vis.ok) setIsPublic(pendingIsPublic);
+      }
+
       const newMedia: SubmissionMedia = {
         id: fileId,
         kind: "video",
@@ -420,14 +451,46 @@ export function VideoResponseSubmission({
 
       {submittedMedia && status !== "draft" && (
         <Card padded={false} className="overflow-hidden">
-          <div className="px-4 py-3 border-b border-wood-100">
-            <p className="label-eyebrow">
-              {status === "graded" ? "Submitted video" : "Your latest submission"}
-            </p>
-            <p className="text-xs text-wood-500 mt-0.5">
-              {(submittedMedia.size / 1024 / 1024).toFixed(1)} MB ·{" "}
-              {new Date(submittedMedia.createdAt).toLocaleString()}
-            </p>
+          <div className="px-4 py-3 border-b border-wood-100 flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="label-eyebrow">
+                {status === "graded" ? "Submitted video" : "Your latest submission"}
+              </p>
+              <p className="text-xs text-wood-500 mt-0.5">
+                {(submittedMedia.size / 1024 / 1024).toFixed(1)} MB ·{" "}
+                {new Date(submittedMedia.createdAt).toLocaleString()}
+              </p>
+            </div>
+            {!isLocked && (
+              <button
+                type="button"
+                onClick={togglePublicOnSubmitted}
+                className={[
+                  "flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                  isPublic
+                    ? "bg-sage-100 text-sage-800 border-sage-200 hover:bg-sage-200"
+                    : "bg-cream-100 text-wood-600 border-wood-200 hover:bg-cream-200",
+                ].join(" ")}
+                aria-pressed={isPublic}
+                title={
+                  isPublic
+                    ? "On your StarHub — click to make private"
+                    : "Private — click to share on your StarHub"
+                }
+              >
+                {isPublic ? (
+                  <>
+                    <Eye className="h-3.5 w-3.5" />
+                    On my StarHub
+                  </>
+                ) : (
+                  <>
+                    <EyeOff className="h-3.5 w-3.5" />
+                    Private
+                  </>
+                )}
+              </button>
+            )}
           </div>
           <video
             src={submissionMediaUrl(submittedMedia)}
@@ -596,6 +659,25 @@ export function VideoResponseSubmission({
           <p className="text-xs text-wood-500 mt-2">
             {(previewSize / 1024 / 1024).toFixed(1)} MB · {previewMime}
           </p>
+
+          <label className="mt-4 flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={pendingIsPublic}
+              onChange={(e) => setPendingIsPublic(e.target.checked)}
+              disabled={isUploading}
+              className="w-4 h-4 mt-0.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
+            />
+            <span>
+              <span className="block text-sm font-medium text-wood-900">
+                Share with the class on my StarHub
+              </span>
+              <span className="block text-xs text-wood-500">
+                Classmates can watch + comment on your portfolio. You can
+                flip this any time after submitting.
+              </span>
+            </span>
+          </label>
 
           <div className="flex flex-wrap items-center gap-2 mt-4">
             <Button onClick={submit} disabled={isUploading} size="lg">

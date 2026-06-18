@@ -59,6 +59,9 @@ export async function createAssignment(formData: FormData) {
   const dueDate2x = parseDate(formData.get("due_date_2x")?.toString());
   const minimumWordCount = parseMinimumWordCount(minWordsRaw);
 
+  const autoPublishToStarhub =
+    formData.get("auto_publish_to_starhub") === "on";
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("assignments")
@@ -77,7 +80,9 @@ export async function createAssignment(formData: FormData) {
       points,
       minimum_word_count: minimumWordCount,
       rubric_id: rubricId,
-    })
+      // Cast: column not in regen'd types until the matching migration lands.
+      auto_publish_to_starhub: autoPublishToStarhub,
+    } as never)
     .select("id")
     .single();
   if (error || !data) throw new Error(error?.message ?? "Failed to create");
@@ -110,6 +115,9 @@ export async function updateAssignment(
   const dueDate2x = parseDate(formData.get("due_date_2x")?.toString());
   const minimumWordCount = parseMinimumWordCount(minWordsRaw);
 
+  const autoPublishToStarhub =
+    formData.get("auto_publish_to_starhub") === "on";
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("assignments")
@@ -125,7 +133,8 @@ export async function updateAssignment(
       rubric_id: rubricId,
       lesson_id: lessonId,
       is_unit_quiz: isUnitQuiz,
-    })
+      auto_publish_to_starhub: autoPublishToStarhub,
+    } as never)
     .eq("id", assignmentId);
   if (error) throw new Error(error.message);
 

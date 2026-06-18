@@ -1,16 +1,27 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Camera, Trash2, KeyRound, AlertCircle, Check } from "lucide-react";
+import {
+  Camera,
+  Trash2,
+  KeyRound,
+  AlertCircle,
+  Check,
+  Sparkles,
+  ArrowRight,
+} from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
+import { Input, Label, Textarea, FieldHint } from "@/components/ui/Input";
 import {
   uploadAvatar,
   removeOwnAvatar,
   resetOwnPassword,
   updatePreferences,
+  updateStarHubIdentity,
 } from "./actions";
 import type { UserProfile } from "@/lib/profile";
 import {
@@ -22,10 +33,14 @@ export function ProfilePanels({
   profile,
   smsSettings,
   smsConfigured,
+  initialBio = "",
+  initialStudio = "",
 }: {
   profile: UserProfile;
   smsSettings?: SmsCardSettings | null;
   smsConfigured?: boolean;
+  initialBio?: string;
+  initialStudio?: string;
 }) {
   const router = useRouter();
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
@@ -35,6 +50,11 @@ export function ProfilePanels({
   const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // StarHub identity fields.
+  const [bio, setBio] = useState(initialBio);
+  const [studio, setStudio] = useState(initialStudio);
+  const dirty = bio !== initialBio || studio !== initialStudio;
 
   function notify(text: string, error = false) {
     setMsg({ text, error });
@@ -109,6 +129,18 @@ export function ProfilePanels({
     });
   }
 
+  function saveIdentity() {
+    startTransition(async () => {
+      const r = await updateStarHubIdentity({ bio, studio });
+      if (r.ok) {
+        notify("StarHub identity saved.");
+        router.refresh();
+      } else {
+        notify(r.error ?? "Couldn't save", true);
+      }
+    });
+  }
+
   return (
     <div className="space-y-6 max-w-2xl">
       {msg && (
@@ -168,6 +200,67 @@ export function ProfilePanels({
               </Button>
             )}
           </div>
+        </div>
+      </Card>
+
+      <Card>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-display text-lg text-wood-900 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-terracotta-600" strokeWidth={1.75} />
+              StarHub identity
+            </h3>
+            <p className="text-xs text-wood-500 mt-1">
+              How you show up on your portfolio page.
+            </p>
+          </div>
+          <Link
+            href={`/starhub/${profile.username}`}
+            className="inline-flex items-center gap-1 text-sm font-medium text-terracotta-700 hover:text-terracotta-800 flex-shrink-0"
+          >
+            View StarHub
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="studio">
+              Studio or role{" "}
+              <span className="text-wood-500 font-normal">(optional)</span>
+            </Label>
+            <Input
+              id="studio"
+              value={studio}
+              onChange={(e) => setStudio(e.target.value)}
+              placeholder="e.g. Indie Dev, Pixel Artist, Sound Designer"
+              maxLength={60}
+              disabled={isPending}
+            />
+          </div>
+          <div>
+            <Label htmlFor="bio">
+              Short bio{" "}
+              <span className="text-wood-500 font-normal">(optional)</span>
+            </Label>
+            <Textarea
+              id="bio"
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              placeholder="A couple of sentences about you and what you're into."
+              rows={3}
+              maxLength={600}
+              disabled={isPending}
+            />
+            <FieldHint>Up to 600 characters.</FieldHint>
+          </div>
+          <Button
+            size="sm"
+            onClick={saveIdentity}
+            disabled={isPending || !dirty}
+          >
+            Save StarHub identity
+          </Button>
         </div>
       </Card>
 

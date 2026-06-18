@@ -188,6 +188,28 @@ export default async function NewAssignmentPage() {
             </FieldHint>
           </div>
 
+          <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                id="auto_publish_to_starhub"
+                name="auto_publish_to_starhub"
+                className="w-4 h-4 mt-0.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
+              />
+              <span>
+                <span className="block text-sm font-medium text-wood-900">
+                  Auto-publish to StarHub on submit
+                </span>
+                <span className="block text-xs text-wood-500">
+                  When students submit, the submission goes on their public
+                  StarHub portfolio. For video assignments this only pre-fills
+                  the student&apos;s share toggle — students always choose for
+                  themselves whether to share a video.
+                </span>
+              </span>
+            </label>
+          </div>
+
           <div>
             <Label htmlFor="rubric_id">
               Rubric{" "}

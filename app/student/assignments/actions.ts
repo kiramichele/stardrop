@@ -111,12 +111,52 @@ export async function submitAssignment(
     return { ok: false, error: "Submission already graded — can't edit." };
   }
 
+  // Auto-publish to StarHub when the instructor turned on the flag for
+  // this assignment. Video types (devlog, video_response) are deliberately
+  // excluded here — their consent comes from the student via the
+  // recording UI, never auto-set by the submit path.
+  let autoPublishToStarhub = false;
+  const { data: assignmentRow } = await supabase
+    .from("assignments")
+    .select("type")
+    .eq("id", sub.assignment_id)
+    .maybeSingle();
+  const type = (assignmentRow?.type ?? "") as string;
+  if (type !== "devlog" && type !== "video_response") {
+    const { data: autoPubRow } = await (
+      supabase as unknown as {
+        from: (t: string) => {
+          select: (c: string) => {
+            eq: (
+              col: string,
+              v: string
+            ) => {
+              maybeSingle: () => Promise<{
+                data: { auto_publish_to_starhub: boolean | null } | null;
+              }>;
+            };
+          };
+        };
+      }
+    )
+      .from("assignments")
+      .select("auto_publish_to_starhub")
+      .eq("id", sub.assignment_id)
+      .maybeSingle();
+    autoPublishToStarhub = Boolean(autoPubRow?.auto_publish_to_starhub);
+  }
+
   const update: SubmissionUpdate = {
     ...buildUpdate(payload),
     status: "submitted",
   };
   if (!sub.submitted_at) {
     update.submitted_at = new Date().toISOString();
+  }
+  if (autoPublishToStarhub) {
+    // Cast: is_public lives on submissions but isn't always in the
+    // regen'd types yet depending on when the regen ran.
+    (update as { is_public?: boolean }).is_public = true;
   }
 
   const { error } = await supabase

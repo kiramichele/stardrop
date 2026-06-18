@@ -117,10 +117,9 @@ export default async function GradeSubmissionPage({
 
   const feedbackEntries = await getFeedbackThread(submissionId);
   const studentNotes = await getStudentNotes(submission.user_id);
-  const devlogIsPublic =
-    assignmentType === ("devlog" as AssignmentType)
-      ? await getSubmissionIsPublic(submissionId)
-      : false;
+  // Fetched for EVERY submission now — the visibility chip in the right
+  // column lets the teacher see + flip is_public for any assignment type.
+  const devlogIsPublic = await getSubmissionIsPublic(submissionId);
 
   const isTextual =
     assignmentType === "short_answer" || assignmentType === "discussion";
@@ -393,6 +392,33 @@ export default async function GradeSubmissionPage({
         </div>
 
         <div className="space-y-4">
+          <Card padded={false} className="px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="label-eyebrow">StarHub visibility</p>
+                <p className="text-xs text-wood-500 mt-0.5">
+                  {(() => {
+                    const isVideo =
+                      (assignmentType as AssignmentType) === "devlog" ||
+                      (assignmentType as AssignmentType) === "video_response";
+                    if (isVideo) {
+                      return devlogIsPublic
+                        ? "Student opted in — shared with the class."
+                        : "Student kept this private.";
+                    }
+                    return devlogIsPublic
+                      ? "On the student's public portfolio."
+                      : "Private to the student.";
+                  })()}
+                </p>
+              </div>
+              <DevlogVisibilityChip
+                submissionId={submissionId}
+                initialIsPublic={devlogIsPublic}
+              />
+            </div>
+          </Card>
+
           <Card>
             <h3 className="font-display text-lg text-wood-900 mb-4">
               Grade this submission

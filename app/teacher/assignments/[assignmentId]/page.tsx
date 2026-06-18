@@ -441,6 +441,33 @@ export default async function AssignmentDetailPage({
                   Published (visible to students)
                 </Label>
               </div>
+              <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="auto_publish_to_starhub"
+                    name="auto_publish_to_starhub"
+                    defaultChecked={Boolean(
+                      (assignment as { auto_publish_to_starhub?: boolean })
+                        .auto_publish_to_starhub
+                    )}
+                    className="w-4 h-4 mt-0.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
+                  />
+                  <span>
+                    <Label
+                      htmlFor="auto_publish_to_starhub"
+                      className="mb-0 cursor-pointer"
+                    >
+                      Auto-publish to StarHub on submit
+                    </Label>
+                    <p className="text-xs text-wood-500 mt-0.5">
+                      Submissions land on the student&apos;s public portfolio.
+                      For videos this only pre-fills their share toggle —
+                      students always choose for themselves.
+                    </p>
+                  </span>
+                </label>
+              </div>
               {isInteractive && !hasInteractiveHtml && (
                 <FieldHint>
                   Students won&apos;t see this even when published until the

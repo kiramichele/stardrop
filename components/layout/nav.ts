@@ -15,6 +15,7 @@ import {
   BarChart3,
   Gamepad2,
   Video,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ export const teacherNav: NavItem[] = [
   { label: "Assignments", href: "/teacher/assignments", icon: ClipboardList },
   { label: "Grading", href: "/teacher/grading", icon: ClipboardCheck },
   { label: "Slideshows", href: "/slideshows", icon: Presentation },
+  { label: "StarHub", href: "/starhub", icon: Sparkles },
   { label: "Showcase", href: "/showcase", icon: Gamepad2 },
   { label: "Devlogs", href: "/devlogs", icon: Video },
   { label: "Discussions", href: "/discussions", icon: MessagesSquare },
@@ -52,6 +54,7 @@ export const studentNav: NavItem[] = [
   { label: "Grades", href: "/student/grades", icon: Award },
   { label: "Achievements", href: "/student/achievements", icon: Trophy },
   { label: "Slideshows", href: "/slideshows", icon: Presentation },
+  { label: "StarHub", href: "/starhub", icon: Sparkles },
   { label: "Showcase", href: "/showcase", icon: Gamepad2 },
   { label: "Devlogs", href: "/devlogs", icon: Video },
   { label: "Discussions", href: "/discussions", icon: MessagesSquare },
