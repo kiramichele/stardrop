@@ -37,17 +37,12 @@ const Editor = dynamic(
   }
 );
 
-// Monaco language IDs that match our stored language keys.
+// Monaco language IDs that match our stored language keys. Both C#
+// flavours just use Monaco's csharp grammar — the flavour is only
+// shown in the dropdown label + the StarHub card chip.
 const MONACO_LANG: Record<string, string> = {
   csharp: "csharp",
-  javascript: "javascript",
-  typescript: "typescript",
-  python: "python",
-  html: "html",
-  css: "css",
-  json: "json",
-  shader: "hlsl",
-  plaintext: "plaintext",
+  csharp_unity: "csharp",
 };
 
 export type GistEditorMode =

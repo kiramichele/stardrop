@@ -37,16 +37,18 @@ export type PlaygroundProgram = {
   updated_at: string;
 };
 
-/** Languages the playground / Monaco editor offers. */
+/**
+ * Languages the playground / Monaco editor offers.
+ *
+ * Two flavours of C# — the underlying Monaco / Shiki / Piston language
+ * is plain "csharp" for both. The split is purely UX: "C#" defaults to
+ * the console boilerplate, "C# (Unity)" defaults to the MonoBehaviour
+ * one. Stored on programs.language so the sidebar pill can show which
+ * flavour the student chose.
+ */
 export const PLAYGROUND_LANGUAGES: { key: string; label: string }[] = [
-  { key: "csharp", label: "C# (Unity)" },
-  { key: "javascript", label: "JavaScript" },
-  { key: "typescript", label: "TypeScript" },
-  { key: "python", label: "Python" },
-  { key: "html", label: "HTML" },
-  { key: "css", label: "CSS" },
-  { key: "json", label: "JSON" },
-  { key: "plaintext", label: "Plain text" },
+  { key: "csharp", label: "C#" },
+  { key: "csharp_unity", label: "C# (Unity)" },
 ];
 
 // =============================================================
@@ -85,18 +87,18 @@ public class NewBehaviourScript : MonoBehaviour
 `;
 
 /**
- * Pick a starter for a new code buffer. For C#, choose between the
- * console and Unity templates based on the run mode (assignments) or
- * an explicit choice (playground). Other languages just get an empty
- * buffer for now.
+ * Pick a starter for a new code buffer. The playground language key
+ * decides first (csharp → console, csharp_unity → Unity); otherwise we
+ * fall back to the assignment's run mode.
  */
 export function starterCodeFor(
   language: string,
   runMode: CodeRunMode = "both"
 ): string {
+  if (language === "csharp_unity") return CSHARP_UNITY_STARTER;
   if (language !== "csharp") return "";
-  // "csharp" → plain console; everything else (including "both" and
-  // "none" — this is a Unity-focused class) → Unity boilerplate.
+  // language === "csharp" (plain console flavour OR an assignment, which
+  // doesn't have a language picker). Run mode decides for assignments.
   if (runMode === "csharp") return CSHARP_CONSOLE_STARTER;
   return CSHARP_UNITY_STARTER;
 }

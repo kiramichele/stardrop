@@ -47,7 +47,12 @@ export type Achievement = {
   };
 };
 
-export type EvaluatedAchievement = Achievement & {
+/**
+ * A badge with its current state. The `evaluate` function is intentionally
+ * dropped here — this type is passed across the Server → Client boundary
+ * to the AchievementGrid, and functions aren't serializable.
+ */
+export type EvaluatedAchievement = Omit<Achievement, "evaluate"> & {
   earned: boolean;
   progress: number;
   target: number;
@@ -221,7 +226,14 @@ export const ACHIEVEMENTS: Achievement[] = [
 export function evaluateAchievements(
   stats: StudentStats
 ): EvaluatedAchievement[] {
-  return ACHIEVEMENTS.map((a) => ({ ...a, ...a.evaluate(stats) }));
+  return ACHIEVEMENTS.map((a) => {
+    // Strip `evaluate` — the returned objects cross the Server → Client
+    // boundary when handed to <AchievementGrid />, and functions blow
+    // up React Server Component serialization.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { evaluate, ...meta } = a;
+    return { ...meta, ...a.evaluate(stats) };
+  });
 }
 
 /** How many of the evaluated achievements are earned. */

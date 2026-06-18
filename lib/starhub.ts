@@ -104,17 +104,13 @@ export function starHubDisplayName(i: StarHubIdentity): string {
   return `${first} ${last[0].toUpperCase()}.`;
 }
 
-/** Languages students can pick when composing a gist. */
+/**
+ * Languages students can pick when composing a gist. Same two-flavour
+ * split as the playground (plain console vs Unity).
+ */
 export const GIST_LANGUAGES: { key: string; label: string }[] = [
-  { key: "csharp", label: "C# (Unity)" },
-  { key: "javascript", label: "JavaScript" },
-  { key: "typescript", label: "TypeScript" },
-  { key: "python", label: "Python" },
-  { key: "html", label: "HTML" },
-  { key: "css", label: "CSS" },
-  { key: "json", label: "JSON" },
-  { key: "shader", label: "Shader (HLSL)" },
-  { key: "plaintext", label: "Plain text" },
+  { key: "csharp", label: "C#" },
+  { key: "csharp_unity", label: "C# (Unity)" },
 ];
 
 const MONTHS = [

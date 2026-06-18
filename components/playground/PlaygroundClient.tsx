@@ -44,15 +44,11 @@ const Editor = dynamic(
   }
 );
 
+// Both "csharp" and "csharp_unity" use the same Monaco language. The
+// suffix is purely a UX flavour for the language pill + starter choice.
 const MONACO_LANG: Record<string, string> = {
   csharp: "csharp",
-  javascript: "javascript",
-  typescript: "typescript",
-  python: "python",
-  html: "html",
-  css: "css",
-  json: "json",
-  plaintext: "plaintext",
+  csharp_unity: "csharp",
 };
 
 // Default new-program template: Unity, since this is a Unity class.
@@ -71,6 +67,10 @@ function templateCode(kind: NewTemplate): string {
     default:
       return "";
   }
+}
+
+function templateLanguage(kind: NewTemplate): string {
+  return kind === "unity" ? "csharp_unity" : "csharp";
 }
 
 export function PlaygroundClient({
@@ -115,7 +115,7 @@ export function PlaygroundClient({
     if (!confirm("Start a new program? Unsaved changes will be lost.")) return;
     codeRef.current = templateCode(template);
     setTitle("");
-    setLanguage("csharp");
+    setLanguage(templateLanguage(template));
     setLoadedProgram(null);
     setError(null);
     setShareCopied(false);
