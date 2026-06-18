@@ -94,6 +94,64 @@ type AssignmentAutoPublishRow = {
   type: string;
 };
 
+type CodeSubmissionRow = {
+  id: string;
+  user_id: string;
+  assignment_id: string;
+  content: string | null;
+  submitted_at: string | null;
+  updated_at: string | null;
+  assignments:
+    | { title: string; type: string; code_run_mode: string | null }
+    | { title: string; type: string; code_run_mode: string | null }[]
+    | null;
+};
+
+/** A code submission the student can convert into a gist. */
+export type CodeSubmissionForGist = {
+  submissionId: string;
+  assignmentId: string;
+  assignmentTitle: string;
+  codeRunMode: string;
+  content: string;
+  submittedAt: string;
+};
+
+/**
+ * Every code-type submission the student has actually written to (status
+ * submitted or graded), with the assignment title + code_run_mode (so we
+ * can pick csharp vs csharp_unity for the gist's language). Newest first.
+ */
+export async function getCodeSubmissionsForGist(
+  userId: string
+): Promise<CodeSubmissionForGist[]> {
+  const admin = createAdminClient();
+  const { data } = await shim<CodeSubmissionRow>(admin, "submissions")
+    .select(
+      "id, user_id, assignment_id, content, submitted_at, updated_at, assignments(title, type, code_run_mode)"
+    )
+    .eq("user_id", userId)
+    .in("status", ["submitted", "graded"])
+    .order("submitted_at", { ascending: false, nullsFirst: false });
+
+  const rows = data ?? [];
+  const out: CodeSubmissionForGist[] = [];
+  for (const r of rows) {
+    const a = one(r.assignments);
+    if (!a || a.type !== "code") continue;
+    if (!r.content || !r.content.trim()) continue;
+    out.push({
+      submissionId: r.id,
+      assignmentId: r.assignment_id,
+      assignmentTitle: a.title,
+      codeRunMode: a.code_run_mode ?? "both",
+      content: r.content,
+      submittedAt: r.submitted_at ?? r.updated_at ?? "",
+    });
+  }
+  return out;
+}
+
 function one<T>(rel: T | T[] | null | undefined): T | null {
   if (Array.isArray(rel)) return rel[0] ?? null;
   return rel ?? null;

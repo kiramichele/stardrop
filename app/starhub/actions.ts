@@ -14,8 +14,11 @@ import { setSubmissionPublicRecord } from "@/lib/devlog-wall-server";
 const TITLE_MAX = 120;
 const DESCRIPTION_MAX = 600;
 const CODE_MAX = 40000;
+// Active languages match GIST_LANGUAGES; the rest are kept for
+// backward compatibility with older gists in the DB.
 const LANGS = new Set([
   "csharp",
+  "csharp_unity",
   "javascript",
   "typescript",
   "python",
@@ -164,6 +167,109 @@ export async function setSubmissionVisibility(
   if (result.ok) {
     revalidatePath(`/starhub/${user.username}`);
     revalidatePath("/devlogs");
+  }
+  return result;
+}
+
+// =============================================================
+// Picker-driven entry creation
+// =============================================================
+
+/**
+ * Convert a saved Playground program into a gist on the user's StarHub.
+ * Pulls the program's code + language + title; the caller can override
+ * the title or attach a caption.
+ */
+export async function createGistFromProgram(args: {
+  programId: string;
+  title?: string;
+  description: string;
+  isPublic: boolean;
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const user = await requireUser();
+  const { getProgram } = await import("@/lib/playground-server");
+  const program = await getProgram(args.programId);
+  if (!program) return { ok: false, error: "Program not found." };
+  if (program.user_id !== user.id) {
+    return { ok: false, error: "That program isn't yours." };
+  }
+
+  return createGist({
+    title: args.title?.trim() || program.title,
+    description: args.description,
+    language: program.language,
+    code: program.code,
+    isPublic: args.isPublic,
+  });
+}
+
+/**
+ * Convert a code-assignment submission into a gist. Title defaults to
+ * the assignment title; language follows the assignment's run mode.
+ */
+export async function createGistFromSubmission(args: {
+  submissionId: string;
+  title?: string;
+  description: string;
+  isPublic: boolean;
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const user = await requireUser();
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+  const { data: sub } = await admin
+    .from("submissions")
+    .select(
+      "id, user_id, content, assignments(title, type, code_run_mode)"
+    )
+    .eq("id", args.submissionId)
+    .maybeSingle();
+  if (!sub) return { ok: false, error: "Submission not found." };
+  if (sub.user_id !== user.id) {
+    return { ok: false, error: "That submission isn't yours." };
+  }
+  const assignment = Array.isArray(sub.assignments)
+    ? sub.assignments[0]
+    : sub.assignments;
+  if (!assignment || assignment.type !== "code") {
+    return { ok: false, error: "That submission isn't a code assignment." };
+  }
+  if (!sub.content || !sub.content.trim()) {
+    return { ok: false, error: "That submission doesn't have any code yet." };
+  }
+
+  const runMode = (assignment as { code_run_mode?: string | null })
+    .code_run_mode;
+  const language = runMode === "csharp" ? "csharp" : "csharp_unity";
+
+  return createGist({
+    title: args.title?.trim() || assignment.title,
+    description: args.description,
+    language,
+    code: sub.content,
+    isPublic: args.isPublic,
+  });
+}
+
+/**
+ * Flip a Showcase project's visibility on so it lands on the student's
+ * StarHub feed. Owner-only — re-uses the existing showcase helper.
+ */
+export async function addShowcaseToStarhub(
+  projectId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+  const { setProjectPublishedRecord } = await import(
+    "@/lib/showcase-server"
+  );
+  const result = await setProjectPublishedRecord(
+    projectId,
+    user.id,
+    user.role === "teacher",
+    true
+  );
+  if (result.ok) {
+    revalidatePath(`/starhub/${user.username}`);
+    revalidatePath("/showcase");
   }
   return result;
 }
