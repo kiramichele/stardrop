@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CodeEditor } from "@/components/editor/CodeEditor";
 import { CodeRunner } from "@/components/playground/CodeRunner";
-import type { CodeRunMode } from "@/lib/playground";
+import { starterCodeFor, type CodeRunMode } from "@/lib/playground";
 import {
   ensureSubmission,
   saveDraft,
@@ -31,10 +31,14 @@ export function CodeAssignmentEditor({
   initialContent,
   initialStatus,
   initialSubmissionId,
-  starterCode = "// Write your Unity C# code here\n",
+  starterCode,
   codeRunMode = "both",
 }: CodeAssignmentEditorProps) {
-  const [code, setCode] = useState(initialContent || starterCode);
+  // Starter for a brand-new submission: explicit prop wins, otherwise
+  // derive from the run mode (csharp → console boilerplate, anything
+  // else → MonoBehaviour boilerplate).
+  const resolvedStarter = starterCode ?? starterCodeFor("csharp", codeRunMode);
+  const [code, setCode] = useState(initialContent || resolvedStarter);
   const [status, setStatus] = useState(initialStatus);
   const [submissionId, setSubmissionId] = useState<string | null>(
     initialSubmissionId

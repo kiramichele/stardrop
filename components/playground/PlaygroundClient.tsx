@@ -25,6 +25,8 @@ import {
 } from "@/app/playground/actions";
 import {
   PLAYGROUND_LANGUAGES,
+  CSHARP_CONSOLE_STARTER,
+  CSHARP_UNITY_STARTER,
   type PlaygroundProgram,
 } from "@/lib/playground";
 import { CodeRunner } from "./CodeRunner";
@@ -53,14 +55,23 @@ const MONACO_LANG: Record<string, string> = {
   plaintext: "plaintext",
 };
 
-const STARTER_CODE = `using System;
+// Default new-program template: Unity, since this is a Unity class.
+// The "New" button below offers Console / Unity / Blank explicitly.
+const DEFAULT_STARTER = CSHARP_UNITY_STARTER;
 
-class Program {
-  static void Main() {
-    Console.WriteLine("Hello, Stardrop!");
+type NewTemplate = "unity" | "console" | "blank";
+
+function templateCode(kind: NewTemplate): string {
+  switch (kind) {
+    case "console":
+      return CSHARP_CONSOLE_STARTER;
+    case "unity":
+      return CSHARP_UNITY_STARTER;
+    case "blank":
+    default:
+      return "";
   }
 }
-`;
 
 export function PlaygroundClient({
   savedPrograms,
@@ -72,7 +83,7 @@ export function PlaygroundClient({
   currentUserId: string;
 }) {
   const router = useRouter();
-  const codeRef = useRef<string>(initialProgram?.code ?? STARTER_CODE);
+  const codeRef = useRef<string>(initialProgram?.code ?? DEFAULT_STARTER);
 
   const [title, setTitle] = useState(initialProgram?.title ?? "");
   const [language, setLanguage] = useState(
@@ -98,14 +109,17 @@ export function PlaygroundClient({
     codeRef.current = value ?? "";
   }
 
-  function newBlank() {
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+
+  function newFrom(template: NewTemplate) {
     if (!confirm("Start a new program? Unsaved changes will be lost.")) return;
-    codeRef.current = STARTER_CODE;
+    codeRef.current = templateCode(template);
     setTitle("");
     setLanguage("csharp");
     setLoadedProgram(null);
     setError(null);
     setShareCopied(false);
+    setShowTemplatePicker(false);
     router.push("/playground");
   }
 
@@ -344,14 +358,59 @@ export function PlaygroundClient({
             </>
           )}
 
-          <Button
-            variant="ghost"
-            onClick={newBlank}
-            disabled={busy || deleteBusy}
-          >
-            <Plus className="w-4 h-4" strokeWidth={2} />
-            New
-          </Button>
+          <div className="relative">
+            <Button
+              variant="ghost"
+              onClick={() => setShowTemplatePicker((v) => !v)}
+              disabled={busy || deleteBusy}
+            >
+              <Plus className="w-4 h-4" strokeWidth={2} />
+              New
+            </Button>
+            {showTemplatePicker && (
+              <div
+                className="absolute left-0 top-full z-20 mt-1 w-56 rounded-cozy border border-wood-200 bg-cream-50 p-1 shadow-cozy-lg"
+                role="menu"
+              >
+                <button
+                  type="button"
+                  onClick={() => newFrom("unity")}
+                  className="block w-full rounded-[0.4rem] px-3 py-2 text-left text-sm hover:bg-cream-100"
+                >
+                  <span className="block font-medium text-wood-900">
+                    Unity script
+                  </span>
+                  <span className="block text-xs text-wood-500">
+                    MonoBehaviour with Start + Update
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => newFrom("console")}
+                  className="block w-full rounded-[0.4rem] px-3 py-2 text-left text-sm hover:bg-cream-100"
+                >
+                  <span className="block font-medium text-wood-900">
+                    Plain C# console
+                  </span>
+                  <span className="block text-xs text-wood-500">
+                    class Program with Main()
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => newFrom("blank")}
+                  className="block w-full rounded-[0.4rem] px-3 py-2 text-left text-sm hover:bg-cream-100"
+                >
+                  <span className="block font-medium text-wood-900">
+                    Blank
+                  </span>
+                  <span className="block text-xs text-wood-500">
+                    Empty editor
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
 
           {loadedProgram && isOwnedByMe && (
             <Button
