@@ -232,3 +232,33 @@ export async function getLessonNote(
   if (!data) return null;
   return { content: data.body, updated_at: data.updated_at };
 }
+
+// =============================================================
+// Lesson highlights (per-student)
+// =============================================================
+
+export type LessonHighlight = {
+  id: string;
+  start_offset: number;
+  end_offset: number;
+  quote: string;
+  color: string;
+};
+
+/**
+ * Fetch a student's highlights for a lesson, oldest first so later
+ * highlights layer over earlier ones consistently when re-applied.
+ */
+export async function getLessonHighlights(
+  lessonId: string,
+  userId: string
+): Promise<LessonHighlight[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("lesson_highlights")
+    .select("id, start_offset, end_offset, quote, color")
+    .eq("lesson_id", lessonId)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+  return data ?? [];
+}

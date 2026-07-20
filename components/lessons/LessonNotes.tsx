@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Save, Check, AlertCircle, NotebookPen } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Input";
+import { DictationButton, appendDictation } from "@/components/ui/DictationButton";
 import { saveLessonNote } from "@/app/teacher/lessons/actions";
 
 const AUTOSAVE_DEBOUNCE_MS = 1500;
@@ -106,6 +107,10 @@ export function LessonNotes({
         <span className="text-[0.7rem] uppercase tracking-wide-label text-wood-500 font-semibold ml-auto">
           Private to you
         </span>
+        <DictationButton
+          onTranscript={(t) => setContent((prev) => appendDictation(prev, t))}
+          title="Dictate a note"
+        />
       </div>
 
       <Textarea

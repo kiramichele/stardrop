@@ -765,6 +765,54 @@ export type Database = {
           },
         ]
       }
+      lesson_highlights: {
+        Row: {
+          color: string
+          created_at: string | null
+          end_offset: number
+          id: string
+          lesson_id: string
+          quote: string
+          start_offset: number
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string | null
+          end_offset: number
+          id?: string
+          lesson_id: string
+          quote: string
+          start_offset: number
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string | null
+          end_offset?: number
+          id?: string
+          lesson_id?: string
+          quote?: string
+          start_offset?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_highlights_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_highlights_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_notes: {
         Row: {
           body: string

@@ -1,9 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { markLessonComplete } from "@/app/teacher/lessons/actions";
+import {
+  markLessonComplete,
+  addHighlight,
+  removeHighlight,
+} from "@/app/teacher/lessons/actions";
+import type { LessonHighlight } from "@/lib/lessons";
+import { ReadAloudBar, type ReadAloudHandle } from "./ReadAloudBar";
 
 interface LessonViewerProps {
   htmlUrl: string | null;
@@ -14,6 +20,26 @@ interface LessonViewerProps {
    */
   lessonId?: string;
   height?: string;
+  /**
+   * Student reading view: turns on the injected reader script (highlighting
+   * + read-aloud). Requires lessonId. Off for teacher preview / slideshows.
+   */
+  enableReader?: boolean;
+  /** The student's saved highlights, re-applied on load. */
+  highlights?: LessonHighlight[];
+  /** Whether ElevenLabs read-aloud is configured on the server. */
+  ttsEnabled?: boolean;
+}
+
+// Messages we send to the iframe are tagged so the reader script can trust
+// them (alongside a per-load nonce). Replies come back tagged "sd-reader".
+const HOST_SOURCE = "sd-host";
+
+// Module-scope so the impure call isn't in the component render body.
+function makeNonce(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : String(Math.random()).slice(2);
 }
 
 export function LessonViewer({
@@ -21,9 +47,112 @@ export function LessonViewer({
   isCompleted,
   lessonId,
   height = "75vh",
+  enableReader = false,
+  highlights = [],
+  ttsEnabled = false,
 }: LessonViewerProps) {
   const [isPending, startTransition] = useTransition();
   const [done, setDone] = useState(isCompleted);
+
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const audioBarRef = useRef<ReadAloudHandle>(null);
+  // Stable per-mount nonce; lazy init keeps the impure call out of render.
+  const [nonce] = useState(makeNonce);
+  // Latest highlights, read inside the message handler without re-binding it.
+  const highlightsRef = useRef<LessonHighlight[]>(highlights);
+  useEffect(() => {
+    highlightsRef.current = highlights;
+  }, [highlights]);
+
+  const readerOn = enableReader && !!lessonId && !!htmlUrl;
+
+  useEffect(() => {
+    if (!readerOn) return;
+
+    const sendInit = () => {
+      const win = iframeRef.current?.contentWindow;
+      if (!win) return;
+      // Target "*" because the sandboxed iframe is an opaque origin; the
+      // reader script captures our real origin from this message's event
+      // and validates the nonce on every subsequent exchange.
+      win.postMessage(
+        {
+          source: HOST_SOURCE,
+          type: "reader:init",
+          nonce,
+          ttsEnabled,
+          highlights: highlightsRef.current,
+        },
+        "*"
+      );
+    };
+
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== iframeRef.current?.contentWindow) return;
+      const data = e.data;
+      if (!data || data.source !== "sd-reader") return;
+
+      // The script announces itself once loaded; (re)send init.
+      if (data.type === "reader:ready") {
+        sendInit();
+        return;
+      }
+      if (data.nonce !== nonce) return;
+
+      if (data.type === "highlight:add") {
+        const { tempId, startOffset, endOffset, quote, color } = data;
+        startTransition(async () => {
+          const result = await addHighlight({
+            lessonId: lessonId!,
+            startOffset,
+            endOffset,
+            quote,
+            color,
+          });
+          const win = iframeRef.current?.contentWindow;
+          if (!win) return;
+          if (result.ok) {
+            win.postMessage(
+              {
+                source: HOST_SOURCE,
+                type: "highlight:added",
+                nonce,
+                tempId,
+                id: result.id,
+              },
+              "*"
+            );
+          } else {
+            win.postMessage(
+              {
+                source: HOST_SOURCE,
+                type: "highlight:rejected",
+                nonce,
+                tempId,
+              },
+              "*"
+            );
+          }
+        });
+      } else if (data.type === "highlight:remove") {
+        const id = data.id;
+        if (typeof id === "string" && !id.startsWith("tmp-")) {
+          startTransition(async () => {
+            await removeHighlight(id);
+          });
+        }
+      } else if (data.type === "tts:speak") {
+        if (ttsEnabled && typeof data.text === "string") {
+          audioBarRef.current?.playText(data.text);
+        }
+      }
+    };
+
+    window.addEventListener("message", onMessage);
+    // Fallback in case the iframe loaded before this effect attached.
+    sendInit();
+    return () => window.removeEventListener("message", onMessage);
+  }, [readerOn, lessonId, ttsEnabled, nonce]);
 
   if (!htmlUrl) {
     return (
@@ -36,11 +165,34 @@ export function LessonViewer({
     );
   }
 
+  const iframeSrc = readerOn
+    ? `${htmlUrl}${htmlUrl.includes("?") ? "&" : "?"}reader=1`
+    : htmlUrl;
+
   return (
     <div className="space-y-4 animate-fade-in">
+      {readerOn && ttsEnabled && lessonId && (
+        <ReadAloudBar ref={audioBarRef} lessonId={lessonId} />
+      )}
+
       <div className="bg-white rounded-cozy-lg shadow-cozy border border-wood-100 overflow-hidden">
         <iframe
-          src={htmlUrl}
+          ref={iframeRef}
+          src={iframeSrc}
+          onLoad={() => {
+            if (!readerOn) return;
+            // Kick off init once the document (and reader script) exist.
+            iframeRef.current?.contentWindow?.postMessage(
+              {
+                source: HOST_SOURCE,
+                type: "reader:init",
+                nonce,
+                ttsEnabled,
+                highlights: highlightsRef.current,
+              },
+              "*"
+            );
+          }}
           // allow-scripts so interactive lessons work; intentionally no
           // allow-same-origin — the proxy URL is same-origin as Stardrop,
           // and allow-same-origin + allow-scripts together would defeat
@@ -51,6 +203,14 @@ export function LessonViewer({
           title="Lesson content"
         />
       </div>
+
+      {readerOn && (
+        <p className="text-xs text-wood-500">
+          Select any text in the lesson to highlight it
+          {ttsEnabled ? " or have it read aloud" : ""}. Click a highlight to
+          remove it.
+        </p>
+      )}
 
       {lessonId && (
         <div className="flex items-center justify-end gap-3">

@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getLessonNote } from "@/lib/lessons";
+import { getLessonNote, getLessonHighlights } from "@/lib/lessons";
+import { isTtsConfigured } from "@/lib/tts";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { LessonViewer } from "@/components/lessons/LessonViewer";
 import { LessonNotes } from "@/components/lessons/LessonNotes";
@@ -45,6 +46,10 @@ export default async function StudentLessonPage({
   // The current student's note for this lesson (null if they haven't written anything yet)
   const note = await getLessonNote(lessonId, user.id);
 
+  // The current student's saved highlights, re-applied inside the lesson iframe.
+  const highlights = await getLessonHighlights(lessonId, user.id);
+  const ttsEnabled = isTtsConfigured();
+
   return (
     <>
       <Link
@@ -66,6 +71,9 @@ export default async function StudentLessonPage({
             lessonId={lesson.id}
             htmlUrl={lesson.html_url}
             isCompleted={!!completion}
+            enableReader
+            highlights={highlights}
+            ttsEnabled={ttsEnabled}
           />
         </div>
 

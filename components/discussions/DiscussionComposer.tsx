@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
+import { DictationButton, appendDictation } from "@/components/ui/DictationButton";
 import { createPost } from "@/app/discussions/actions";
 
 interface DiscussionComposerProps {
@@ -244,6 +245,10 @@ export function DiscussionComposer({
             Record screen
           </Button>
         )}
+        <DictationButton
+          onTranscript={(t) => setBody((prev) => appendDictation(prev, t))}
+          title="Dictate your post"
+        />
         <div className="flex-1" />
         <Button
           type="button"

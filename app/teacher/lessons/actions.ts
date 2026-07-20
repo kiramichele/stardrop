@@ -313,3 +313,77 @@ export async function saveLessonNote(lessonId: string, content: string) {
   revalidatePath(`/student/lessons/${lessonId}`);
   return { ok: true };
 }
+
+// =============================================================
+// Student: lesson highlights
+// A student selects text in the lesson and marks it in a color; the
+// highlight is anchored by character offsets into the lesson body's text
+// content and re-applied on return. Owner-scoped RLS means the session
+// client only ever touches the student's own rows.
+// =============================================================
+
+// Not exported: a "use server" module may only export async functions.
+const HIGHLIGHT_COLORS = ["yellow", "green", "pink", "blue"] as const;
+type HighlightColor = (typeof HIGHLIGHT_COLORS)[number];
+
+export async function addHighlight(input: {
+  lessonId: string;
+  startOffset: number;
+  endOffset: number;
+  quote: string;
+  color: string;
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const user = await requireStudent();
+
+  const color: HighlightColor = HIGHLIGHT_COLORS.includes(
+    input.color as HighlightColor
+  )
+    ? (input.color as HighlightColor)
+    : "yellow";
+  const start = Math.floor(input.startOffset);
+  const end = Math.floor(input.endOffset);
+  const quote = input.quote.trim();
+
+  if (
+    !Number.isFinite(start) ||
+    !Number.isFinite(end) ||
+    start < 0 ||
+    end <= start ||
+    !quote
+  ) {
+    return { ok: false, error: "Invalid highlight range" };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("lesson_highlights")
+    .insert({
+      user_id: user.id,
+      lesson_id: input.lessonId,
+      start_offset: start,
+      end_offset: end,
+      quote,
+      color,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    return { ok: false, error: error?.message ?? "Failed to save highlight" };
+  }
+  return { ok: true, id: data.id };
+}
+
+export async function removeHighlight(
+  highlightId: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireStudent();
+  const supabase = await createClient();
+  // RLS scopes the delete to the current student's own rows.
+  const { error } = await supabase
+    .from("lesson_highlights")
+    .delete()
+    .eq("id", highlightId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

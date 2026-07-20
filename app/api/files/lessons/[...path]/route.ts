@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { READER_SNIPPET } from "@/lib/lesson-reader";
 
 /**
  * Proxy route for HTML files in the `lessons` Supabase Storage bucket.
@@ -16,7 +17,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
  *   /api/files/lessons/assignments/x.html -> storage path "assignments/x.html"
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
   const { path } = await params;
@@ -41,7 +42,18 @@ export async function GET(
     return new NextResponse("File not found", { status: 404 });
   }
 
-  const html = await data.text();
+  let html = await data.text();
+
+  // Student reading view (LessonViewer adds ?reader=1): inject the trusted
+  // reader snippet so the sandboxed iframe can offer highlighting and
+  // read-aloud-selection. Teacher preview / raw fetches omit the flag and
+  // get the file untouched. The snippet only talks to the parent via a
+  // nonce-validated postMessage channel — no allow-same-origin is granted.
+  if (request.nextUrl.searchParams.get("reader") === "1") {
+    html = /<\/body>/i.test(html)
+      ? html.replace(/<\/body>/i, `${READER_SNIPPET}</body>`)
+      : html + READER_SNIPPET;
+  }
 
   return new NextResponse(html, {
     status: 200,

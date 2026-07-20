@@ -5,6 +5,7 @@ import { Save, Send, Check, AlertCircle, Lock, AlertTriangle } from "lucide-reac
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Textarea } from "@/components/ui/Input";
+import { DictationButton, appendDictation } from "@/components/ui/DictationButton";
 import {
   ensureSubmission,
   saveDraft,
@@ -174,6 +175,12 @@ export function TextAssignmentEditor({
 
       {/* Word / character counter */}
       <div className="flex items-center justify-between text-sm">
+        {!isLocked && (
+          <DictationButton
+            onTranscript={(t) => setText((prev) => appendDictation(prev, t))}
+            title="Dictate your answer"
+          />
+        )}
         <p className={wordCountColor}>
           <span className="font-display text-base">{wordCount}</span>{" "}
           {wordCount === 1 ? "word" : "words"}

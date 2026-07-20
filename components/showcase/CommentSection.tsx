@@ -6,6 +6,7 @@ import { CornerDownRight, Send, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Input";
+import { DictationButton, appendDictation } from "@/components/ui/DictationButton";
 import {
   authorName,
   formatShowcaseDate,
@@ -121,7 +122,7 @@ function CommentComposer({
       {error && (
         <p className="mt-1 text-xs text-terracotta-800">{error}</p>
       )}
-      <div className="mt-2">
+      <div className="mt-2 flex items-center gap-2">
         <Button
           size="sm"
           onClick={submit}
@@ -130,6 +131,10 @@ function CommentComposer({
           <Send className="h-3.5 w-3.5" />
           {pending ? "Posting…" : parentId ? "Reply" : "Post feedback"}
         </Button>
+        <DictationButton
+          onTranscript={(t) => setBody((prev) => appendDictation(prev, t))}
+          title="Dictate your feedback"
+        />
       </div>
     </div>
   );

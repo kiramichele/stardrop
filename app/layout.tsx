@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { isSttConfigured } from "@/lib/tts";
+import { DictationProvider } from "@/components/ui/DictationContext";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -28,7 +30,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${fraunces.variable} ${jakarta.variable}`}>
       <body className="font-sans antialiased text-wood-900 bg-cream-100">
-        <div className="min-h-screen bg-paper bg-repeat">{children}</div>
+        <DictationProvider enabled={isSttConfigured()}>
+          <div className="min-h-screen bg-paper bg-repeat">{children}</div>
+        </DictationProvider>
       </body>
     </html>
   );
