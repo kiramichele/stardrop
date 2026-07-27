@@ -96,20 +96,49 @@ export async function clearGradebookTemplate(): Promise<void> {
   revalidatePath("/teacher/students");
 }
 
-/** Update a student's SIS id and extended-time accommodation tier. */
+/**
+ * Update a student's editable profile: name (set the first name to a
+ * preferred/"goes by" name here), email, SIS id, and extended-time tier.
+ *
+ * The name shown across Stardrop reads from first_name/last_name, so editing
+ * them here changes it everywhere. This does NOT touch the sign-in username or
+ * the fake auth email — only the real_email used for notifications.
+ */
 export async function updateStudentDetails(
   studentId: string,
   formData: FormData
-): Promise<void> {
+): Promise<{ ok: boolean; error?: string }> {
   await requireTeacher();
+
+  const firstName = (formData.get("first_name") ?? "").toString().trim();
+  const lastName = (formData.get("last_name") ?? "").toString().trim();
+  const email = (formData.get("real_email") ?? "").toString().trim();
   const rawId = (formData.get("student_id") ?? "").toString().trim();
   const extendedTime = asExtendedTime(formData.get("extended_time"));
+
+  if (!firstName || !lastName) {
+    return { ok: false, error: "First and last name are required." };
+  }
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { ok: false, error: "That email address doesn't look right." };
+  }
+
   const admin = createAdminClient();
-  await admin
+  const { error } = await admin
     .from("users")
-    .update({ student_id: rawId || null, extended_time: extendedTime })
+    .update({
+      first_name: firstName,
+      last_name: lastName,
+      real_email: email || null,
+      student_id: rawId || null,
+      extended_time: extendedTime,
+    })
     .eq("id", studentId);
+  if (error) return { ok: false, error: error.message };
+
   revalidatePath(`/teacher/students/${studentId}`);
+  revalidatePath("/teacher/students");
+  return { ok: true };
 }
 
 const MAX_NOTE_LENGTH = 1000;

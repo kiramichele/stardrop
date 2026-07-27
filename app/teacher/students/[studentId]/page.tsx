@@ -3,21 +3,14 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, ClipboardList } from "lucide-react";
 import { requireTeacher } from "@/lib/auth";
 import { getStudentOverview, getStudentNotes } from "@/lib/students-server";
-import {
-  letterGrade,
-  EXTENDED_TIME_VALUES,
-  EXTENDED_TIME_LABELS,
-  type AssignmentType,
-} from "@/lib/assignments";
+import { letterGrade, type AssignmentType } from "@/lib/assignments";
 import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
-import { Button } from "@/components/ui/Button";
-import { Input, Label, Select } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 import { ExcuseToggle } from "@/components/students/ExcuseToggle";
 import { StudentNotes } from "@/components/students/StudentNotes";
-import { updateStudentDetails } from "../actions";
+import { EditStudentForm } from "@/components/students/EditStudentForm";
 
 export default async function StudentOverviewPage({
   params,
@@ -112,46 +105,16 @@ export default async function StudentOverviewPage({
             </div>
 
             <div className="mt-4 pt-4 border-t border-wood-100">
-              <form
-                action={updateStudentDetails.bind(null, student.id)}
-                className="flex flex-wrap items-end gap-3"
-              >
-                <div className="w-40">
-                  <Label htmlFor="student_id" className="text-xs">
-                    Student ID
-                  </Label>
-                  <Input
-                    id="student_id"
-                    name="student_id"
-                    type="text"
-                    defaultValue={student.student_id ?? ""}
-                    placeholder="Not set"
-                  />
-                </div>
-                <div className="w-48">
-                  <Label htmlFor="extended_time" className="text-xs">
-                    Extended time
-                  </Label>
-                  <Select
-                    id="extended_time"
-                    name="extended_time"
-                    defaultValue={student.extended_time}
-                  >
-                    {EXTENDED_TIME_VALUES.map((v) => (
-                      <option key={v} value={v}>
-                        {EXTENDED_TIME_LABELS[v]}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <Button type="submit" size="sm" variant="secondary">
-                  Save
-                </Button>
-              </form>
-              <p className="text-xs text-wood-400 mt-1.5">
-                Student ID matches the Canvas gradebook export. Extended time
-                sets which due date this student gets on every assignment.
-              </p>
+              <EditStudentForm
+                studentId={student.id}
+                initial={{
+                  firstName: student.first_name,
+                  lastName: student.last_name,
+                  email: student.real_email,
+                  studentIdNumber: student.student_id,
+                  extendedTime: student.extended_time,
+                }}
+              />
             </div>
           </div>
         </div>
