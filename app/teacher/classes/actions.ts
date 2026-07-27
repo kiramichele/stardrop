@@ -175,6 +175,126 @@ export async function resetStudentPassword(
   return { ok: true, password: newPassword, emailed };
 }
 
+// =============================================================
+// Bulk login export (for handing out / emailing sign-in info)
+// =============================================================
+
+/** RFC-4180-ish CSV field escaping: quote when it contains , " or newline. */
+function csvField(value: string): string {
+  if (/[",\n\r]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+/**
+ * Export a class roster's sign-in info as CSV.
+ *
+ * Existing passwords can't be read back (Supabase stores them hashed), so
+ * for any student who has never signed in we set a fresh password and put it
+ * in the file. Students who have already signed in keep their current
+ * password and appear with a blank password cell — they don't need a new one.
+ *
+ * Nothing is emailed here; the teacher hands out / mail-merges the CSV.
+ */
+export async function exportClassLogins(classId: string): Promise<
+  | {
+      ok: true;
+      csv: string;
+      className: string;
+      resetCount: number;
+      activeCount: number;
+      failed: string[];
+    }
+  | { ok: false; error: string }
+> {
+  await requireTeacher();
+  const admin = createAdminClient();
+
+  const { data: klass } = await admin
+    .from("classes")
+    .select("name")
+    .eq("id", classId)
+    .single();
+  if (!klass) return { ok: false, error: "Class not found" };
+
+  const { data: enrollments } = await admin
+    .from("enrollments")
+    .select("users(id, first_name, last_name, username, role)")
+    .eq("class_id", classId);
+
+  const students = (enrollments ?? [])
+    .map((e) => (Array.isArray(e.users) ? e.users[0] : e.users))
+    .filter(
+      (u): u is {
+        id: string;
+        first_name: string;
+        last_name: string;
+        username: string;
+        role: string;
+      } => !!u && u.role === "student"
+    )
+    .sort((a, b) => {
+      const ln = (a.last_name || "").localeCompare(b.last_name || "");
+      return ln !== 0 ? ln : (a.first_name || "").localeCompare(b.first_name || "");
+    });
+
+  if (students.length === 0) {
+    return { ok: false, error: "This class has no students yet." };
+  }
+
+  // Map every auth user's id -> whether they've ever signed in.
+  const signedIn = new Set<string>();
+  for (let page = 1; ; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({
+      page,
+      perPage: 1000,
+    });
+    if (error || !data) break;
+    for (const u of data.users) {
+      if (u.last_sign_in_at) signedIn.add(u.id);
+    }
+    if (data.users.length < 1000) break;
+  }
+
+  let resetCount = 0;
+  let activeCount = 0;
+  const failed: string[] = [];
+  const lines = ["first_name,last_name,username,password"];
+
+  for (const s of students) {
+    let password = "";
+    if (signedIn.has(s.id)) {
+      activeCount += 1;
+    } else {
+      const newPassword = generatePassword();
+      const { error } = await admin.auth.admin.updateUserById(s.id, {
+        password: newPassword,
+      });
+      if (error) {
+        failed.push(`${s.first_name} ${s.last_name}`.trim());
+      } else {
+        password = newPassword;
+        resetCount += 1;
+      }
+    }
+    lines.push(
+      [s.first_name, s.last_name, s.username, password]
+        .map((v) => csvField(v ?? ""))
+        .join(",")
+    );
+  }
+
+  return {
+    ok: true,
+    csv: lines.join("\n") + "\n",
+    className: klass.name,
+    resetCount,
+    activeCount,
+    failed,
+  };
+}
+
 /**
  * Teacher removes a student's profile photo (moderation).
  */

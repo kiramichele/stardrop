@@ -11,6 +11,7 @@ import { Input, Label, Select } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ClassColorDot } from "@/components/ui/ClassColorDot";
 import { ClassColorPicker } from "@/components/classes/ClassColorPicker";
+import { ExportLoginsButton } from "@/components/classes/ExportLoginsButton";
 import { updateClass, deleteClass } from "../actions";
 import { StudentRow } from "./StudentRow";
 
@@ -179,6 +180,20 @@ export default async function ClassDetailPage({
             </p>
             <ClassColorPicker classId={classId} current={classColor} />
           </Card>
+
+          {students.length > 0 && (
+            <Card>
+              <h3 className="font-display text-lg text-wood-900 mb-1">
+                Student logins
+              </h3>
+              <p className="text-xs text-wood-500 mb-3">
+                Download a spreadsheet of usernames and passwords to hand out or
+                email. Students who haven&apos;t signed in yet get a fresh
+                password; those already signed in keep theirs (shown blank).
+              </p>
+              <ExportLoginsButton classId={classId} />
+            </Card>
+          )}
 
           <Card className="border-terracotta-200 bg-terracotta-50/50">
             <h3 className="font-display text-base text-terracotta-900 mb-1">
