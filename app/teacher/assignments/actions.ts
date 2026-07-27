@@ -37,7 +37,16 @@ function parseDate(raw: string | undefined): string | null {
 export async function createAssignment(formData: FormData) {
   await requireTeacher();
 
-  const classId = formData.get("class_id")?.toString();
+  // The create form now offers multiple classes (checkboxes named
+  // "class_ids"); fall back to the legacy single "class_id" field.
+  const classIds = formData.getAll("class_ids").map(String).filter(Boolean);
+  const legacyClassId = formData.get("class_id")?.toString();
+  const targetClassIds =
+    classIds.length > 0
+      ? classIds
+      : legacyClassId
+        ? [legacyClassId]
+        : [];
   const title = formData.get("title")?.toString().trim();
   const type = formData.get("type")?.toString() as AssignmentType;
   const instructions = formData.get("instructions")?.toString().trim() || null;
@@ -49,7 +58,7 @@ export async function createAssignment(formData: FormData) {
   const rubricIdRaw = formData.get("rubric_id")?.toString();
   const rubricId = rubricIdRaw && rubricIdRaw !== "" ? rubricIdRaw : null;
 
-  if (!classId) throw new Error("Class required");
+  if (targetClassIds.length === 0) throw new Error("Pick at least one class");
   if (!title) throw new Error("Title required");
   if (!VALID_TYPES.includes(type)) throw new Error("Invalid assignment type");
 
@@ -69,44 +78,53 @@ export async function createAssignment(formData: FormData) {
     ? codeRunModeRaw
     : "unity";
 
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("assignments")
-    .insert({
-      class_id: classId,
-      lesson_id: lessonId,
-      is_unit_quiz: isUnitQuiz,
-      title,
-      // Cast: "devlog" isn't in the regenerated enum until the matching
-      // migration is applied + types regen runs.
-      type: type as unknown as "code",
-      instructions,
-      due_date: dueDate,
-      due_date_1_5x: dueDate1_5x,
-      due_date_2x: dueDate2x,
-      points,
-      minimum_word_count: minimumWordCount,
-      rubric_id: rubricId,
-      // Cast: columns not in regen'd types until the matching migration lands.
-      auto_publish_to_starhub: autoPublishToStarhub,
-      code_run_mode: codeRunMode,
-    } as never)
-    .select("id")
-    .single();
-  if (error || !data) throw new Error(error?.message ?? "Failed to create");
+  // One assignment given to several classes is stored as one copy per class,
+  // all sharing an assignment_group_id so the board can show them as a single
+  // row and bulk actions hit every copy together.
+  const groupId = crypto.randomUUID();
 
-  // Optional HTML prompt — uploaded right here so the user doesn't have
-  // to save then upload as a second step. Only the assignment types that
-  // render the prompt iframe (interactive_html, devlog, video_response)
+  const supabase = await createClient();
+  const createdIds: string[] = [];
+  for (const classId of targetClassIds) {
+    const { data, error } = await supabase
+      .from("assignments")
+      .insert({
+        class_id: classId,
+        assignment_group_id: groupId,
+        lesson_id: lessonId,
+        is_unit_quiz: isUnitQuiz,
+        title,
+        // Cast: "devlog" isn't in the regenerated enum until the matching
+        // migration is applied + types regen runs.
+        type: type as unknown as "code",
+        instructions,
+        due_date: dueDate,
+        due_date_1_5x: dueDate1_5x,
+        due_date_2x: dueDate2x,
+        points,
+        minimum_word_count: minimumWordCount,
+        rubric_id: rubricId,
+        // Cast: columns not in regen'd types until the matching migration lands.
+        auto_publish_to_starhub: autoPublishToStarhub,
+        code_run_mode: codeRunMode,
+      } as never)
+      .select("id")
+      .single();
+    if (error || !data) throw new Error(error?.message ?? "Failed to create");
+    createdIds.push(data.id);
+  }
+
+  // Optional HTML prompt — uploaded right here so the user doesn't have to
+  // save then upload as a second step. Each copy gets its own file so they
+  // stay independent. Only interactive_html / devlog / video_response
   // actually surface it to students.
   const htmlFile = formData.get("html_file");
   if (htmlFile instanceof File && htmlFile.size > 0) {
     try {
-      await uploadAssignmentHtml(data.id, htmlFile);
+      for (const id of createdIds) {
+        await uploadAssignmentHtml(id, htmlFile);
+      }
     } catch (err) {
-      // Don't fail assignment creation if the upload hiccups — surface
-      // an error message but keep the new assignment intact. The
-      // teacher can re-upload from the detail page.
       throw new Error(
         err instanceof Error
           ? `Assignment saved, but HTML upload failed: ${err.message}`
@@ -116,7 +134,12 @@ export async function createAssignment(formData: FormData) {
   }
 
   revalidatePath("/teacher/assignments");
-  redirect(`/teacher/assignments/${data.id}`);
+  // Straight to the detail page when it went to one class; otherwise back to
+  // the board where the new grouped row shows all its classes.
+  if (createdIds.length === 1) {
+    redirect(`/teacher/assignments/${createdIds[0]}`);
+  }
+  redirect("/teacher/assignments");
 }
 
 export async function updateAssignment(
@@ -275,6 +298,17 @@ export async function copyAssignmentToClasses(
     return { ok: false, error: "Could not load the assignment to copy." };
   }
 
+  // Keep every copy (and the source) in one group so the board shows them as
+  // a single row. Reuse the source's group if it already has one.
+  let groupId = src.assignment_group_id as string | null;
+  if (!groupId) {
+    groupId = crypto.randomUUID();
+    await supabase
+      .from("assignments")
+      .update({ assignment_group_id: groupId })
+      .eq("id", assignmentId);
+  }
+
   const admin = createAdminClient();
   let count = 0;
   let lastError = "";
@@ -284,6 +318,7 @@ export async function copyAssignmentToClasses(
       .from("assignments")
       .insert({
         class_id: classId,
+        assignment_group_id: groupId,
         lesson_id: src.lesson_id,
         is_unit_quiz: src.is_unit_quiz,
         title: src.title,

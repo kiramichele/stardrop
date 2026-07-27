@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import {
   TeacherAssignmentBoard,
   type BoardGroup,
+  type BoardAssignment,
 } from "@/components/assignments/TeacherAssignmentBoard";
 
 export default async function TeacherAssignmentsPage() {
@@ -17,6 +18,58 @@ export default async function TeacherAssignmentsPage() {
     getAssignmentsForTeacher(),
     getUnitsForTeacher(),
   ]);
+
+  // Collapse the per-class copies of one assignment into a single board row.
+  // Copies created together share an assignment_group_id; older copies (no id
+  // yet) fall back to grouping by title/type/lesson so they still collapse.
+  function collapseCopies(rows: typeof assignments): BoardAssignment[] {
+    const map = new Map<string, BoardAssignment>();
+    for (const a of rows) {
+      const klass = Array.isArray(a.classes) ? a.classes[0] : a.classes;
+      const subCount =
+        Array.isArray(a.submissions) && a.submissions[0]
+          ? a.submissions[0].count
+          : 0;
+      const key =
+        a.assignment_group_id ??
+        `t:${a.title}|${a.type}|${a.lesson_id ?? ""}|${a.is_unit_quiz}`;
+      let entry = map.get(key);
+      if (!entry) {
+        entry = {
+          key,
+          title: a.title,
+          type: a.type,
+          dueDate: a.due_date,
+          points: a.points,
+          ids: [],
+          primaryId: a.id,
+          classes: [],
+          submissionCount: 0,
+          publishedCount: 0,
+        };
+        map.set(key, entry);
+      }
+      entry.ids.push(a.id);
+      entry.classes.push({
+        id: a.id,
+        className: klass?.name ?? "Unknown class",
+        periodNumber: klass?.period_number ?? null,
+        published: a.published,
+        submissionCount: subCount,
+      });
+      entry.submissionCount += subCount;
+      if (a.published) entry.publishedCount += 1;
+    }
+    const result = [...map.values()];
+    for (const e of result) {
+      e.classes.sort((x, y) => {
+        const px = x.periodNumber ?? 99;
+        const py = y.periodNumber ?? 99;
+        return px !== py ? px - py : x.className.localeCompare(y.className);
+      });
+    }
+    return result;
+  }
 
   const groups = groupAssignmentsByUnit(assignments, units);
   const boardGroups: BoardGroup[] = groups.map((g) => ({
@@ -26,23 +79,7 @@ export default async function TeacherAssignmentsPage() {
       key: lg.key,
       title: lg.title,
       isUnitQuiz: lg.isUnitQuiz,
-      assignments: lg.assignments.map((a) => {
-        const klass = Array.isArray(a.classes) ? a.classes[0] : a.classes;
-        const subCount =
-          Array.isArray(a.submissions) && a.submissions[0]
-            ? a.submissions[0].count
-            : 0;
-        return {
-          id: a.id,
-          title: a.title,
-          type: a.type,
-          published: a.published,
-          dueDate: a.due_date,
-          points: a.points,
-          className: klass?.name ?? "Unknown class",
-          submissionCount: subCount,
-        };
-      }),
+      assignments: collapseCopies(lg.assignments),
     })),
   }));
 

@@ -19,7 +19,7 @@ import {
 // =============================================================
 const SELECTS = {
   teacherAssignmentsList:
-    "id, class_id, lesson_id, is_unit_quiz, title, type, due_date, points, published, interactive_html_url, created_at, submissions(count), classes(name, period_number)",
+    "id, class_id, assignment_group_id, lesson_id, is_unit_quiz, title, type, due_date, points, published, interactive_html_url, created_at, submissions(count), classes(name, period_number)",
   assignmentWithClass: "*, classes(id, name, period_number)",
   submissionsList:
     "id, user_id, status, submitted_at, updated_at, users(first_name, last_name, username, extended_time), grades(score, graded_at)",

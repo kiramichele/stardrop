@@ -60,18 +60,31 @@ export default async function NewAssignmentPage() {
       <Card className="max-w-2xl">
         <form action={createAssignment} className="space-y-5">
           <div>
-            <Label htmlFor="class_id">Class</Label>
-            <Select id="class_id" name="class_id" required defaultValue="">
-              <option value="" disabled>
-                Pick a class…
-              </option>
+            <Label>Classes</Label>
+            <div className="rounded-cozy border border-wood-200 bg-white divide-y divide-wood-100">
               {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                  {c.period_number ? ` (Period ${c.period_number})` : ""}
-                </option>
+                <label
+                  key={c.id}
+                  className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-cream-100"
+                >
+                  <input
+                    type="checkbox"
+                    name="class_ids"
+                    value={c.id}
+                    defaultChecked
+                    className="w-4 h-4 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400 flex-shrink-0"
+                  />
+                  <span className="text-wood-800">
+                    {c.name}
+                    {c.period_number ? ` · Period ${c.period_number}` : ""}
+                  </span>
+                </label>
               ))}
-            </Select>
+            </div>
+            <FieldHint>
+              Assigned to every class by default — uncheck any you want to skip.
+              One assignment, shown as a single row for all its classes.
+            </FieldHint>
           </div>
 
           <div>

@@ -130,6 +130,7 @@ export type Database = {
       }
       assignments: {
         Row: {
+          assignment_group_id: string | null
           class_id: string
           created_at: string | null
           due_date: string | null
@@ -149,6 +150,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          assignment_group_id?: string | null
           class_id: string
           created_at?: string | null
           due_date?: string | null
@@ -168,6 +170,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          assignment_group_id?: string | null
           class_id?: string
           created_at?: string | null
           due_date?: string | null

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeOff, X, GraduationCap, Trash2 } from "lucide-react";
+import { Eye, EyeOff, X, GraduationCap, Trash2 } from "lucide-react";
 import { type AssignmentType } from "@/lib/assignments";
 import { Card } from "@/components/ui/Card";
 import { ConfirmTypedDelete } from "@/components/ui/ConfirmTypedDelete";
@@ -16,15 +16,27 @@ import {
   bulkDeleteAssignments,
 } from "@/app/teacher/assignments/actions";
 
-export type BoardAssignment = {
+export type BoardClassCopy = {
   id: string;
+  className: string;
+  periodNumber: number | null;
+  published: boolean;
+  submissionCount: number;
+};
+
+export type BoardAssignment = {
+  key: string;
   title: string;
   type: string;
-  published: boolean;
   dueDate: string | null;
   points: number;
-  className: string;
+  /** Every per-class copy id — used for selection + bulk actions. */
+  ids: string[];
+  /** Which copy the title links to. */
+  primaryId: string;
+  classes: BoardClassCopy[];
   submissionCount: number;
+  publishedCount: number;
 };
 
 export type BoardLessonGroup = {
@@ -48,16 +60,6 @@ export function TeacherAssignmentBoard({ groups }: { groups: BoardGroup[] }) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deletePending, deleteStart] = useTransition();
-
-  function toggle(id: string) {
-    setError(null);
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
 
   function toggleSet(ids: string[]) {
     if (ids.length === 0) return;
@@ -107,7 +109,7 @@ export function TeacherAssignmentBoard({ groups }: { groups: BoardGroup[] }) {
       <div className="space-y-7 pb-24">
         {groups.map((g) => {
           const unitIds = g.lessonGroups.flatMap((lg) =>
-            lg.assignments.map((a) => a.id)
+            lg.assignments.flatMap((a) => a.ids)
           );
           const unitAllSelected =
             unitIds.length > 0 && unitIds.every((id) => selected.has(id));
@@ -130,7 +132,7 @@ export function TeacherAssignmentBoard({ groups }: { groups: BoardGroup[] }) {
 
               <Card padded={false} className="overflow-hidden">
                 {g.lessonGroups.map((lg, i) => {
-                  const lessonIds = lg.assignments.map((a) => a.id);
+                  const lessonIds = lg.assignments.flatMap((a) => a.ids);
                   const lessonAllSelected = lessonIds.every((id) =>
                     selected.has(id)
                   );
@@ -173,58 +175,98 @@ export function TeacherAssignmentBoard({ groups }: { groups: BoardGroup[] }) {
 
                       <ul className="divide-y divide-wood-100">
                         {lg.assignments.map((a) => {
-                          const isSel = selected.has(a.id);
+                          const isSel =
+                            a.ids.length > 0 &&
+                            a.ids.every((id) => selected.has(id));
+                          const classCount = a.classes.length;
                           return (
                             <li
-                              key={a.id}
+                              key={a.key}
                               className={[
-                                "flex items-center gap-1 p-1.5 transition-colors",
+                                "flex items-start gap-1 p-1.5 transition-colors",
                                 isSel ? "bg-terracotta-50" : "",
                               ].join(" ")}
                             >
-                              <label className="flex items-center self-stretch pl-2.5 pr-1 cursor-pointer">
+                              <label className="flex items-center self-stretch pl-2.5 pr-1 cursor-pointer pt-3">
                                 <input
                                   type="checkbox"
                                   checked={isSel}
-                                  onChange={() => toggle(a.id)}
+                                  onChange={() => toggleSet(a.ids)}
+                                  aria-label={`Select ${a.title}`}
                                   className="w-4 h-4 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
                                 />
                               </label>
-                              <Link
-                                href={`/teacher/assignments/${a.id}`}
-                                className="group flex-1 min-w-0 flex items-center gap-4 px-3 py-3 rounded-cozy hover:bg-cream-200 transition-colors"
-                              >
+                              <div className="flex-1 min-w-0 flex items-start gap-4 px-3 py-3">
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-3 mb-1">
-                                    <p className="font-medium text-wood-900 truncate">
+                                  <div className="flex items-center gap-3 mb-1 flex-wrap">
+                                    <Link
+                                      href={`/teacher/assignments/${a.primaryId}`}
+                                      className="font-medium text-wood-900 truncate hover:text-terracotta-700 transition-colors"
+                                    >
                                       {a.title}
-                                    </p>
+                                    </Link>
                                     <AssignmentTypeBadge
                                       type={a.type as AssignmentType}
                                     />
-                                    <PublishBadge published={a.published} />
+                                    {a.publishedCount === classCount ? (
+                                      <PublishBadge published />
+                                    ) : a.publishedCount === 0 ? (
+                                      <PublishBadge published={false} />
+                                    ) : (
+                                      <span className="inline-flex items-center rounded-full bg-honey-100 text-honey-800 text-[0.65rem] font-semibold px-2 py-0.5 uppercase tracking-wide-label">
+                                        {a.publishedCount}/{classCount} published
+                                      </span>
+                                    )}
                                   </div>
-                                  <p className="text-xs text-wood-500">
-                                    {a.className}
-                                    {a.dueDate &&
-                                      ` · due ${new Date(
-                                        a.dueDate
-                                      ).toLocaleDateString()}`}
-                                    {a.points ? ` · ${a.points} pts` : ""}
-                                  </p>
+                                  {(a.dueDate || a.points) && (
+                                    <p className="text-xs text-wood-500 mb-1.5">
+                                      {a.dueDate
+                                        ? `Due ${new Date(
+                                            a.dueDate
+                                          ).toLocaleDateString()}`
+                                        : ""}
+                                      {a.dueDate && a.points ? " · " : ""}
+                                      {a.points ? `${a.points} pts` : ""}
+                                    </p>
+                                  )}
+                                  {/* One chip per class — click to grade that
+                                      class's copy. */}
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {a.classes.map((c) => (
+                                      <Link
+                                        key={c.id}
+                                        href={`/teacher/assignments/${c.id}`}
+                                        className={[
+                                          "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs transition-colors",
+                                          c.published
+                                            ? "border-wood-200 bg-cream-100 text-wood-700 hover:bg-cream-200"
+                                            : "border-dashed border-wood-300 bg-cream-50 text-wood-500 hover:bg-cream-100",
+                                        ].join(" ")}
+                                        title={
+                                          c.published
+                                            ? `${c.className} — published`
+                                            : `${c.className} — draft`
+                                        }
+                                      >
+                                        <span className="truncate max-w-[9rem]">
+                                          {c.className}
+                                        </span>
+                                        <span className="font-semibold text-terracotta-700">
+                                          {c.submissionCount}
+                                        </span>
+                                      </Link>
+                                    ))}
+                                  </div>
                                 </div>
-                                <div className="text-right flex-shrink-0">
+                                <div className="text-right flex-shrink-0 pt-0.5">
                                   <p className="font-display text-xl text-terracotta-700">
                                     {a.submissionCount}
                                   </p>
                                   <p className="text-[0.65rem] uppercase tracking-wide-label text-wood-500 font-semibold">
-                                    {a.submissionCount === 1
-                                      ? "submission"
-                                      : "submissions"}
+                                    total
                                   </p>
                                 </div>
-                                <ArrowRight className="w-4 h-4 text-wood-400 transition-transform duration-150 group-hover:translate-x-0.5" />
-                              </Link>
+                              </div>
                             </li>
                           );
                         })}
@@ -308,7 +350,7 @@ export function TeacherAssignmentBoard({ groups }: { groups: BoardGroup[] }) {
               ? "the assignment"
               : `${selected.size} assignments`}
             , along with every submission, grade, and feedback thread
-            attached. <strong>This can't be undone.</strong>
+            attached. <strong>This can&apos;t be undone.</strong>
           </>
         }
         itemCount={selected.size}
