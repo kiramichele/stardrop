@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -17,10 +18,14 @@ export function MobileNav({ role }: { role: "teacher" | "student" }) {
   const items = role === "teacher" ? teacherNav : studentNav;
   const home = role === "teacher" ? "/teacher" : "/student";
 
-  // Close the drawer whenever the route changes.
-  useEffect(() => {
+  // Close the drawer whenever the route changes. Done during render (React's
+  // "reset state when a value changes" pattern) rather than in an effect, so
+  // there's no extra paint and no set-state-in-effect.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   // While open: lock background scroll and let Esc close the drawer.
   useEffect(() => {
@@ -49,9 +54,14 @@ export function MobileNav({ role }: { role: "teacher" | "student" }) {
         <Menu className="h-5 w-5" strokeWidth={1.75} />
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className="flex h-full w-64 max-w-[80vw] flex-col bg-cream-50 shadow-cozy-lg animate-fade-in">
+      {open &&
+        typeof document !== "undefined" &&
+        createPortal(
+          // Portaled to <body> so the drawer isn't trapped inside the
+          // TopBar's stacking context / containing block (its backdrop-blur
+          // would otherwise let page content paint on top of the menu).
+          <div className="fixed inset-0 z-50 flex md:hidden">
+            <div className="flex h-full w-64 max-w-[80vw] flex-col bg-cream-50 shadow-cozy-lg animate-fade-in">
             <div className="flex items-center justify-between border-b border-wood-100/70 px-5 py-5">
               <Link href={home} className="block">
                 <h1 className="font-display text-2xl leading-none text-terracotta-700">
@@ -116,15 +126,16 @@ export function MobileNav({ role }: { role: "teacher" | "student" }) {
             </nav>
           </div>
 
-          {/* Backdrop — tap anywhere outside the drawer to close. */}
-          <button
-            type="button"
-            className="flex-1 bg-wood-900/40"
-            aria-label="Close menu"
-            onClick={() => setOpen(false)}
-          />
-        </div>
-      )}
+            {/* Backdrop — tap anywhere outside the drawer to close. */}
+            <button
+              type="button"
+              className="flex-1 bg-wood-900/40"
+              aria-label="Close menu"
+              onClick={() => setOpen(false)}
+            />
+          </div>,
+          document.body
+        )}
     </>
   );
 }
