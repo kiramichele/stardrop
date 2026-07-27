@@ -8,7 +8,9 @@ import { requireTeacher } from "@/lib/auth";
 import { updateProfileColumns } from "@/lib/profile-server";
 import { setClassColorRecord } from "@/lib/class-colors-server";
 import { isClassColorKey } from "@/lib/class-colors";
-import { generatePassword } from "@/lib/csv";
+import { generatePassword, uniqueUsername } from "@/lib/csv";
+import { usernameToEmail, isValidUsername } from "@/lib/auth";
+import { asExtendedTime } from "@/lib/assignments";
 import { sendNewPasswordEmail } from "@/lib/email";
 
 // =============================================================
@@ -173,6 +175,123 @@ export async function resetStudentPassword(
 
   revalidatePath(`/teacher/classes/${classId}`);
   return { ok: true, password: newPassword, emailed };
+}
+
+// =============================================================
+// Manually add a single student to a class
+// =============================================================
+
+/**
+ * Create one student account from teacher-entered fields and enroll them in
+ * the class. Mirrors the per-row logic in importRoster: generate a unique
+ * username (unless the teacher typed one) + a memorable password, create the
+ * auth user against a fake username@stardrop.local email, insert the profile,
+ * and enroll. Returns the credentials so the teacher can hand them out — the
+ * password isn't stored in readable form anywhere else.
+ */
+export async function addStudentToClass(
+  classId: string,
+  formData: FormData
+): Promise<
+  | { ok: true; username: string; password: string }
+  | { ok: false; error: string }
+> {
+  await requireTeacher();
+  const admin = createAdminClient();
+
+  const firstName = (formData.get("first_name") ?? "").toString().trim();
+  const lastName = (formData.get("last_name") ?? "").toString().trim();
+  const email = (formData.get("real_email") ?? "").toString().trim();
+  const studentId = (formData.get("student_id") ?? "").toString().trim();
+  const extendedTime = asExtendedTime(formData.get("extended_time"));
+  const usernameInput = (formData.get("username") ?? "")
+    .toString()
+    .trim()
+    .toLowerCase();
+
+  if (!firstName || !lastName) {
+    return { ok: false, error: "First and last name are required." };
+  }
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    return { ok: false, error: "That email address doesn't look right." };
+  }
+
+  const { data: klass } = await admin
+    .from("classes")
+    .select("id")
+    .eq("id", classId)
+    .single();
+  if (!klass) return { ok: false, error: "Class not found." };
+
+  // Resolve the username: honor a valid, free one the teacher typed;
+  // otherwise auto-generate from the name (jsmith, jsmith2, …).
+  let username: string;
+  if (usernameInput) {
+    if (!isValidUsername(usernameInput)) {
+      return {
+        ok: false,
+        error: "Username can only contain lowercase letters and numbers.",
+      };
+    }
+    const { data: taken } = await admin
+      .from("users")
+      .select("id")
+      .eq("username", usernameInput)
+      .maybeSingle();
+    if (taken) {
+      return { ok: false, error: `The username "${usernameInput}" is taken.` };
+    }
+    username = usernameInput;
+  } else {
+    username = await uniqueUsername(admin, firstName, lastName, new Set());
+  }
+
+  const password = generatePassword();
+
+  const { data: authUser, error: authError } =
+    await admin.auth.admin.createUser({
+      email: usernameToEmail(username),
+      password,
+      email_confirm: true,
+      user_metadata: { username },
+    });
+  if (authError || !authUser.user) {
+    return {
+      ok: false,
+      error: `Could not create the account: ${authError?.message ?? "unknown error"}`,
+    };
+  }
+
+  const { error: profileError } = await admin.from("users").insert({
+    id: authUser.user.id,
+    username,
+    real_email: email || null,
+    first_name: firstName,
+    last_name: lastName,
+    role: "student",
+    student_id: studentId || null,
+    extended_time: extendedTime,
+  });
+  if (profileError) {
+    // Don't leave an orphaned auth user behind.
+    await admin.auth.admin.deleteUser(authUser.user.id);
+    return { ok: false, error: `Could not save the profile: ${profileError.message}` };
+  }
+
+  const { error: enrollError } = await admin
+    .from("enrollments")
+    .insert({ user_id: authUser.user.id, class_id: classId });
+  if (enrollError) {
+    // The account is valid; only the enrollment failed. Surface it rather
+    // than deleting a good account.
+    return {
+      ok: false,
+      error: `Student created, but adding them to the class failed: ${enrollError.message}`,
+    };
+  }
+
+  revalidatePath(`/teacher/classes/${classId}`);
+  return { ok: true, username, password };
 }
 
 // =============================================================

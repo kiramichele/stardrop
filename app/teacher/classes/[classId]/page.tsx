@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ClassColorDot } from "@/components/ui/ClassColorDot";
 import { ClassColorPicker } from "@/components/classes/ClassColorPicker";
 import { ExportLoginsButton } from "@/components/classes/ExportLoginsButton";
+import { AddStudentForm } from "@/components/classes/AddStudentForm";
 import { updateClass, deleteClass } from "../actions";
 import { StudentRow } from "./StudentRow";
 
@@ -92,6 +93,8 @@ export default async function ClassDetailPage({
         {/* Roster column */}
         <div className="lg:col-span-2 space-y-4">
           <h2 className="font-display text-xl text-wood-800">Roster</h2>
+
+          <AddStudentForm classId={classId} />
 
           {students.length === 0 ? (
             <Card>
