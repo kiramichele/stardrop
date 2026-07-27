@@ -166,6 +166,12 @@ export default async function SlideshowPage({
                   }}
                   action={updateSlideshow.bind(null, slideshow.id)}
                   submitLabel="Save changes"
+                  htmlUrl={slideshow.htmlUrl}
+                  downloadName={`${[slideshow.classDate, slideshow.title]
+                    .filter(Boolean)
+                    .join(" - ")
+                    .replace(/[^\w.\- ]+/g, "")
+                    .trim() || "slideshow"}.html`}
                 />
               </Card>
 

@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Save, FileCode2, AlertCircle, Check } from "lucide-react";
+import { Save, FileCode2, AlertCircle, Check, Download } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Textarea, FieldHint } from "@/components/ui/Input";
 
@@ -23,6 +23,10 @@ interface SlideshowFormProps {
   };
   action: (fd: FormData) => Promise<{ ok: boolean; error?: string }>;
   submitLabel: string;
+  /** Same-origin URL of the currently uploaded HTML, for the download button. */
+  htmlUrl?: string | null;
+  /** Suggested filename when downloading the current HTML. */
+  downloadName?: string;
 }
 
 export function SlideshowForm({
@@ -32,6 +36,8 @@ export function SlideshowForm({
   initial,
   action,
   submitLabel,
+  htmlUrl,
+  downloadName,
 }: SlideshowFormProps) {
   const router = useRouter();
   const [classDate, setClassDate] = useState(initial?.classDate ?? "");
@@ -178,7 +184,21 @@ export function SlideshowForm({
               className="text-sm file:mr-2 file:py-1 file:px-2 file:rounded-cozy file:border-0 file:bg-terracotta-100 file:text-terracotta-800 file:text-xs file:font-medium hover:file:bg-terracotta-200 file:cursor-pointer"
             />
             {mode === "edit" && initial?.hasHtml && (
-              <FieldHint>A slideshow file is already uploaded.</FieldHint>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <FieldHint className="mt-0">
+                  A slideshow file is already uploaded.
+                </FieldHint>
+                {htmlUrl && (
+                  <a
+                    href={htmlUrl}
+                    download={downloadName || "slideshow.html"}
+                    className="inline-flex items-center gap-1.5 rounded-cozy border border-wood-200 bg-cream-50 px-2.5 py-1 text-xs font-medium text-wood-800 transition-colors hover:bg-cream-100 hover:border-wood-300"
+                  >
+                    <Download className="w-3.5 h-3.5" strokeWidth={2} />
+                    Download current file
+                  </a>
+                )}
+              </div>
             )}
           </div>
         </div>
