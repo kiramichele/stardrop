@@ -128,11 +128,106 @@ export type Database = {
           },
         ]
       }
+      assignment_groups: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_solo: boolean
+          name: string | null
+          status: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_solo?: boolean
+          name?: string | null
+          status?: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_solo?: boolean
+          name?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_groups_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_groups_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_members: {
+        Row: {
+          assignment_id: string
+          group_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          assignment_id: string
+          group_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          assignment_id?: string
+          group_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "assignment_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_members_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignments: {
         Row: {
+          allow_solo: boolean
           assignment_group_id: string | null
           class_id: string
+          collaborative: boolean
           created_at: string | null
+          group_mode: string | null
+          max_group_size: number | null
           due_date: string | null
           due_date_1_5x: string | null
           due_date_2x: string | null
@@ -150,17 +245,21 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          allow_solo?: boolean
           assignment_group_id?: string | null
           class_id: string
+          collaborative?: boolean
           created_at?: string | null
           due_date?: string | null
           due_date_1_5x?: string | null
           due_date_2x?: string | null
+          group_mode?: string | null
           id?: string
           instructions?: string | null
           interactive_html_url?: string | null
           is_unit_quiz?: boolean
           lesson_id?: string | null
+          max_group_size?: number | null
           minimum_word_count?: number | null
           points?: number
           published?: boolean
@@ -170,17 +269,21 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          allow_solo?: boolean
           assignment_group_id?: string | null
           class_id?: string
+          collaborative?: boolean
           created_at?: string | null
           due_date?: string | null
           due_date_1_5x?: string | null
           due_date_2x?: string | null
+          group_mode?: string | null
           id?: string
           instructions?: string | null
           interactive_html_url?: string | null
           is_unit_quiz?: boolean
           lesson_id?: string | null
+          max_group_size?: number | null
           minimum_word_count?: number | null
           points?: number
           published?: boolean

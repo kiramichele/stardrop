@@ -34,6 +34,41 @@ function parseDate(raw: string | undefined): string | null {
   return raw && raw.trim() !== "" ? new Date(raw).toISOString() : null;
 }
 
+/**
+ * Read the collaborative config off the form. Only Code assignments can be
+ * collaborative; anything else is stored as non-collaborative.
+ */
+function parseCollabConfig(
+  formData: FormData,
+  type: AssignmentType
+): {
+  collaborative: boolean;
+  group_mode: string | null;
+  max_group_size: number | null;
+  allow_solo: boolean;
+} {
+  const collaborative =
+    type === "code" && formData.get("collaborative") === "on";
+  if (!collaborative) {
+    return {
+      collaborative: false,
+      group_mode: null,
+      max_group_size: null,
+      allow_solo: false,
+    };
+  }
+  const modeRaw = formData.get("group_mode")?.toString() ?? "";
+  const group_mode = ["random", "manual", "choice"].includes(modeRaw)
+    ? modeRaw
+    : "random";
+  const maxRaw = formData.get("max_group_size")?.toString();
+  const parsedMax = maxRaw ? Number.parseInt(maxRaw, 10) : NaN;
+  const max_group_size =
+    Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : null;
+  const allow_solo = formData.get("allow_solo") === "on";
+  return { collaborative: true, group_mode, max_group_size, allow_solo };
+}
+
 export async function createAssignment(formData: FormData) {
   await requireTeacher();
 
@@ -78,6 +113,8 @@ export async function createAssignment(formData: FormData) {
     ? codeRunModeRaw
     : "unity";
 
+  const collab = parseCollabConfig(formData, type);
+
   // One assignment given to several classes is stored as one copy per class,
   // all sharing an assignment_group_id so the board can show them as a single
   // row and bulk actions hit every copy together.
@@ -107,6 +144,10 @@ export async function createAssignment(formData: FormData) {
         // Cast: columns not in regen'd types until the matching migration lands.
         auto_publish_to_starhub: autoPublishToStarhub,
         code_run_mode: codeRunMode,
+        collaborative: collab.collaborative,
+        group_mode: collab.group_mode,
+        max_group_size: collab.max_group_size,
+        allow_solo: collab.allow_solo,
       } as never)
       .select("id")
       .single();
@@ -175,6 +216,11 @@ export async function updateAssignment(
     ? codeRunModeRaw
     : "unity";
 
+  // The edit form posts a hidden `type` so we can gate the collaborative
+  // config the same way create does.
+  const type = formData.get("type")?.toString() as AssignmentType;
+  const collab = parseCollabConfig(formData, type);
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("assignments")
@@ -193,6 +239,10 @@ export async function updateAssignment(
       is_unit_quiz: isUnitQuiz,
       auto_publish_to_starhub: autoPublishToStarhub,
       code_run_mode: codeRunMode,
+      collaborative: collab.collaborative,
+      group_mode: collab.group_mode,
+      max_group_size: collab.max_group_size,
+      allow_solo: collab.allow_solo,
     } as never)
     .eq("id", assignmentId);
   if (error) throw new Error(error.message);

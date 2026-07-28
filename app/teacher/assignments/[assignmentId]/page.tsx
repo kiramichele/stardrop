@@ -35,6 +35,13 @@ import { getRubricsForTeacher } from "@/lib/rubrics-server";
 import { rubricMaxPoints } from "@/lib/rubrics";
 import { getUnitsForTeacher } from "@/lib/lessons";
 import { UnitLessonPicker } from "@/components/assignments/UnitLessonPicker";
+import { CollaborativeFields } from "@/components/assignments/CollaborativeFields";
+import { GroupManager } from "@/components/assignments/GroupManager";
+import { readCollabConfig } from "@/lib/groups";
+import {
+  getAssignmentGroups,
+  getEnrolledStudents,
+} from "@/lib/groups-server";
 import {
   updateAssignment,
   deleteAssignment,
@@ -136,6 +143,15 @@ export default async function AssignmentDetailPage({
   const hasInteractiveHtml = !!assignment.interactive_html_url;
   const isTextual =
     assignment.type === "short_answer" || assignment.type === "discussion";
+  const isCode = assignment.type === "code";
+  const collabConfig = readCollabConfig(assignment);
+
+  const [groups, roster] = collabConfig.collaborative
+    ? await Promise.all([
+        getAssignmentGroups(assignmentId),
+        getEnrolledStudents(assignment.class_id),
+      ])
+    : [[], []];
 
   return (
     <>
@@ -222,6 +238,16 @@ export default async function AssignmentDetailPage({
               </p>
             </Card>
           </div>
+
+          {collabConfig.collaborative && collabConfig.groupMode && (
+            <GroupManager
+              assignmentId={assignmentId}
+              mode={collabConfig.groupMode}
+              maxGroupSize={collabConfig.maxGroupSize}
+              groups={groups}
+              roster={roster}
+            />
+          )}
 
           <h2 className="font-display text-xl text-wood-800 pt-2">
             Submissions
@@ -310,6 +336,9 @@ export default async function AssignmentDetailPage({
               Settings
             </h3>
             <form action={updateAction} className="space-y-4">
+              {/* Hidden so updateAssignment can gate the collaborative config
+                  to Code assignments (type isn't otherwise editable). */}
+              <input type="hidden" name="type" value={assignment.type} />
               <div>
                 <Label htmlFor="title">Title</Label>
                 <Input
@@ -500,6 +529,7 @@ export default async function AssignmentDetailPage({
                   HTML file is uploaded above.
                 </FieldHint>
               )}
+              {isCode && <CollaborativeFields initial={collabConfig} />}
               <Button type="submit" size="sm" className="w-full">
                 Save changes
               </Button>

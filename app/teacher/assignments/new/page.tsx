@@ -22,6 +22,7 @@ import {
   FieldHint,
 } from "@/components/ui/Input";
 import { UnitLessonPicker } from "@/components/assignments/UnitLessonPicker";
+import { CollaborativeFields } from "@/components/assignments/CollaborativeFields";
 import { createAssignment } from "../actions";
 
 export default async function NewAssignmentPage() {
@@ -108,6 +109,8 @@ export default async function NewAssignmentPage() {
           </div>
 
           <UnitLessonPicker units={units} />
+
+          <CollaborativeFields />
 
           <div>
             <Label htmlFor="title">Title</Label>

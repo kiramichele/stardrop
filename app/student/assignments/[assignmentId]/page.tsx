@@ -7,6 +7,7 @@ import {
   BookOpen,
   Eye,
   MessagesSquare,
+  Users,
 } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
 import {
@@ -22,6 +23,13 @@ import {
 import { getFeedbackThread } from "@/lib/feedback-server";
 import { getLesson } from "@/lib/lessons";
 import { getUnitySimulationEnabled } from "@/lib/app-settings-server";
+import { readCollabConfig, type AssignmentGroup } from "@/lib/groups";
+import {
+  getAssignmentGroups,
+  getStudentGroupId,
+} from "@/lib/groups-server";
+import { GroupPicker } from "@/components/assignments/GroupPicker";
+import { GroupPanel } from "@/components/assignments/GroupPanel";
 import { FeedbackThread } from "@/components/feedback/FeedbackThread";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -46,6 +54,24 @@ export default async function StudentAssignmentPage({
   if (!result) notFound();
 
   const { assignment, submission } = result;
+
+  // Collaborative coding: work out the student's group situation.
+  const collab = readCollabConfig(assignment);
+  let groups: AssignmentGroup[] = [];
+  let myGroupId: string | null = null;
+  if (assignment.type === "code" && collab.collaborative) {
+    [groups, myGroupId] = await Promise.all([
+      getAssignmentGroups(assignment.id),
+      getStudentGroupId(assignment.id, user.id),
+    ]);
+  }
+  const myGroup = myGroupId
+    ? groups.find((g) => g.id === myGroupId) ?? null
+    : null;
+  const openGroups = groups.filter((g) => g.status === "open" && !g.isSolo);
+  const needsGroup =
+    collab.collaborative && assignment.type === "code" && !myGroup;
+
   const helpLesson = assignment.lesson_id
     ? await getLesson(assignment.lesson_id)
     : null;
@@ -141,17 +167,63 @@ export default async function StudentAssignmentPage({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {assignment.type === "code" && (
-            <CodeAssignmentEditor
-              assignmentId={assignment.id}
-              initialContent={submission?.content ?? ""}
-              initialStatus={submission?.status ?? "draft"}
-              initialSubmissionId={submission?.id ?? null}
-              codeRunMode={
-                ((assignment as { code_run_mode?: string }).code_run_mode ??
-                  "both") as "none" | "csharp" | "unity" | "both"
-              }
-              unitySimulationEnabled={await getUnitySimulationEnabled()}
-            />
+            <>
+              {needsGroup && collab.groupMode === "choice" && (
+                <GroupPicker
+                  assignmentId={assignment.id}
+                  groups={openGroups}
+                  allowSolo={collab.allowSolo}
+                  maxGroupSize={collab.maxGroupSize}
+                />
+              )}
+
+              {needsGroup && collab.groupMode !== "choice" && (
+                <Card className="bg-cream-100 border-wood-200">
+                  <div className="flex items-start gap-3">
+                    <Users
+                      className="w-5 h-5 text-wood-500 flex-shrink-0 mt-0.5"
+                      strokeWidth={1.5}
+                    />
+                    <div>
+                      <p className="text-sm text-wood-700 font-medium">
+                        Your teacher will put you in a group
+                      </p>
+                      <p className="text-xs text-wood-500 mt-1">
+                        Check back once groups are assigned, then you can start
+                        working.
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
+              {!needsGroup && (
+                <>
+                  {myGroup && collab.groupMode && (
+                    <GroupPanel
+                      assignmentId={assignment.id}
+                      group={myGroup}
+                      mode={collab.groupMode}
+                    />
+                  )}
+                  <CodeAssignmentEditor
+                    assignmentId={assignment.id}
+                    initialContent={submission?.content ?? ""}
+                    initialStatus={submission?.status ?? "draft"}
+                    initialSubmissionId={submission?.id ?? null}
+                    codeRunMode={
+                      ((assignment as { code_run_mode?: string })
+                        .code_run_mode ?? "both") as
+                        | "none"
+                        | "csharp"
+                        | "unity"
+                        | "both"
+                    }
+                    unitySimulationEnabled={await getUnitySimulationEnabled()}
+                  />
+                </>
+              )}
+            </>
           )}
 
           {assignment.type === "interactive_html" &&
