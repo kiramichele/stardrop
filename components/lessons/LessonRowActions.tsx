@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Pencil, Trash2, ChevronUp, ChevronDown } from "lucide-react";
 import { deleteLesson, moveLesson } from "@/app/teacher/lessons/actions";
 
@@ -20,6 +21,7 @@ export function LessonRowActions({
   canMoveUp,
   canMoveDown,
 }: LessonRowActionsProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   function handleDelete() {
@@ -32,6 +34,7 @@ export function LessonRowActions({
   function handleMove(direction: "up" | "down") {
     startTransition(async () => {
       await moveLesson(lessonId, direction);
+      router.refresh();
     });
   }
 

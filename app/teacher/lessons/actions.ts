@@ -181,16 +181,19 @@ export async function moveLesson(
   direction: "up" | "down"
 ) {
   await requireTeacher();
-  const supabase = await createClient();
+  // Use the service-role client: the swap is a set of UPDATEs, and lessons
+  // RLS doesn't grant the teacher's session client UPDATE, so session writes
+  // silently affect 0 rows. Matches deleteLesson / bulkDeleteUnits.
+  const admin = createAdminClient();
 
-  const { data: current } = await supabase
+  const { data: current } = await admin
     .from("lessons")
     .select("id, unit_id, order")
     .eq("id", lessonId)
     .single();
   if (!current) return;
 
-  let q = supabase
+  let q = admin
     .from("lessons")
     .select("id, order")
     .eq("unit_id", current.unit_id);
@@ -202,9 +205,19 @@ export async function moveLesson(
   const { data: adjacent } = await q.limit(1).maybeSingle();
   if (!adjacent) return;
 
-  await supabase.from("lessons").update({ order: -1 }).eq("id", current.id);
-  await supabase.from("lessons").update({ order: current.order }).eq("id", adjacent.id);
-  await supabase.from("lessons").update({ order: adjacent.order }).eq("id", current.id);
+  // Three-step swap through a sentinel so a (unit_id, order) unique index,
+  // if one is ever added, never trips mid-swap.
+  const r1 = await admin.from("lessons").update({ order: -1 }).eq("id", current.id);
+  const r2 = await admin
+    .from("lessons")
+    .update({ order: current.order })
+    .eq("id", adjacent.id);
+  const r3 = await admin
+    .from("lessons")
+    .update({ order: adjacent.order })
+    .eq("id", current.id);
+  const err = r1.error || r2.error || r3.error;
+  if (err) throw new Error(`Couldn't reorder lesson: ${err.message}`);
 
   revalidatePath(`/teacher/lessons/units/${current.unit_id}`);
 }
