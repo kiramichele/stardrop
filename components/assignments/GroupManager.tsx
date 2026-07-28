@@ -25,6 +25,7 @@ import {
 } from "@/lib/groups";
 import {
   generateRandomGroups,
+  groupRemainingStudents,
   createGroup,
   deleteGroup,
   moveMember,
@@ -119,6 +120,21 @@ export function GroupManager({
           >
             <Shuffle className="w-4 h-4" strokeWidth={2} />
             {groups.length > 0 ? "Regenerate groups" : "Generate random groups"}
+          </Button>
+        </div>
+      )}
+
+      {mode === "choice" && ungrouped.length > 0 && (
+        <div className="mb-3">
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => run(() => groupRemainingStudents(assignmentId))}
+            disabled={pending}
+          >
+            <Shuffle className="w-4 h-4" strokeWidth={2} />
+            Group the remaining {ungrouped.length}{" "}
+            {ungrouped.length === 1 ? "student" : "students"}
           </Button>
         </div>
       )}

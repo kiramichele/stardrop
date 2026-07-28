@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireTeacher } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getEnrolledStudents } from "@/lib/groups-server";
+import { getEnrolledStudents, getAssignmentGroups } from "@/lib/groups-server";
 import { partitionIntoGroups } from "@/lib/groups";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -64,6 +64,80 @@ export async function generateRandomGroups(
     }
     await admin.from("group_members").insert(
       memberIds.map((userId) => ({
+        group_id: group.id,
+        assignment_id: assignmentId,
+        user_id: userId,
+      }))
+    );
+  }
+
+  revalidateAssignment(assignmentId);
+  return { ok: true };
+}
+
+/**
+ * Sweep every ungrouped student into a group so no one is left out. Fills
+ * existing open (non-solo) groups up to max_group_size first — preserving the
+ * groups students already formed — then partitions any leftovers into new
+ * groups. Used in "Students choose" mode once sign-up is winding down.
+ */
+export async function groupRemainingStudents(
+  assignmentId: string
+): Promise<Result> {
+  await requireTeacher();
+  const admin = createAdminClient();
+
+  const { data: assignment } = await admin
+    .from("assignments")
+    .select("class_id, max_group_size")
+    .eq("id", assignmentId)
+    .single();
+  if (!assignment) return { ok: false, error: "Assignment not found." };
+
+  const [students, groups] = await Promise.all([
+    getEnrolledStudents(assignment.class_id),
+    getAssignmentGroups(assignmentId),
+  ]);
+
+  const grouped = new Set(groups.flatMap((g) => g.members.map((m) => m.userId)));
+  const remaining = shuffle(
+    students.filter((s) => !grouped.has(s.id)).map((s) => s.id)
+  );
+  if (remaining.length === 0) return { ok: true };
+
+  const max = assignment.max_group_size;
+
+  // 1) Top up existing open groups that still have room.
+  if (max != null) {
+    for (const g of groups) {
+      if (g.status !== "open" || g.isSolo) continue;
+      let space = max - g.members.length;
+      while (space > 0 && remaining.length > 0) {
+        const userId = remaining.shift() as string;
+        await admin
+          .from("group_members")
+          .insert({ group_id: g.id, assignment_id: assignmentId, user_id: userId });
+        space -= 1;
+      }
+    }
+  }
+
+  // 2) Leftovers → brand-new groups of at most max (or one group if no max).
+  const chunks =
+    max != null
+      ? partitionIntoGroups(remaining, max)
+      : remaining.length > 0
+        ? [remaining]
+        : [];
+  for (const ids of chunks) {
+    const { data: group } = await admin
+      .from("assignment_groups")
+      .insert({ assignment_id: assignmentId, status: "open" })
+      .select("id")
+      .single();
+    if (!group) continue;
+    await admin.from("group_members").insert(
+      ids.map((userId) => ({
         group_id: group.id,
         assignment_id: assignmentId,
         user_id: userId,
