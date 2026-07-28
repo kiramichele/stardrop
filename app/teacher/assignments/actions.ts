@@ -152,7 +152,6 @@ export async function updateAssignment(
   const instructions = formData.get("instructions")?.toString().trim() || null;
   const dueDateRaw = formData.get("due_date")?.toString();
   const pointsRaw = formData.get("points")?.toString();
-  const published = formData.get("published") === "on";
   const minWordsRaw = formData.get("minimum_word_count")?.toString();
   const rubricIdRaw = formData.get("rubric_id")?.toString();
   const rubricId = rubricIdRaw && rubricIdRaw !== "" ? rubricIdRaw : null;
@@ -186,7 +185,8 @@ export async function updateAssignment(
       due_date_1_5x: dueDate1_5x,
       due_date_2x: dueDate2x,
       points,
-      published,
+      // Publish state is managed per-class by the "Publish to classes" panel,
+      // so Save (Settings) intentionally leaves it untouched.
       minimum_word_count: minimumWordCount,
       rubric_id: rubricId,
       lesson_id: lessonId,
@@ -367,6 +367,28 @@ export async function copyAssignmentToClasses(
 // =============================================================
 // Bulk publish / unpublish
 // =============================================================
+
+/**
+ * Publish or unpublish a single class's copy of an assignment. Backs the
+ * per-class publish panel on the assignment detail page.
+ */
+export async function setAssignmentPublished(
+  assignmentId: string,
+  published: boolean
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireTeacher();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("assignments")
+    .update({ published })
+    .eq("id", assignmentId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/teacher/assignments");
+  revalidatePath(`/teacher/assignments/${assignmentId}`);
+  revalidatePath("/student/assignments");
+  return { ok: true };
+}
 
 /** Publish or unpublish many assignments in one go. */
 export async function bulkSetAssignmentsPublished(

@@ -51,6 +51,61 @@ export async function getAssignmentsForTeacher(classId?: string) {
   return data ?? [];
 }
 
+/**
+ * Every per-class copy of one assignment, with its publish state — for the
+ * per-class publish panel on the detail page. Copies are found by shared
+ * assignment_group_id, falling back to (title, type, lesson, quiz) for older
+ * copies that predate the group id.
+ */
+export async function getAssignmentClassPublishStates(assignment: {
+  assignment_group_id: string | null;
+  title: string;
+  type: string;
+  lesson_id: string | null;
+  is_unit_quiz: boolean;
+}): Promise<
+  Array<{
+    id: string;
+    className: string;
+    periodNumber: number | null;
+    published: boolean;
+  }>
+> {
+  const supabase = await createClient();
+  let query = supabase
+    .from("assignments")
+    .select("id, published, class_id, classes(name, period_number)");
+
+  if (assignment.assignment_group_id) {
+    query = query.eq("assignment_group_id", assignment.assignment_group_id);
+  } else {
+    query = query
+      .eq("title", assignment.title)
+      .eq("type", assignment.type as never)
+      .eq("is_unit_quiz", assignment.is_unit_quiz);
+    query = assignment.lesson_id
+      ? query.eq("lesson_id", assignment.lesson_id)
+      : query.is("lesson_id", null);
+  }
+
+  const { data } = await query;
+  const rows = (data ?? []).map((r) => {
+    const k = Array.isArray(r.classes) ? r.classes[0] : r.classes;
+    return {
+      id: r.id,
+      className: k?.name ?? "Unknown class",
+      periodNumber: k?.period_number ?? null,
+      published: r.published,
+    };
+  });
+  rows.sort((a, b) => {
+    const pa = a.periodNumber ?? 99;
+    const pb = b.periodNumber ?? 99;
+    return pa !== pb ? pa - pb : a.className.localeCompare(b.className);
+  });
+  return rows;
+}
+
 export async function getAssignment(assignmentId: string) {
   const supabase = await createClient();
   const { data } = await supabase

@@ -16,6 +16,7 @@ import {
 import {
   getAssignment,
   getSubmissionsForAssignment,
+  getAssignmentClassPublishStates,
 } from "@/lib/assignments-server";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -25,6 +26,7 @@ import { ShareLink } from "@/components/ui/ShareLink";
 import { Input, Label, Textarea, Select, FieldHint } from "@/components/ui/Input";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 import { CopyToClassPanel } from "@/components/assignments/CopyToClassPanel";
+import { PublishToClassesPanel } from "@/components/assignments/PublishToClassesPanel";
 import {
   BulkGradePanel,
   type BulkSubmissionRow,
@@ -50,6 +52,7 @@ export default async function AssignmentDetailPage({
 
   const submissions = await getSubmissionsForAssignment(assignmentId);
   const rubrics = await getRubricsForTeacher();
+  const publishStates = await getAssignmentClassPublishStates(assignment);
   const klass = Array.isArray(assignment.classes)
     ? assignment.classes[0]
     : assignment.classes;
@@ -245,6 +248,8 @@ export default async function AssignmentDetailPage({
             }
           />
 
+          <PublishToClassesPanel states={publishStates} />
+
           {acceptsHtml && (
             <Card>
               <h3 className="font-display text-lg text-wood-900 mb-1">
@@ -428,18 +433,6 @@ export default async function AssignmentDetailPage({
                     Manage rubrics
                   </Link>
                 </FieldHint>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="published"
-                  name="published"
-                  defaultChecked={assignment.published}
-                  className="w-4 h-4 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
-                />
-                <Label htmlFor="published" className="mb-0">
-                  Published (visible to students)
-                </Label>
               </div>
               <div>
                 <Label htmlFor="code_run_mode">
