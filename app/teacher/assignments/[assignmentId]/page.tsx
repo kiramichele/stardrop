@@ -240,14 +240,44 @@ export default async function AssignmentDetailPage({
           </div>
 
           {collabConfig.collaborative && collabConfig.groupMode && (
-            <GroupManager
-              assignmentId={assignmentId}
-              mode={collabConfig.groupMode}
-              maxGroupSize={collabConfig.maxGroupSize}
-              groups={groups}
-              roster={roster}
-              maxPoints={assignment.points}
-            />
+            <>
+              {/* Switch between the classes this assignment was given to, to
+                  set up each class's groups without going back to the board. */}
+              {publishStates.length > 1 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs text-wood-500 mr-1">
+                    Groups for class:
+                  </span>
+                  {publishStates.map((c) => {
+                    const active = c.id === assignmentId;
+                    return (
+                      <Link
+                        key={c.id}
+                        href={`/teacher/assignments/${c.id}`}
+                        className={[
+                          "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                          active
+                            ? "bg-terracotta-500 text-white border-terracotta-500"
+                            : "bg-cream-50 text-wood-700 border-wood-200 hover:bg-cream-100 hover:border-wood-300",
+                        ].join(" ")}
+                      >
+                        {c.className}
+                        {c.periodNumber != null ? ` · P${c.periodNumber}` : ""}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+
+              <GroupManager
+                assignmentId={assignmentId}
+                mode={collabConfig.groupMode}
+                maxGroupSize={collabConfig.maxGroupSize}
+                groups={groups}
+                roster={roster}
+                maxPoints={assignment.points}
+              />
+            </>
           )}
 
           <h2 className="font-display text-xl text-wood-800 pt-2">
