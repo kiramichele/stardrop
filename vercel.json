@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/autosubmit-groups",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}

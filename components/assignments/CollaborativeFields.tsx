@@ -88,6 +88,16 @@ export function CollaborativeFields({ initial }: { initial?: CollabConfig }) {
             />
             Allow students to work solo instead of joining a group
           </label>
+
+          <label className="flex items-center gap-2 text-sm cursor-pointer text-wood-800">
+            <input
+              type="checkbox"
+              name="leader_submits_only"
+              defaultChecked={initial?.leaderSubmitsOnly ?? false}
+              className={checkbox}
+            />
+            Only the group leader (creator) can submit
+          </label>
         </div>
       )}
     </div>

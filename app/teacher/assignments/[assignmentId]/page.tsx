@@ -246,6 +246,7 @@ export default async function AssignmentDetailPage({
               maxGroupSize={collabConfig.maxGroupSize}
               groups={groups}
               roster={roster}
+              maxPoints={assignment.points}
             />
           )}
 

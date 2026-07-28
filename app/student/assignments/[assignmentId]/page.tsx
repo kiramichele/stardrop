@@ -27,9 +27,12 @@ import { readCollabConfig, type AssignmentGroup } from "@/lib/groups";
 import {
   getAssignmentGroups,
   getStudentGroupId,
+  getOrInitGroupDocument,
+  maybeAutoSubmitGroup,
 } from "@/lib/groups-server";
 import { GroupPicker } from "@/components/assignments/GroupPicker";
 import { GroupPanel } from "@/components/assignments/GroupPanel";
+import { CollaborativeCodeEditor } from "@/components/assignments/CollaborativeCodeEditor";
 import { FeedbackThread } from "@/components/feedback/FeedbackThread";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -71,6 +74,14 @@ export default async function StudentAssignmentPage({
   const openGroups = groups.filter((g) => g.status === "open" && !g.isSolo);
   const needsGroup =
     collab.collaborative && assignment.type === "code" && !myGroup;
+
+  // Once in a group: auto-submit if overdue, then load the shared document.
+  let groupDocState: string | null = null;
+  if (collab.collaborative && assignment.type === "code" && myGroup) {
+    await maybeAutoSubmitGroup(assignment.id, myGroup.id);
+    const doc = await getOrInitGroupDocument(myGroup.id, assignment.id);
+    groupDocState = doc.state;
+  }
 
   const helpLesson = assignment.lesson_id
     ? await getLesson(assignment.lesson_id)
@@ -197,15 +208,40 @@ export default async function StudentAssignmentPage({
                 </Card>
               )}
 
-              {!needsGroup && (
-                <>
-                  {myGroup && collab.groupMode && (
+              {!needsGroup &&
+                (collab.collaborative && myGroup && collab.groupMode ? (
+                  <>
                     <GroupPanel
                       assignmentId={assignment.id}
                       group={myGroup}
                       mode={collab.groupMode}
                     />
-                  )}
+                    <CollaborativeCodeEditor
+                      groupId={myGroup.id}
+                      initialState={groupDocState ?? ""}
+                      me={{
+                        id: user.id,
+                        name: user.first_name || user.username,
+                      }}
+                      isLeader={myGroup.createdBy === user.id}
+                      leaderSubmitsOnly={collab.leaderSubmitsOnly}
+                      submitted={
+                        submission?.status === "submitted" ||
+                        submission?.status === "graded"
+                      }
+                      graded={submission?.status === "graded"}
+                      codeRunMode={
+                        ((assignment as { code_run_mode?: string })
+                          .code_run_mode ?? "both") as
+                          | "none"
+                          | "csharp"
+                          | "unity"
+                          | "both"
+                      }
+                      unitySimulationEnabled={await getUnitySimulationEnabled()}
+                    />
+                  </>
+                ) : (
                   <CodeAssignmentEditor
                     assignmentId={assignment.id}
                     initialContent={submission?.content ?? ""}
@@ -221,8 +257,7 @@ export default async function StudentAssignmentPage({
                     }
                     unitySimulationEnabled={await getUnitySimulationEnabled()}
                   />
-                </>
-              )}
+                ))}
             </>
           )}
 

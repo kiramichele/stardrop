@@ -12,6 +12,7 @@ import {
   Trash2,
   Pencil,
   AlertCircle,
+  Check,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -29,7 +30,9 @@ import {
   moveMember,
   renameGroup,
   setGroupStatus,
+  setGroupGrade,
 } from "@/app/teacher/assignments/groups-actions";
+import { Input } from "@/components/ui/Input";
 
 type Roster = { id: string; firstName: string; lastName: string };
 
@@ -39,6 +42,8 @@ interface GroupManagerProps {
   maxGroupSize: number | null;
   groups: AssignmentGroup[];
   roster: Roster[];
+  /** When set, show a per-group score box (collaborative assignments). */
+  maxPoints?: number;
 }
 
 export function GroupManager({
@@ -47,6 +52,7 @@ export function GroupManager({
   maxGroupSize,
   groups,
   roster,
+  maxPoints,
 }: GroupManagerProps) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -231,6 +237,14 @@ export function GroupManager({
                   />
                 ))
               )}
+              {maxPoints != null && g.members.length > 0 && (
+                <GroupGradeBox
+                  assignmentId={assignmentId}
+                  groupId={g.id}
+                  maxPoints={maxPoints}
+                  onError={setError}
+                />
+              )}
             </DropColumn>
           ))}
 
@@ -361,6 +375,65 @@ function MemberChip({
         </button>
       )}
     </span>
+  );
+}
+
+function GroupGradeBox({
+  assignmentId,
+  groupId,
+  maxPoints,
+  onError,
+}: {
+  assignmentId: string;
+  groupId: string;
+  maxPoints: number;
+  onError: (msg: string | null) => void;
+}) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [score, setScore] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  function save() {
+    const n = parseFloat(score);
+    if (!Number.isFinite(n)) return;
+    onError(null);
+    setSaved(false);
+    start(async () => {
+      const r = await setGroupGrade(assignmentId, groupId, n);
+      if (r.ok) {
+        setSaved(true);
+        router.refresh();
+      } else {
+        onError(r.error ?? "Couldn't grade the group.");
+      }
+    });
+  }
+
+  return (
+    <div className="w-full mt-1 flex items-center gap-2 border-t border-wood-100 pt-2">
+      <span className="text-xs text-wood-500">Grade group:</span>
+      <Input
+        type="number"
+        min="0"
+        max={maxPoints}
+        step="0.5"
+        value={score}
+        onChange={(e) => setScore(e.target.value)}
+        placeholder="score"
+        className="w-20 py-1 text-sm"
+      />
+      <span className="text-xs text-wood-400">/ {maxPoints}</span>
+      <button
+        type="button"
+        onClick={save}
+        disabled={pending || score === ""}
+        className="text-xs font-medium text-terracotta-700 hover:text-terracotta-800 disabled:opacity-50"
+      >
+        {pending ? "Saving…" : "Apply to all"}
+      </button>
+      {saved && <Check className="w-3.5 h-3.5 text-sage-600" />}
+    </div>
   );
 }
 

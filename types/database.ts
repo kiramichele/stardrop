@@ -173,6 +173,35 @@ export type Database = {
           },
         ]
       }
+      group_documents: {
+        Row: {
+          content: string | null
+          group_id: string
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          group_id: string
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          group_id?: string
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_documents_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: true
+            referencedRelation: "assignment_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
           assignment_id: string
@@ -235,6 +264,7 @@ export type Database = {
           instructions: string | null
           interactive_html_url: string | null
           is_unit_quiz: boolean
+          leader_submits_only: boolean
           lesson_id: string | null
           minimum_word_count: number | null
           points: number
@@ -258,6 +288,7 @@ export type Database = {
           instructions?: string | null
           interactive_html_url?: string | null
           is_unit_quiz?: boolean
+          leader_submits_only?: boolean
           lesson_id?: string | null
           max_group_size?: number | null
           minimum_word_count?: number | null
@@ -282,6 +313,7 @@ export type Database = {
           instructions?: string | null
           interactive_html_url?: string | null
           is_unit_quiz?: boolean
+          leader_submits_only?: boolean
           lesson_id?: string | null
           max_group_size?: number | null
           minimum_word_count?: number | null

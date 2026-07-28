@@ -23,6 +23,7 @@ export type CollabConfig = {
   groupMode: GroupMode | null;
   maxGroupSize: number | null;
   allowSolo: boolean;
+  leaderSubmitsOnly: boolean;
 };
 
 export const GROUP_MODE_LABELS: Record<GroupMode, string> = {
@@ -44,6 +45,7 @@ export function readCollabConfig(row: unknown): CollabConfig {
     maxGroupSize:
       typeof r.max_group_size === "number" ? r.max_group_size : null,
     allowSolo: r.allow_solo === true,
+    leaderSubmitsOnly: r.leader_submits_only === true,
   };
 }
 

@@ -46,6 +46,7 @@ function parseCollabConfig(
   group_mode: string | null;
   max_group_size: number | null;
   allow_solo: boolean;
+  leader_submits_only: boolean;
 } {
   const collaborative =
     type === "code" && formData.get("collaborative") === "on";
@@ -55,6 +56,7 @@ function parseCollabConfig(
       group_mode: null,
       max_group_size: null,
       allow_solo: false,
+      leader_submits_only: false,
     };
   }
   const modeRaw = formData.get("group_mode")?.toString() ?? "";
@@ -66,7 +68,14 @@ function parseCollabConfig(
   const max_group_size =
     Number.isFinite(parsedMax) && parsedMax > 0 ? parsedMax : null;
   const allow_solo = formData.get("allow_solo") === "on";
-  return { collaborative: true, group_mode, max_group_size, allow_solo };
+  const leader_submits_only = formData.get("leader_submits_only") === "on";
+  return {
+    collaborative: true,
+    group_mode,
+    max_group_size,
+    allow_solo,
+    leader_submits_only,
+  };
 }
 
 export async function createAssignment(formData: FormData) {
@@ -148,6 +157,7 @@ export async function createAssignment(formData: FormData) {
         group_mode: collab.group_mode,
         max_group_size: collab.max_group_size,
         allow_solo: collab.allow_solo,
+        leader_submits_only: collab.leader_submits_only,
       } as never)
       .select("id")
       .single();
@@ -243,6 +253,7 @@ export async function updateAssignment(
       group_mode: collab.group_mode,
       max_group_size: collab.max_group_size,
       allow_solo: collab.allow_solo,
+      leader_submits_only: collab.leader_submits_only,
     } as never)
     .eq("id", assignmentId);
   if (error) throw new Error(error.message);

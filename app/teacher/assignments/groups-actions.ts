@@ -146,6 +146,79 @@ export async function setGroupStatus(
 }
 
 /**
+ * Grade a whole group at once: writes the same score (and optional feedback)
+ * to every member's submission, creating a submission row for any member who
+ * doesn't have one yet. Marks each graded.
+ */
+export async function setGroupGrade(
+  assignmentId: string,
+  groupId: string,
+  score: number,
+  feedback?: string
+): Promise<Result> {
+  await requireTeacher();
+  if (!Number.isFinite(score) || score < 0) {
+    return { ok: false, error: "Score must be 0 or higher." };
+  }
+  const admin = createAdminClient();
+
+  const { data: members } = await admin
+    .from("group_members")
+    .select("user_id")
+    .eq("group_id", groupId);
+  if (!members || members.length === 0) {
+    return { ok: false, error: "This group has no members." };
+  }
+
+  const now = new Date().toISOString();
+  for (const m of members) {
+    const { data: existing } = await admin
+      .from("submissions")
+      .select("id")
+      .eq("assignment_id", assignmentId)
+      .eq("user_id", m.user_id)
+      .maybeSingle();
+
+    let submissionId: string;
+    if (existing) {
+      submissionId = existing.id;
+    } else {
+      const { data: created } = await admin
+        .from("submissions")
+        .insert({
+          assignment_id: assignmentId,
+          user_id: m.user_id,
+          status: "submitted",
+          submitted_at: now,
+        })
+        .select("id")
+        .single();
+      if (!created) continue;
+      submissionId = created.id;
+    }
+
+    await admin
+      .from("grades")
+      .upsert(
+        {
+          submission_id: submissionId,
+          score,
+          feedback: feedback?.trim() || null,
+          graded_at: now,
+        },
+        { onConflict: "submission_id" }
+      );
+    await admin
+      .from("submissions")
+      .update({ status: "graded" })
+      .eq("id", submissionId);
+  }
+
+  revalidateAssignment(assignmentId);
+  return { ok: true };
+}
+
+/**
  * Move a student into a group (or out to the Unassigned pool when
  * toGroupId is null). Teacher override — not bounded by max_group_size.
  */

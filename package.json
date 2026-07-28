@@ -24,6 +24,9 @@
     "shiki": "^4.2.0",
     "supabase": "^2.100.0",
     "twilio": "^6.0.2",
+    "y-monaco": "^0.1.6",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.31",
     "zod": "^4.4.3"
   },
   "devDependencies": {
