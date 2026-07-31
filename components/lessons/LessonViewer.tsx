@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Check } from "lucide-react";
+import { Check, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import {
   markLessonComplete,
@@ -56,6 +56,29 @@ export function LessonViewer({
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const audioBarRef = useRef<ReadAloudHandle>(null);
+  const frameBoxRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const onChange = () =>
+      setIsFullscreen(document.fullscreenElement === frameBoxRef.current);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  function toggleFullscreen() {
+    const el = frameBoxRef.current as
+      | (HTMLDivElement & { webkitRequestFullscreen?: () => void })
+      | null;
+    if (!el) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.();
+    } else if (el.requestFullscreen) {
+      el.requestFullscreen();
+    } else {
+      el.webkitRequestFullscreen?.();
+    }
+  }
   // Stable per-mount nonce; lazy init keeps the impure call out of render.
   const [nonce] = useState(makeNonce);
   // Latest highlights, read inside the message handler without re-binding it.
@@ -175,7 +198,23 @@ export function LessonViewer({
         <ReadAloudBar ref={audioBarRef} lessonId={lessonId} />
       )}
 
-      <div className="bg-white rounded-cozy-lg shadow-cozy border border-wood-100 overflow-hidden">
+      <div
+        ref={frameBoxRef}
+        className="relative bg-white rounded-cozy-lg shadow-cozy border border-wood-100 overflow-hidden"
+      >
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          title={isFullscreen ? "Exit full screen" : "View full screen"}
+          aria-label={isFullscreen ? "Exit full screen" : "View full screen"}
+          className="absolute top-2 right-2 z-10 inline-flex items-center justify-center w-8 h-8 rounded-cozy bg-wood-900/55 text-white hover:bg-wood-900/75 backdrop-blur-sm transition-colors"
+        >
+          {isFullscreen ? (
+            <Minimize2 className="w-4 h-4" strokeWidth={2} />
+          ) : (
+            <Maximize2 className="w-4 h-4" strokeWidth={2} />
+          )}
+        </button>
         <iframe
           ref={iframeRef}
           src={iframeSrc}
@@ -199,7 +238,7 @@ export function LessonViewer({
           // the sandbox and let the lesson read Stardrop's session
           sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
           className="w-full block border-0 bg-white"
-          style={{ height }}
+          style={{ height: isFullscreen ? "100vh" : height }}
           title="Lesson content"
         />
       </div>
