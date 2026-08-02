@@ -8,6 +8,54 @@ function pistonUrl(): string {
   return (process.env.PISTON_URL ?? DEFAULT_PISTON_URL).replace(/\/+$/, "");
 }
 
+// Piston's .NET package is C# 9 / .NET 5 — top-level statements work, but there
+// are no implicit global usings, so bare `Console.WriteLine(...)` won't compile.
+// Prepend the common usings on ONE line so beginner snippets "just work" and
+// student line numbers only shift by one (we subtract it back off diagnostics).
+const CSHARP_USINGS =
+  "using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks;";
+const CSHARP_PREAMBLE_LINES = 1;
+
+function withUsings(code: string): string {
+  return `${CSHARP_USINGS}\n${code}`;
+}
+
+/**
+ * Turn the .NET SDK's verbose build output into just the student's errors:
+ * drop the "Getting ready / Restored / Build FAILED / Time Elapsed" chatter,
+ * strip the /box/ sandbox paths + csproj suffix, de-dupe, and shift line
+ * numbers back down by the preamble we injected.
+ */
+function cleanCSharpDiagnostics(raw: string): string {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const line of raw.split(/\r?\n/)) {
+    const m = line.match(
+      /\((\d+),(\d+)\):\s*error\s+(CS\d+):\s*(.+?)(?:\s*\[[^\]]*\])?\s*$/
+    );
+    if (!m) continue;
+    const ln = Math.max(1, parseInt(m[1], 10) - CSHARP_PREAMBLE_LINES);
+    const text = `Line ${ln}, col ${m[2]}: ${m[3]}: ${m[4].trim()}`;
+    if (!seen.has(text)) {
+      seen.add(text);
+      out.push(text);
+    }
+  }
+  return out.length > 0 ? out.join("\n") : raw.trim();
+}
+
+/** Clean sandbox paths + shift line numbers in a runtime stack trace. */
+function cleanCSharpRuntime(raw: string): string {
+  return raw
+    .replace(/\/box\/submission\//g, "")
+    .replace(/main\.cs\.cs/g, "main.cs")
+    .replace(
+      /:line (\d+)/g,
+      (_m, n) => `:line ${Math.max(1, parseInt(n, 10) - CSHARP_PREAMBLE_LINES)}`
+    )
+    .trim();
+}
+
 export type CSharpRunResult =
   | {
       ok: true;
@@ -39,9 +87,9 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        language: "csharp",
+        language: "csharp.net",
         version: "*",
-        files: [{ name: "main.cs", content: code }],
+        files: [{ name: "main.cs", content: withUsings(code) }],
         compile_timeout: 10_000,
         run_timeout: 5_000,
       }),
@@ -91,12 +139,15 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
   }
 
   if (body.compile && body.compile.code !== 0) {
+    // .NET writes CS diagnostics to stdout; clean out the build chatter.
     return {
       ok: false,
       kind: "compile",
       message: "Code didn't compile.",
-      stdout: body.compile.stdout ?? "",
-      stderr: body.compile.stderr ?? body.compile.output ?? "",
+      stdout: "",
+      stderr: cleanCSharpDiagnostics(
+        body.compile.stdout ?? body.compile.output ?? body.compile.stderr ?? ""
+      ),
     };
   }
 
@@ -116,7 +167,7 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
       kind: "runtime",
       message: "Code threw an error while running.",
       stdout: body.run.stdout ?? "",
-      stderr: body.run.stderr ?? body.run.output ?? "",
+      stderr: cleanCSharpRuntime(body.run.stderr || body.run.output || ""),
     };
   }
 
