@@ -59,11 +59,22 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
   }
 
   if (!response.ok) {
-    return {
-      ok: false,
-      kind: "transport",
-      message: `Code runner returned HTTP ${response.status}.`,
-    };
+    // 401/403 → the configured Piston endpoint is rejecting us (the free
+    // emkc.org instance went whitelist-only on 2026-02-15). 429 → rate limit.
+    // Make these say "service problem", not "your code is wrong".
+    let message: string;
+    if (response.status === 401 || response.status === 403) {
+      message =
+        "The C# code runner isn't set up right now — the free service it used " +
+        "became invite-only. Your teacher needs to point Stardrop at a code-" +
+        "runner endpoint (PISTON_URL). Your code is fine — this is a server issue.";
+    } else if (response.status === 429) {
+      message =
+        "The code runner is busy (rate limited). Wait a few seconds and try again.";
+    } else {
+      message = `The code runner is unavailable right now (HTTP ${response.status}). This is a server issue, not your code.`;
+    }
+    return { ok: false, kind: "transport", message };
   }
 
   // Piston returns { run, compile? }. Compile is omitted for
