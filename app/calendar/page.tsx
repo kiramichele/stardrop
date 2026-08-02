@@ -18,12 +18,30 @@ export default async function CalendarPage({
   const { year, month: monthIndex } = parseMonthParam(month);
 
   const admin = createAdminClient();
-  const [events, slideshows, assignmentsRes, lessonsRes] = await Promise.all([
-    getCalendarEvents(),
-    getSlideshows(),
-    admin.from("assignments").select("id, title, due_date, published"),
-    admin.from("lessons").select("id, title"),
-  ]);
+  const [events, slideshows, assignmentsRes, lessonsRes, enrollmentsRes] =
+    await Promise.all([
+      getCalendarEvents(),
+      getSlideshows(),
+      admin
+        .from("assignments")
+        .select("id, title, due_date, published, class_id"),
+      admin.from("lessons").select("id, title"),
+      // A student only sees deadlines for their own class(es); assignments are
+      // stored one copy per class, so without this they'd see every period's
+      // duplicate. Teachers see all classes.
+      role === "student"
+        ? admin.from("enrollments").select("class_id").eq("user_id", user.id)
+        : Promise.resolve({ data: null }),
+    ]);
+
+  const enrolledClassIds =
+    role === "student"
+      ? new Set(
+          (enrollmentsRes.data ?? []).map(
+            (e) => (e as { class_id: string }).class_id
+          )
+        )
+      : null;
 
   // Title lookups so the day-detail popup can name a slideshow's links.
   const lessonTitle = new Map<string, string>();
@@ -48,6 +66,12 @@ export default async function CalendarPage({
 
   const assignmentsDue = (assignmentsRes.data ?? [])
     .filter((a) => a.published && typeof a.due_date === "string")
+    // Students: only deadlines from a class they're enrolled in.
+    .filter(
+      (a) =>
+        enrolledClassIds === null ||
+        enrolledClassIds.has((a as { class_id: string }).class_id)
+    )
     .map((a) => ({
       date: (a.due_date as string).slice(0, 10),
       id: a.id,
