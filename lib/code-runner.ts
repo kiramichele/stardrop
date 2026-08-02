@@ -27,21 +27,44 @@ function withUsings(code: string): string {
  * numbers back down by the preamble we injected.
  */
 function cleanCSharpDiagnostics(raw: string): string {
+  const lines = raw.split(/\r?\n/);
   const out: string[] = [];
   const seen = new Set<string>();
-  for (const line of raw.split(/\r?\n/)) {
-    const m = line.match(
-      /\((\d+),(\d+)\):\s*error\s+(CS\d+):\s*(.+?)(?:\s*\[[^\]]*\])?\s*$/
-    );
-    if (!m) continue;
-    const ln = Math.max(1, parseInt(m[1], 10) - CSHARP_PREAMBLE_LINES);
-    const text = `Line ${ln}, col ${m[2]}: ${m[3]}: ${m[4].trim()}`;
-    if (!seen.has(text)) {
-      seen.add(text);
-      out.push(text);
+  const add = (s: string) => {
+    if (!seen.has(s)) {
+      seen.add(s);
+      out.push(s);
     }
+  };
+
+  for (const line of lines) {
+    // "(line,col): error CS0103: message [proj]" — the common case.
+    const withPos = line.match(
+      /\((\d+),(\d+)\):\s*error\s+([A-Za-z]+\d+):\s*(.+?)(?:\s*\[[^\]]*\])?\s*$/
+    );
+    if (withPos) {
+      const ln = Math.max(1, parseInt(withPos[1], 10) - CSHARP_PREAMBLE_LINES);
+      add(`Line ${ln}, col ${withPos[2]}: ${withPos[3]}: ${withPos[4].trim()}`);
+      continue;
+    }
+    // Errors without a position (MSBuild/NETSDK level).
+    const noPos = line.match(
+      /(?:^|:)\s*error\s+([A-Za-z]+\d+):\s*(.+?)(?:\s*\[[^\]]*\])?\s*$/
+    );
+    if (noPos) add(`${noPos[1]}: ${noPos[2].trim()}`);
   }
-  return out.length > 0 ? out.join("\n") : raw.trim();
+  if (out.length > 0) return out.join("\n");
+
+  // Fallback: no recognizable error line — strip the .NET build chatter and
+  // show whatever's left, so we never dump the raw "Getting ready…" log.
+  const NOISE =
+    /^(Getting ready|The template |\s*Determining |\s*Restored |Microsoft \(R\)|Copyright |Build succeeded|Build FAILED|\s*\d+ (Warning|Error)\(s\)|\s*Time Elapsed|\s+\S+ -> )/;
+  const leftover = lines
+    .map((l) =>
+      l.replace(/\/box\/submission\//g, "").replace(/main\.cs\.cs/g, "main.cs")
+    )
+    .filter((l) => l.trim() && !NOISE.test(l));
+  return leftover.length > 0 ? leftover.join("\n") : raw.trim();
 }
 
 /** Clean sandbox paths + shift line numbers in a runtime stack trace. */
