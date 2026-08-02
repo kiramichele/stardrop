@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { parseSubmissionMedia } from "@/lib/assignments";
+import { parseSubmissionMedia, type SubmissionMedia } from "@/lib/assignments";
 import type {
   PortfolioEntry,
   PortfolioGist,
@@ -92,6 +92,15 @@ type AssignmentAutoPublishRow = {
   id: string;
   auto_publish_to_starhub: boolean | null;
   type: string;
+};
+
+type PortfolioPostRow = {
+  id: string;
+  user_id: string;
+  body: string | null;
+  media: unknown;
+  is_public: boolean;
+  created_at: string;
 };
 
 type CodeSubmissionRow = {
@@ -208,7 +217,8 @@ export async function getPortfolioEntries(
   options: { canSeePrivate: boolean }
 ): Promise<PortfolioEntry[]> {
   const admin = createAdminClient();
-  const [{ data: subs }, { data: gists }, { data: shows }] = await Promise.all([
+  const [{ data: subs }, { data: gists }, { data: shows }, { data: posts }] =
+    await Promise.all([
     shim<SubmissionPortfolioRow>(admin, "submissions")
       .select(
         "id, user_id, assignment_id, content, structured_data, uploaded_files, is_public, submitted_at, created_at, assignments(title, type, points), grades(score)"
@@ -233,6 +243,16 @@ export async function getPortfolioEntries(
       .eq("user_id", targetUserId)
       .eq("published", true)
       .order("created_at", { ascending: false }),
+    options.canSeePrivate
+      ? shim<PortfolioPostRow>(admin, "portfolio_posts")
+          .select("id, user_id, body, media, is_public, created_at")
+          .eq("user_id", targetUserId)
+          .order("created_at", { ascending: false })
+      : shim<PortfolioPostRow>(admin, "portfolio_posts")
+          .select("id, user_id, body, media, is_public, created_at")
+          .eq("user_id", targetUserId)
+          .eq("is_public", true)
+          .order("created_at", { ascending: false }),
   ]);
 
   const out: PortfolioEntry[] = [];
@@ -280,6 +300,17 @@ export async function getPortfolioEntries(
       indexPath: sp.index_path,
       isPublic: sp.published,
       createdAt: sp.created_at,
+    });
+  }
+
+  for (const p of posts ?? []) {
+    out.push({
+      kind: "post",
+      id: p.id,
+      body: p.body,
+      media: parseSubmissionMedia(p.media),
+      isPublic: p.is_public,
+      createdAt: p.created_at,
     });
   }
 
@@ -373,6 +404,87 @@ export async function deleteGistRecord(
     .eq("id", gistId);
   if (error) return { ok: false, error: error.message };
   return { ok: true, userId: existing.user_id };
+}
+
+// =============================================================
+// Posts (media + text) CRUD
+// =============================================================
+
+export async function insertPostRecord(
+  userId: string,
+  args: { body: string | null; media: SubmissionMedia[]; isPublic: boolean }
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const admin = createAdminClient();
+  const id = crypto.randomUUID();
+  const { error } = await shim<PortfolioPostRow>(admin, "portfolio_posts").insert({
+    id,
+    user_id: userId,
+    body: args.body,
+    media: args.media as unknown as Record<string, unknown>,
+    is_public: args.isPublic,
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, id };
+}
+
+async function getPostOwner(
+  admin: Admin,
+  postId: string
+): Promise<{ userId: string; media: SubmissionMedia[] } | null> {
+  const { data } = await shim<PortfolioPostRow>(admin, "portfolio_posts")
+    .select("id, user_id, body, media, is_public, created_at")
+    .eq("id", postId)
+    .maybeSingle();
+  if (!data) return null;
+  return { userId: data.user_id, media: parseSubmissionMedia(data.media) };
+}
+
+export async function setPostPublicRecord(
+  postId: string,
+  userId: string,
+  isTeacher: boolean,
+  isPublic: boolean
+): Promise<{ ok: boolean; ownerId?: string; error?: string }> {
+  const admin = createAdminClient();
+  const owner = await getPostOwner(admin, postId);
+  if (!owner) return { ok: false, error: "Post not found" };
+  if (!isTeacher && owner.userId !== userId) {
+    return { ok: false, error: "Not authorized" };
+  }
+  const { error } = await shim<PortfolioPostRow>(admin, "portfolio_posts")
+    .update({ is_public: isPublic, updated_at: new Date().toISOString() })
+    .eq("id", postId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, ownerId: owner.userId };
+}
+
+export async function deletePostRecord(
+  postId: string,
+  userId: string,
+  isTeacher: boolean
+): Promise<{ ok: boolean; ownerId?: string; error?: string }> {
+  const admin = createAdminClient();
+  const owner = await getPostOwner(admin, postId);
+  if (!owner) return { ok: false, error: "Post not found" };
+  if (!isTeacher && owner.userId !== userId) {
+    return { ok: false, error: "Not authorized" };
+  }
+
+  // Best-effort: remove the media objects from the public bucket.
+  const paths = owner.media.map((m) => m.storagePath).filter(Boolean);
+  if (paths.length > 0) {
+    try {
+      await admin.storage.from("starhub").remove(paths);
+    } catch {
+      // ignore — the row delete below is what matters
+    }
+  }
+
+  const { error } = await shim<PortfolioPostRow>(admin, "portfolio_posts")
+    .delete()
+    .eq("id", postId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, ownerId: owner.userId };
 }
 
 // =============================================================

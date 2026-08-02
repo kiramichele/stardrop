@@ -69,13 +69,35 @@ export type PortfolioEntry =
       indexPath: string | null;
       isPublic: boolean;
       createdAt: string;
+    }
+  | {
+      kind: "post";
+      id: string;
+      body: string | null;
+      media: SubmissionMedia[];
+      isPublic: boolean;
+      createdAt: string;
     };
 
+/** Public URL for a StarHub post-media object (the `starhub` bucket). */
+export function starhubMediaUrl(storagePath: string): string {
+  const base = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/+$/, "");
+  return `${base}/storage/v1/object/public/starhub/${storagePath}`;
+}
+
 /** Category filters on the portfolio feed. */
-export type PortfolioFilter = "all" | "code" | "video" | "writing" | "gist" | "showcase";
+export type PortfolioFilter =
+  | "all"
+  | "post"
+  | "code"
+  | "video"
+  | "writing"
+  | "gist"
+  | "showcase";
 
 export const PORTFOLIO_FILTERS: { key: PortfolioFilter; label: string }[] = [
   { key: "all", label: "All" },
+  { key: "post", label: "Posts" },
   { key: "code", label: "Code" },
   { key: "video", label: "Videos" },
   { key: "writing", label: "Writing" },
@@ -85,6 +107,7 @@ export const PORTFOLIO_FILTERS: { key: PortfolioFilter; label: string }[] = [
 
 /** Which filter bucket an entry falls into. */
 export function entryFilterBucket(entry: PortfolioEntry): PortfolioFilter {
+  if (entry.kind === "post") return "post";
   if (entry.kind === "gist") return "gist";
   if (entry.kind === "showcase") return "showcase";
   // submission — by assignment type

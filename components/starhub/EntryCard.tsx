@@ -9,6 +9,7 @@ import {
   Upload,
   ArrowRight,
   ExternalLink,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import {
@@ -17,11 +18,13 @@ import {
 } from "@/lib/assignments";
 import {
   formatStarHubDate,
+  starhubMediaUrl,
   type PortfolioEntry,
 } from "@/lib/starhub";
 import { CodeBlock } from "./CodeBlock";
 import { EntryVisibilityChip } from "./EntryVisibilityChip";
 import { GistDeleteButton } from "./GistDeleteButton";
+import { PostDeleteButton } from "./PostDeleteButton";
 
 /**
  * Dispatches on entry.kind + (for submissions) assignmentType to render
@@ -50,9 +53,9 @@ export async function EntryCard({
             target={
               entry.kind === "gist"
                 ? { kind: "gist", id: entry.id }
-                : entry.kind === "submission"
-                  ? { kind: "submission", id: entry.id }
-                  : { kind: "submission", id: entry.id } // showcase: not toggleable here
+                : entry.kind === "post"
+                  ? { kind: "post", id: entry.id }
+                  : { kind: "submission", id: entry.id } // showcase falls here but isn't manageable
             }
             initialIsPublic={entry.isPublic}
             canManage={canManage && entry.kind !== "showcase"}
@@ -73,23 +76,30 @@ export async function EntryCard({
           <GistDeleteButton gistId={entry.id} />
         </div>
       )}
+
+      {canManage && entry.kind === "post" && (
+        <div className="flex items-center justify-end gap-2 border-t border-wood-100 px-4 py-2">
+          <PostDeleteButton postId={entry.id} />
+        </div>
+      )}
     </Card>
   );
 }
 
 function EntryHeader({ entry }: { entry: PortfolioEntry }) {
-  const Icon = entryIcon(entry);
   const kindLabel = entryKindLabel(entry);
   return (
     <>
       <p className="label-eyebrow flex items-center gap-1.5">
-        <Icon className="h-3 w-3" strokeWidth={2} />
+        {entryIconNode(entry)}
         {kindLabel}
         <span className="text-wood-400">· {formatStarHubDate(entry.createdAt)}</span>
       </p>
-      <h3 className="mt-1 font-display text-lg text-wood-900 leading-snug">
-        {entry.title}
-      </h3>
+      {entry.kind !== "post" && (
+        <h3 className="mt-1 font-display text-lg text-wood-900 leading-snug">
+          {entry.title}
+        </h3>
+      )}
       {entry.kind === "gist" && entry.description && (
         <p className="mt-1 text-sm text-wood-600">{entry.description}</p>
       )}
@@ -103,6 +113,53 @@ function EntryHeader({ entry }: { entry: PortfolioEntry }) {
 }
 
 async function renderBody(entry: PortfolioEntry) {
+  if (entry.kind === "post") {
+    return (
+      <div className="px-4 pb-4">
+        {entry.body && (
+          <p className="whitespace-pre-wrap text-sm text-wood-700 leading-relaxed mb-3">
+            {entry.body}
+          </p>
+        )}
+        {entry.media.length > 0 && (
+          <div
+            className={[
+              "grid gap-2",
+              entry.media.length === 1 ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-3",
+            ].join(" ")}
+          >
+            {entry.media.map((m) => (
+              <a
+                key={m.id}
+                href={starhubMediaUrl(m.storagePath)}
+                target="_blank"
+                rel="noreferrer"
+                className="block overflow-hidden rounded-cozy bg-cream-100 aspect-video"
+              >
+                {m.kind === "image" ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={starhubMediaUrl(m.storagePath)}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <video
+                    src={starhubMediaUrl(m.storagePath)}
+                    className="h-full w-full object-cover"
+                    preload="metadata"
+                    muted
+                    controls
+                  />
+                )}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (entry.kind === "gist") {
     return (
       <div className="px-4 pb-4">
@@ -284,29 +341,34 @@ function SubmissionFooter({
   );
 }
 
-function entryIcon(entry: PortfolioEntry) {
-  if (entry.kind === "gist") return Code2;
-  if (entry.kind === "showcase") return Gamepad2;
+function entryIconNode(entry: PortfolioEntry) {
+  const cls = "h-3 w-3";
+  const sw = 2;
+  if (entry.kind === "post") return <ImageIcon className={cls} strokeWidth={sw} />;
+  if (entry.kind === "gist") return <Code2 className={cls} strokeWidth={sw} />;
+  if (entry.kind === "showcase")
+    return <Gamepad2 className={cls} strokeWidth={sw} />;
   switch (entry.assignmentType) {
     case "code":
-      return Code2;
+      return <Code2 className={cls} strokeWidth={sw} />;
     case "devlog":
     case "video_response":
-      return Video;
+      return <Video className={cls} strokeWidth={sw} />;
     case "short_answer":
-      return FileText;
+      return <FileText className={cls} strokeWidth={sw} />;
     case "discussion":
-      return MessagesSquare;
+      return <MessagesSquare className={cls} strokeWidth={sw} />;
     case "interactive_html":
-      return Sparkles;
+      return <Sparkles className={cls} strokeWidth={sw} />;
     case "unity_upload":
-      return Upload;
+      return <Upload className={cls} strokeWidth={sw} />;
     default:
-      return FileText;
+      return <FileText className={cls} strokeWidth={sw} />;
   }
 }
 
 function entryKindLabel(entry: PortfolioEntry): string {
+  if (entry.kind === "post") return "Post";
   if (entry.kind === "gist") return "Gist";
   if (entry.kind === "showcase") return "Showcase project";
   switch (entry.assignmentType) {

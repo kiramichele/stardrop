@@ -6,11 +6,13 @@ import { Eye, EyeOff } from "lucide-react";
 import {
   setGistPublic,
   setSubmissionVisibility,
+  setPostPublic,
 } from "@/app/starhub/actions";
 
 type Target =
   | { kind: "gist"; id: string }
-  | { kind: "submission"; id: string };
+  | { kind: "submission"; id: string }
+  | { kind: "post"; id: string };
 
 /**
  * Owner / teacher visibility flip. For owners it's a one-click toggle.
@@ -56,7 +58,9 @@ export function EntryVisibilityChip({
       const result =
         target.kind === "gist"
           ? await setGistPublic(target.id, next)
-          : await setSubmissionVisibility(target.id, next);
+          : target.kind === "post"
+            ? await setPostPublic(target.id, next)
+            : await setSubmissionVisibility(target.id, next);
       if (!result.ok) {
         setIsPublic(!next);
         setError(result.error ?? "Couldn't update.");

@@ -97,7 +97,7 @@ export type SubmissionMedia = {
   mime: string;
   size: number;
   createdAt: string;
-  bucket?: "submissions" | "devlogs";
+  bucket?: "submissions" | "devlogs" | "starhub";
 };
 
 /** One submitted discussion post, flattened with its author for rendering. */

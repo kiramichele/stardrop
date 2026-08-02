@@ -40,8 +40,14 @@ export default async function NewStarhubEntryPage() {
         showcaseProjects={showcaseChoices}
       />
       <p className="text-sm text-wood-500 mt-5 max-w-3xl">
-        Want a free-form code snippet that isn&apos;t tied to any of the
-        above? Save it in the{" "}
+        Want to share screenshots, a video, or just a note instead?{" "}
+        <Link
+          href="/starhub/post"
+          className="text-terracotta-700 hover:text-terracotta-800 font-medium"
+        >
+          Write a post
+        </Link>
+        . Or, for a free-form code snippet, save it in the{" "}
         <Link
           href="/playground"
           className="text-terracotta-700 hover:text-terracotta-800 font-medium"

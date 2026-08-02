@@ -8,8 +8,12 @@ import {
   updateGistRecord,
   deleteGistRecord,
   getGist,
+  insertPostRecord,
+  deletePostRecord,
+  setPostPublicRecord,
 } from "@/lib/starhub-server";
 import { setSubmissionPublicRecord } from "@/lib/devlog-wall-server";
+import type { SubmissionMedia } from "@/lib/assignments";
 
 const TITLE_MAX = 120;
 const DESCRIPTION_MAX = 600;
@@ -169,6 +173,75 @@ export async function setSubmissionVisibility(
     revalidatePath("/devlogs");
   }
   return result;
+}
+
+// =============================================================
+// Posts (text + media)
+// =============================================================
+
+const POST_BODY_MAX = 2000;
+const POST_MEDIA_MAX = 20;
+
+/** Create a StarHub post from optional text + already-uploaded media. */
+export async function createPost(args: {
+  body: string;
+  media: SubmissionMedia[];
+  isPublic: boolean;
+}): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const user = await requireUser();
+  const body = args.body.trim().slice(0, POST_BODY_MAX) || null;
+  const media = Array.isArray(args.media)
+    ? args.media.slice(0, POST_MEDIA_MAX)
+    : [];
+  if (!body && media.length === 0) {
+    return { ok: false, error: "Add some text or at least one photo/video." };
+  }
+  const result = await insertPostRecord(user.id, {
+    body,
+    media,
+    isPublic: args.isPublic,
+  });
+  if (!result.ok) return result;
+  revalidatePath(`/starhub/${user.username}`);
+  return { ok: true, id: result.id };
+}
+
+/** Delete a post (owner or teacher). Also removes its media. */
+export async function deletePost(
+  postId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+  const result = await deletePostRecord(
+    postId,
+    user.id,
+    user.role === "teacher"
+  );
+  if (!result.ok) return result;
+  if (result.ownerId) {
+    const username = await usernameFor(result.ownerId);
+    if (username) revalidatePath(`/starhub/${username}`);
+  }
+  return { ok: true };
+}
+
+/** Flip a post's public/private state (owner or teacher). */
+export async function setPostPublic(
+  postId: string,
+  isPublic: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+  const result = await setPostPublicRecord(
+    postId,
+    user.id,
+    user.role === "teacher",
+    isPublic
+  );
+  if (!result.ok) return result;
+  if (result.ownerId) {
+    const username = await usernameFor(result.ownerId);
+    if (username) revalidatePath(`/starhub/${username}`);
+  }
+  return { ok: true };
 }
 
 // =============================================================

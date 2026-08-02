@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { Sparkles, Settings as SettingsIcon, Plus } from "lucide-react";
+import {
+  Sparkles,
+  Settings as SettingsIcon,
+  Plus,
+  ImagePlus,
+} from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import {
@@ -56,10 +61,16 @@ export function IdentityHeader({
 
         {isOwner && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Link href="/starhub/new">
+            <Link href="/starhub/post">
               <Button size="sm">
+                <ImagePlus className="w-3.5 h-3.5" strokeWidth={2} />
+                New post
+              </Button>
+            </Link>
+            <Link href="/starhub/new">
+              <Button size="sm" variant="secondary">
                 <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-                New gist
+                Add work
               </Button>
             </Link>
             <Link href="/profile">
