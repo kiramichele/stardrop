@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BookOpen, ClipboardList, Clock } from "lucide-react";
-import { requireUser } from "@/lib/auth";
+import { ArrowLeft, BookOpen, ClipboardList, Clock, LogIn } from "lucide-react";
+import { getCurrentUser } from "@/lib/auth";
 import { getUnitsForTeacher } from "@/lib/lessons";
 import { getAssignmentsForTeacher } from "@/lib/assignments-server";
 import {
@@ -23,12 +23,64 @@ export default async function SlideshowPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireUser();
-  const isTeacher = user.role === "teacher";
+  const user = await getCurrentUser();
+  const isTeacher = user?.role === "teacher";
   const { id } = await params;
 
   const slideshow = await getSlideshow(id);
   if (!slideshow) notFound();
+
+  // Public, no-login view: the shareable link an admin can open without an
+  // account. Just the slides + basic info, read-only.
+  if (!user) {
+    const loginHref = `/login?next=${encodeURIComponent(`/slideshows/${id}`)}`;
+    return (
+      <div className="min-h-screen flex flex-col bg-cream-100 bg-paper bg-repeat">
+        <header className="border-b border-wood-100 bg-cream-50 px-6 py-3">
+          <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+            <p className="flex items-baseline gap-2">
+              <span className="font-display text-lg text-terracotta-700 leading-none">
+                Stardrop
+              </span>
+              <span className="text-[0.7rem] uppercase tracking-wide-label text-wood-500 font-semibold">
+                Game Design
+              </span>
+            </p>
+            <Link
+              href={loginHref}
+              className="inline-flex items-center gap-1.5 rounded-cozy border border-wood-200 bg-cream-50 text-sm font-medium px-3.5 py-1.5 text-wood-700 hover:bg-cream-100 transition-colors"
+            >
+              <LogIn className="w-4 h-4" strokeWidth={2} />
+              Log in
+            </Link>
+          </div>
+        </header>
+
+        <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-8">
+          <p className="label-eyebrow text-wood-500">
+            {formatClassDate(slideshow.classDate)}
+          </p>
+          <h1 className="font-display text-3xl text-wood-900 leading-tight mt-1 mb-2">
+            {slideshow.title}
+          </h1>
+          {slideshow.description && (
+            <p className="text-sm text-wood-600 mb-5 whitespace-pre-wrap">
+              {slideshow.description}
+            </p>
+          )}
+          {slideshow.htmlUrl ? (
+            <LessonViewer htmlUrl={slideshow.htmlUrl} isCompleted={false} />
+          ) : (
+            <Card>
+              <p className="text-sm text-wood-600">
+                No slideshow file has been uploaded for this day yet.
+              </p>
+            </Card>
+          )}
+        </main>
+      </div>
+    );
+  }
 
   const { lessons, assignments } = await resolveSlideshowLinks(slideshow);
   const dueAssignments = await getAssignmentsDueOn(slideshow.classDate);
