@@ -40,6 +40,11 @@ export async function middleware(request: NextRequest) {
   const isPublicLesson = path.startsWith("/lessons/");
   const isPublicAssignment = path.startsWith("/assignments/");
   const isPublicSlideshow = path.startsWith("/slideshows/");
+  // The HTML files those public pages embed in an iframe are served from the
+  // `lessons` storage bucket (lesson / assignment-prompt / slideshow HTML) via
+  // this proxy. Let it through so the embedded activity/slides load without a
+  // login. Private files (submissions, devlogs, discussion) are NOT whitelisted.
+  const isPublicLessonFile = path.startsWith("/api/files/lessons/");
   // The interactive demo — fully self-contained sample data, no auth.
   const isDemo = path === "/demo" || path.startsWith("/demo/");
   const isPublic =
@@ -48,6 +53,7 @@ export async function middleware(request: NextRequest) {
     isPublicLesson ||
     isPublicAssignment ||
     isPublicSlideshow ||
+    isPublicLessonFile ||
     isDemo;
 
   // Not signed in + accessing protected route -> /login, remembering where
