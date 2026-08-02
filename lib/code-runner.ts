@@ -14,10 +14,18 @@ function pistonUrl(): string {
 // student line numbers only shift by one (we subtract it back off diagnostics).
 const CSHARP_USINGS =
   "using System; using System.Collections.Generic; using System.Linq; using System.Text; using System.Threading.Tasks;";
-const CSHARP_PREAMBLE_LINES = 1;
 
-function withUsings(code: string): string {
-  return `${CSHARP_USINGS}\n${code}`;
+/**
+ * Prepare the student's code for Piston's .NET runtime. If they already wrote
+ * any `using` directive (i.e. a real program), run it untouched — adding our
+ * own usings would duplicate `using System;` and this build treats that as an
+ * error. Only bare snippets with no usings get the preamble so `Console` etc.
+ * resolve. Returns the line offset we introduced so diagnostics can subtract it.
+ */
+function prepareCSharp(code: string): { content: string; offset: number } {
+  const hasUsing = /^\s*using\s+[A-Za-z_][\w.]*\s*;/m.test(code);
+  if (hasUsing) return { content: code, offset: 0 };
+  return { content: `${CSHARP_USINGS}\n${code}`, offset: 1 };
 }
 
 /**
@@ -26,7 +34,7 @@ function withUsings(code: string): string {
  * strip the /box/ sandbox paths + csproj suffix, de-dupe, and shift line
  * numbers back down by the preamble we injected.
  */
-function cleanCSharpDiagnostics(raw: string): string {
+function cleanCSharpDiagnostics(raw: string, offset: number): string {
   const lines = raw.split(/\r?\n/);
   const out: string[] = [];
   const seen = new Set<string>();
@@ -43,7 +51,7 @@ function cleanCSharpDiagnostics(raw: string): string {
       /\((\d+),(\d+)\):\s*error\s+([A-Za-z]+\d+):\s*(.+?)(?:\s*\[[^\]]*\])?\s*$/
     );
     if (withPos) {
-      const ln = Math.max(1, parseInt(withPos[1], 10) - CSHARP_PREAMBLE_LINES);
+      const ln = Math.max(1, parseInt(withPos[1], 10) - offset);
       add(`Line ${ln}, col ${withPos[2]}: ${withPos[3]}: ${withPos[4].trim()}`);
       continue;
     }
@@ -68,13 +76,13 @@ function cleanCSharpDiagnostics(raw: string): string {
 }
 
 /** Clean sandbox paths + shift line numbers in a runtime stack trace. */
-function cleanCSharpRuntime(raw: string): string {
+function cleanCSharpRuntime(raw: string, offset: number): string {
   return raw
     .replace(/\/box\/submission\//g, "")
     .replace(/main\.cs\.cs/g, "main.cs")
     .replace(
       /:line (\d+)/g,
-      (_m, n) => `:line ${Math.max(1, parseInt(n, 10) - CSHARP_PREAMBLE_LINES)}`
+      (_m, n) => `:line ${Math.max(1, parseInt(n, 10) - offset)}`
     )
     .trim();
 }
@@ -104,6 +112,8 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
     return { ok: false, kind: "compile", message: "Nothing to run yet." };
   }
 
+  const prepared = prepareCSharp(code);
+
   let response: Response;
   try {
     response = await fetch(`${pistonUrl()}/execute`, {
@@ -119,7 +129,7 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
       body: JSON.stringify({
         language: "csharp.net",
         version: "*",
-        files: [{ name: "main.cs", content: withUsings(code) }],
+        files: [{ name: "main.cs", content: prepared.content }],
         compile_timeout: 10_000,
         // Piston's default max run_timeout is 3000ms; asking for more is a 400.
         run_timeout: 3_000,
@@ -177,7 +187,8 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
       message: "Code didn't compile.",
       stdout: "",
       stderr: cleanCSharpDiagnostics(
-        body.compile.stdout ?? body.compile.output ?? body.compile.stderr ?? ""
+        body.compile.stdout ?? body.compile.output ?? body.compile.stderr ?? "",
+        prepared.offset
       ),
     };
   }
@@ -198,7 +209,10 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
       kind: "runtime",
       message: "Code threw an error while running.",
       stdout: body.run.stdout ?? "",
-      stderr: cleanCSharpRuntime(body.run.stderr || body.run.output || ""),
+      stderr: cleanCSharpRuntime(
+        body.run.stderr || body.run.output || "",
+        prepared.offset
+      ),
     };
   }
 
