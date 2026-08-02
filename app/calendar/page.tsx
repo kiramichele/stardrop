@@ -24,7 +24,7 @@ export default async function CalendarPage({
       getSlideshows(),
       admin
         .from("assignments")
-        .select("id, title, due_date, published, class_id"),
+        .select("id, title, due_date, published, class_id, assignment_group_id"),
       admin.from("lessons").select("id, title"),
       // A student only sees deadlines for their own class(es); assignments are
       // stored one copy per class, so without this they'd see every period's
@@ -64,6 +64,10 @@ export default async function CalendarPage({
     })),
   }));
 
+  // Collapse the per-class copies of one assignment into a single calendar
+  // entry (by shared group id; fall back to title+date for older copies), so
+  // the same deadline isn't repeated once per class.
+  const seenAssignment = new Set<string>();
   const assignmentsDue = (assignmentsRes.data ?? [])
     .filter((a) => a.published && typeof a.due_date === "string")
     // Students: only deadlines from a class they're enrolled in.
@@ -72,6 +76,14 @@ export default async function CalendarPage({
         enrolledClassIds === null ||
         enrolledClassIds.has((a as { class_id: string }).class_id)
     )
+    .filter((a) => {
+      const groupId = (a as { assignment_group_id: string | null })
+        .assignment_group_id;
+      const key = groupId ?? `${a.title}|${(a.due_date as string).slice(0, 10)}`;
+      if (seenAssignment.has(key)) return false;
+      seenAssignment.add(key);
+      return true;
+    })
     .map((a) => ({
       date: (a.due_date as string).slice(0, 10),
       id: a.id,
