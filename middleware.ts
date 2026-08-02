@@ -45,8 +45,6 @@ export async function middleware(request: NextRequest) {
   // this proxy. Let it through so the embedded activity/slides load without a
   // login. Private files (submissions, devlogs, discussion) are NOT whitelisted.
   const isPublicLessonFile = path.startsWith("/api/files/lessons/");
-  // Temporary: public diagnostic for PISTON_URL wiring.
-  const isDebug = path.startsWith("/api/debug/");
   // The interactive demo — fully self-contained sample data, no auth.
   const isDemo = path === "/demo" || path.startsWith("/demo/");
   const isPublic =
@@ -56,7 +54,6 @@ export async function middleware(request: NextRequest) {
     isPublicAssignment ||
     isPublicSlideshow ||
     isPublicLessonFile ||
-    isDebug ||
     isDemo;
 
   // Not signed in + accessing protected route -> /login, remembering where

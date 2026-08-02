@@ -91,7 +91,8 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
         version: "*",
         files: [{ name: "main.cs", content: withUsings(code) }],
         compile_timeout: 10_000,
-        run_timeout: 5_000,
+        // Piston's default max run_timeout is 3000ms; asking for more is a 400.
+        run_timeout: 3_000,
       }),
       // Don't cache.
       cache: "no-store",
@@ -155,7 +156,7 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
     return {
       ok: false,
       kind: "timeout",
-      message: "Code took too long to run (over 5 seconds) and was stopped.",
+      message: "Code took too long to run (over 3 seconds) and was stopped.",
       stdout: body.run.stdout ?? "",
       stderr: body.run.stderr ?? "",
     };
