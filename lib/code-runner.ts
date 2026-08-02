@@ -85,7 +85,14 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
   try {
     response = await fetch(`${pistonUrl()}/execute`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        // Shared secret so a Cloudflare rule can reject anyone but Stardrop.
+        // Omitted when unset (e.g. before the tunnel is locked down).
+        ...(process.env.PISTON_TOKEN
+          ? { "X-Piston-Token": process.env.PISTON_TOKEN }
+          : {}),
+      },
       body: JSON.stringify({
         language: "csharp.net",
         version: "*",
