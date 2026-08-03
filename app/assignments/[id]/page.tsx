@@ -28,6 +28,55 @@ const getPublicAssignment = cache(async function getPublicAssignment(
   return data;
 });
 
+/**
+ * Given the assignment id from a shared link and a student, return the id of
+ * the copy in one of the student's own classes (assignments are one copy per
+ * class, grouped by assignment_group_id). Falls back to the original id when
+ * the student's class has no copy — that page will show its own not-available
+ * state.
+ */
+async function resolveStudentCopyId(
+  assignmentId: string,
+  userId: string
+): Promise<string> {
+  const admin = createAdminClient();
+
+  const { data: a } = await admin
+    .from("assignments")
+    .select("id, class_id, assignment_group_id, title, type, lesson_id, is_unit_quiz")
+    .eq("id", assignmentId)
+    .maybeSingle();
+  if (!a) return assignmentId;
+
+  const { data: enrollments } = await admin
+    .from("enrollments")
+    .select("class_id")
+    .eq("user_id", userId);
+  const classIds = (enrollments ?? []).map((e) => e.class_id);
+  if (classIds.length === 0) return assignmentId;
+
+  // Link already points at one of the student's classes.
+  if (classIds.includes(a.class_id)) return assignmentId;
+
+  // Find the sibling copy in a class the student is in.
+  let q = admin
+    .from("assignments")
+    .select("id")
+    .in("class_id", classIds)
+    .eq("published", true);
+  if (a.assignment_group_id) {
+    q = q.eq("assignment_group_id", a.assignment_group_id);
+  } else {
+    q = q
+      .eq("title", a.title)
+      .eq("type", a.type)
+      .eq("is_unit_quiz", a.is_unit_quiz);
+    q = a.lesson_id ? q.eq("lesson_id", a.lesson_id) : q.is("lesson_id", null);
+  }
+  const { data: sibling } = await q.limit(1).maybeSingle();
+  return sibling?.id ?? assignmentId;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -48,9 +97,13 @@ export default async function AssignmentLinkPage({
 
   // Signed in → send them to the view where they can actually work/grade.
   if (user) {
-    const base =
-      user.role === "teacher" ? "/teacher/assignments" : "/student/assignments";
-    redirect(`${base}/${id}`);
+    if (user.role === "teacher") {
+      redirect(`/teacher/assignments/${id}`);
+    }
+    // A shared/Canvas link points at one class's copy, but every period gets
+    // the same link. Route each student to THEIR class's copy so it opens.
+    const targetId = await resolveStudentCopyId(id, user.id);
+    redirect(`/student/assignments/${targetId}`);
   }
 
   // Signed out → read-only directions.
