@@ -69,12 +69,15 @@ export async function getAssignmentClassPublishStates(assignment: {
     className: string;
     periodNumber: number | null;
     published: boolean;
+    submissionCount: number;
   }>
 > {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   let query = supabase
     .from("assignments")
-    .select("id, published, class_id, classes(name, period_number)");
+    .select(
+      "id, published, class_id, classes(name, period_number), submissions(count)"
+    );
 
   if (assignment.assignment_group_id) {
     query = query.eq("assignment_group_id", assignment.assignment_group_id);
@@ -91,11 +94,16 @@ export async function getAssignmentClassPublishStates(assignment: {
   const { data } = await query;
   const rows = (data ?? []).map((r) => {
     const k = Array.isArray(r.classes) ? r.classes[0] : r.classes;
+    const countRow = Array.isArray(r.submissions)
+      ? r.submissions[0]
+      : r.submissions;
     return {
       id: r.id,
       className: k?.name ?? "Unknown class",
       periodNumber: k?.period_number ?? null,
       published: r.published,
+      submissionCount:
+        (countRow as { count: number } | null | undefined)?.count ?? 0,
     };
   });
   rows.sort((a, b) => {
@@ -117,7 +125,10 @@ export async function getAssignment(assignmentId: string) {
 }
 
 export async function getSubmissionsForAssignment(assignmentId: string) {
-  const supabase = await createClient();
+  // Teacher-only. Submissions RLS is scoped to each student, so the session
+  // client returns nothing here — read with the service role like the other
+  // teacher-facing submission queries.
+  const supabase = createAdminClient();
   const { data } = await supabase
     .from("submissions")
     .select(SELECTS.submissionsList)
@@ -127,7 +138,7 @@ export async function getSubmissionsForAssignment(assignmentId: string) {
 }
 
 export async function getSubmissionForGrading(submissionId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data } = await supabase
     .from("submissions")
     .select(SELECTS.submissionForGrading)
@@ -141,7 +152,7 @@ export async function getSubmissionForGrading(submissionId: string) {
  * oldest first — backs the teacher grading queue.
  */
 export async function getGradingQueue() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data } = await supabase
     .from("submissions")
     .select(SELECTS.gradingQueue)
@@ -151,7 +162,7 @@ export async function getGradingQueue() {
 }
 
 export async function getSubmissionEvents(submissionId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data } = await supabase
     .from("submission_events")
     .select("*")

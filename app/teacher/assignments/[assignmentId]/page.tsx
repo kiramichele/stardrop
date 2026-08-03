@@ -284,6 +284,58 @@ export default async function AssignmentDetailPage({
             Submissions
           </h2>
 
+          {/* Assignments are stored one copy per class, so this page shows just
+              THIS class's submissions (and its bulk actions apply only here).
+              Surface the other classes with their counts so a teacher who
+              landed on an empty period can jump to the one with work. */}
+          {publishStates.length > 1 && (
+            <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
+              <p className="text-xs text-wood-500 mb-2">
+                Given to {publishStates.length} classes — submissions are per
+                class. Viewing{" "}
+                <span className="font-medium text-wood-700">
+                  {klass?.name ?? "this class"}
+                  {klass?.period_number != null
+                    ? ` · Period ${klass.period_number}`
+                    : ""}
+                </span>
+                .
+              </p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {publishStates.map((c) => {
+                  const active = c.id === assignmentId;
+                  return (
+                    <Link
+                      key={c.id}
+                      href={`/teacher/assignments/${c.id}`}
+                      className={[
+                        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                        active
+                          ? "bg-terracotta-500 text-white border-terracotta-500"
+                          : "bg-cream-50 text-wood-700 border-wood-200 hover:bg-cream-100 hover:border-wood-300",
+                      ].join(" ")}
+                    >
+                      {c.className}
+                      {c.periodNumber != null ? ` · P${c.periodNumber}` : ""}
+                      <span
+                        className={[
+                          "tabular-nums rounded-full px-1.5 min-w-[1.25rem] text-center",
+                          active
+                            ? "bg-white/20 text-white"
+                            : c.submissionCount > 0
+                              ? "bg-terracotta-100 text-terracotta-800"
+                              : "bg-cream-200 text-wood-400",
+                        ].join(" ")}
+                      >
+                        {c.submissionCount}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <BulkGradePanel
             assignmentId={assignmentId}
             assignmentType={assignment.type as AssignmentType}
