@@ -33,6 +33,7 @@ import {
 } from "@/lib/assignments";
 import {
   prepareDevlogSubmission,
+  createDevlogUploadUrl,
   finalizeDevlogSubmission,
 } from "@/app/student/assignments/actions";
 import { setDevlogPublic } from "@/app/devlogs/actions";
@@ -362,16 +363,21 @@ export function DevlogSubmission({
       const sid = prep.submissionId;
       setSubmissionId(sid);
 
-      const fileId = crypto.randomUUID();
       const ext = extFromMime(previewMime);
-      const storagePath = `${prep.userId}/${sid}/${fileId}.${ext}`;
+      // Server mints a signed upload URL for our own folder (no storage-RLS
+      // dependency); we upload the blob straight to it.
+      const signed = await createDevlogUploadUrl(sid, ext);
+      if (!signed.ok) {
+        setError(signed.error);
+        setIsUploading(false);
+        return;
+      }
 
       const supabase = createClient();
       const { error: uploadError } = await supabase.storage
         .from(DEVLOGS_BUCKET)
-        .upload(storagePath, previewBlob, {
+        .uploadToSignedUrl(signed.path, signed.token, previewBlob, {
           contentType: previewMime,
-          upsert: true,
         });
       if (uploadError) {
         setError(`Upload failed: ${uploadError.message}`);
@@ -380,8 +386,8 @@ export function DevlogSubmission({
       }
 
       const result = await finalizeDevlogSubmission(sid, {
-        fileId,
-        storagePath,
+        fileId: signed.fileId,
+        storagePath: signed.path,
         mime: previewMime,
         size: previewSize,
       });
@@ -400,9 +406,9 @@ export function DevlogSubmission({
 
       // Success — flip into submitted state and surface the new video.
       const newMedia: SubmissionMedia = {
-        id: fileId,
+        id: signed.fileId,
         kind: "video",
-        storagePath,
+        storagePath: signed.path,
         mime: previewMime,
         size: previewSize,
         createdAt: new Date().toISOString(),

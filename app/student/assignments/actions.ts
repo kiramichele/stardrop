@@ -220,6 +220,48 @@ export async function prepareDevlogSubmission(
 }
 
 /**
+ * Mint a one-time signed upload URL for the student's own devlog folder.
+ * The browser uploads to it directly (handles large videos) WITHOUT relying
+ * on storage RLS — the signed token authorizes the write. The path is
+ * server-controlled so it always lands under the student's user-id folder.
+ */
+export async function createDevlogUploadUrl(
+  submissionId: string,
+  ext: string
+): Promise<
+  | { ok: true; path: string; token: string; fileId: string }
+  | { ok: false; error: string }
+> {
+  const user = await requireStudent();
+  const supabase = await createClient();
+
+  const { data: sub } = await supabase
+    .from("submissions")
+    .select("id, user_id, status")
+    .eq("id", submissionId)
+    .maybeSingle();
+  if (!sub || sub.user_id !== user.id) {
+    return { ok: false, error: "Not authorized" };
+  }
+  if (sub.status === "graded") {
+    return { ok: false, error: "Submission already graded — can't replace." };
+  }
+
+  const safeExt = /^[a-z0-9]{2,5}$/i.test(ext) ? ext.toLowerCase() : "webm";
+  const fileId = crypto.randomUUID();
+  const path = `${user.id}/${submissionId}/${fileId}.${safeExt}`;
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.storage
+    .from("devlogs")
+    .createSignedUploadUrl(path);
+  if (error || !data) {
+    return { ok: false, error: error?.message ?? "Couldn't prepare the upload." };
+  }
+  return { ok: true, path: data.path, token: data.token, fileId };
+}
+
+/**
  * Record the just-uploaded devlog file as THE submission's media and
  * mark the submission submitted. Any prior devlog file for this
  * submission is removed from storage so we never accumulate.
