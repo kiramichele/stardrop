@@ -404,8 +404,8 @@ export default async function AssignmentDetailPage({
 
         <div className="space-y-4">
           <ShareLink
-            path={`/assignments/${assignmentId}`}
-            description="A link for Canvas — students open it once they're signed in, and it takes them straight to this assignment."
+            path={`/assignments/${assignment.assignment_group_id ?? assignmentId}`}
+            description="One link for Canvas — works for every class period. Each student opens it once signed in and is taken to their own period's copy."
             warning={
               assignment.published
                 ? isInteractive && !hasInteractiveHtml
