@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ClipboardCheck, Plus, ArrowRight } from "lucide-react";
-import { requireTeacher } from "@/lib/auth";
+import { requireFullTeacher } from "@/lib/auth";
 import { getRubricsForTeacher } from "@/lib/rubrics-server";
 import { rubricMaxPoints } from "@/lib/rubrics";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function TeacherRubricsPage() {
-  await requireTeacher();
+  await requireFullTeacher();
   const rubrics = await getRubricsForTeacher();
 
   return (

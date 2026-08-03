@@ -51,6 +51,17 @@ export const teacherNav: NavItem[] = [
   { label: "Settings", href: "/teacher/settings", icon: Settings },
 ];
 
+// Reduced-access staff (e.g. an assistant principal): browse content and
+// manage class rosters / reset passwords, but nothing that shows grades,
+// analytics, or full student profiles.
+export const limitedStaffNav: NavItem[] = [
+  { label: "Classes", href: "/teacher/classes", icon: Users },
+  { label: "Assignments", href: "/teacher/assignments", icon: ClipboardList },
+  { label: "Lessons", href: "/teacher/lessons", icon: BookOpen },
+  { label: "Slideshows", href: "/slideshows", icon: Presentation },
+  { label: "Calendar", href: "/calendar", icon: Calendar },
+];
+
 export const studentNav: NavItem[] = [
   { label: "Dashboard", href: "/student", icon: LayoutDashboard },
   { label: "Lessons", href: "/student/lessons", icon: BookOpen },

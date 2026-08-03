@@ -1,10 +1,10 @@
-import { requireTeacher } from "@/lib/auth";
+import { requireFullTeacher } from "@/lib/auth";
 import { getUnitySimulationEnabled } from "@/lib/app-settings-server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { UnitySimulationToggle } from "@/components/teacher/UnitySimulationToggle";
 
 export default async function TeacherSettingsPage() {
-  await requireTeacher();
+  await requireFullTeacher();
   const unityEnabled = await getUnitySimulationEnabled();
 
   return (

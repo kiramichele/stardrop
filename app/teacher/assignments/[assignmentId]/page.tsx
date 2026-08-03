@@ -19,6 +19,7 @@ import {
   getAssignmentClassPublishStates,
 } from "@/lib/assignments-server";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser, isLimitedStaff } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -56,6 +57,63 @@ export default async function AssignmentDetailPage({
   const { assignmentId } = await params;
   const assignment = await getAssignment(assignmentId);
   if (!assignment) notFound();
+
+  // Limited-staff (e.g. assistant principal): read-only view of the
+  // assignment itself — no submissions, grades, settings, or edit controls.
+  const me = await getCurrentUser();
+  if (isLimitedStaff(me)) {
+    const roKlass = Array.isArray(assignment.classes)
+      ? assignment.classes[0]
+      : assignment.classes;
+    return (
+      <>
+        <Link
+          href="/teacher/assignments"
+          className="inline-flex items-center gap-1.5 text-sm text-wood-600 hover:text-terracotta-700 transition-colors mb-4"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to assignments
+        </Link>
+        <PageHeader
+          eyebrow={roKlass?.name ?? "Assignment"}
+          title={assignment.title}
+          description={
+            <span className="inline-flex items-center gap-2 mt-1">
+              <AssignmentTypeBadge type={assignment.type as AssignmentType} />
+              <span className="text-sm text-wood-500">
+                {assignment.points} pts
+                {assignment.due_date &&
+                  ` · due ${new Date(assignment.due_date).toLocaleString()}`}
+              </span>
+            </span>
+          }
+        />
+        <Card>
+          <p className="label-eyebrow mb-2">Directions</p>
+          {assignment.instructions ? (
+            <p className="text-sm text-wood-700 whitespace-pre-wrap leading-relaxed">
+              {assignment.instructions}
+            </p>
+          ) : (
+            <p className="text-sm text-wood-500 italic">
+              No written directions for this assignment.
+            </p>
+          )}
+        </Card>
+        {assignment.interactive_html_url && (
+          <div className="mt-5 rounded-cozy-lg border border-wood-100 bg-cream-50 shadow-cozy overflow-hidden">
+            <iframe
+              src={assignment.interactive_html_url}
+              sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"
+              className="w-full block border-0 bg-white"
+              style={{ height: "70vh" }}
+              title={`${assignment.title} — activity`}
+            />
+          </div>
+        )}
+      </>
+    );
+  }
 
   const submissions = await getSubmissionsForAssignment(assignmentId);
   const rubrics = await getRubricsForTeacher();

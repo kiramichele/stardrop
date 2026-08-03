@@ -23,6 +23,9 @@ interface StudentRowProps {
   classId: string;
   className: string;
   otherClasses: Array<{ id: string; name: string }>;
+  /** Limited staff: only name + username + reset-password; no email,
+      profile link, move, photo removal, or unenroll. */
+  limited?: boolean;
 }
 
 export function StudentRow({
@@ -30,6 +33,7 @@ export function StudentRow({
   classId,
   className,
   otherClasses,
+  limited = false,
 }: StudentRowProps) {
   const [moveSelect, setMoveSelect] = useState("");
   const [isPending, startTransition] = useTransition();
@@ -121,15 +125,21 @@ export function StudentRow({
       />
 
       <div className="flex-1 min-w-0">
-        <Link
-          href={`/teacher/students/${user.id}`}
-          className="block font-medium text-wood-900 truncate hover:text-terracotta-700 transition-colors"
-        >
-          {user.first_name} {user.last_name}
-        </Link>
+        {limited ? (
+          <p className="block font-medium text-wood-900 truncate">
+            {user.first_name} {user.last_name}
+          </p>
+        ) : (
+          <Link
+            href={`/teacher/students/${user.id}`}
+            className="block font-medium text-wood-900 truncate hover:text-terracotta-700 transition-colors"
+          >
+            {user.first_name} {user.last_name}
+          </Link>
+        )}
         <p className="text-xs text-wood-500 truncate font-mono">
           {user.username}
-          {user.real_email && (
+          {!limited && user.real_email && (
             <>
               <span className="text-wood-300 mx-1.5">·</span>
               <span className="font-sans">{user.real_email}</span>
@@ -152,7 +162,7 @@ export function StudentRow({
           />
         )}
 
-        {otherClasses.length > 0 && (
+        {!limited && otherClasses.length > 0 && (
           <select
             value={moveSelect}
             onChange={(e) => {
@@ -183,7 +193,7 @@ export function StudentRow({
           <KeyRound className="w-3.5 h-3.5" strokeWidth={1.75} />
         </button>
 
-        {hasAvatar && (
+        {!limited && hasAvatar && (
           <button
             type="button"
             onClick={handleRemovePhoto}
@@ -196,16 +206,18 @@ export function StudentRow({
           </button>
         )}
 
-        <button
-          type="button"
-          onClick={handleRemove}
-          disabled={isPending}
-          className="p-1.5 rounded-cozy text-wood-500 hover:text-terracotta-700 hover:bg-terracotta-50 disabled:opacity-50 transition-colors"
-          title="Remove from class"
-          aria-label={`Remove ${user.first_name} ${user.last_name} from class`}
-        >
-          <UserMinus className="w-3.5 h-3.5" strokeWidth={1.75} />
-        </button>
+        {!limited && (
+          <button
+            type="button"
+            onClick={handleRemove}
+            disabled={isPending}
+            className="p-1.5 rounded-cozy text-wood-500 hover:text-terracotta-700 hover:bg-terracotta-50 disabled:opacity-50 transition-colors"
+            title="Remove from class"
+            aria-label={`Remove ${user.first_name} ${user.last_name} from class`}
+          >
+            <UserMinus className="w-3.5 h-3.5" strokeWidth={1.75} />
+          </button>
+        )}
       </div>
     </div>
   );

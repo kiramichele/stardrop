@@ -1641,6 +1641,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          limited_staff: boolean
           onboarded_at: string | null
           real_email: string | null
           reduced_motion: boolean
@@ -1657,6 +1658,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          limited_staff?: boolean
           onboarded_at?: string | null
           real_email?: string | null
           reduced_motion?: boolean
@@ -1673,6 +1675,7 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string
+          limited_staff?: boolean
           onboarded_at?: string | null
           real_email?: string | null
           reduced_motion?: boolean

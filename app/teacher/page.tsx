@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { ArrowRight, Users, BookOpen, ClipboardList, Code2 } from "lucide-react";
-import { requireTeacher } from "@/lib/auth";
+import { requireFullTeacher } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
 import { TodaySlideshow } from "@/components/dashboard/TodaySlideshow";
 
 export default async function TeacherDashboard() {
-  const user = await requireTeacher();
+  const user = await requireFullTeacher();
   const supabase = await createClient();
 
   const [

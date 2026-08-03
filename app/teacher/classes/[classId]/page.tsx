@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser, isLimitedStaff } from "@/lib/auth";
 import { asProfile, type UserProfile } from "@/lib/profile";
 import { getClassColorMap } from "@/lib/class-colors-server";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -22,6 +23,7 @@ export default async function ClassDetailPage({
   params: Promise<{ classId: string }>;
 }) {
   const { classId } = await params;
+  const limited = isLimitedStaff(await getCurrentUser());
   const supabase = await createClient();
 
   const [{ data: klass }, colorMap] = await Promise.all([
@@ -94,18 +96,24 @@ export default async function ClassDetailPage({
         <div className="lg:col-span-2 space-y-4">
           <h2 className="font-display text-xl text-wood-800">Roster</h2>
 
-          <AddStudentForm classId={classId} />
+          {!limited && <AddStudentForm classId={classId} />}
 
           {students.length === 0 ? (
             <Card>
               <EmptyState
                 icon={Users}
                 title="No students in this class"
-                description="Import a CSV to add students, or move students from another class using the 'Move to…' dropdown there."
+                description={
+                  limited
+                    ? "No students are enrolled in this class yet."
+                    : "Import a CSV to add students, or move students from another class using the 'Move to…' dropdown there."
+                }
                 action={
-                  <Link href="/teacher/classes/import">
-                    <Button>Import CSV</Button>
-                  </Link>
+                  limited ? undefined : (
+                    <Link href="/teacher/classes/import">
+                      <Button>Import CSV</Button>
+                    </Link>
+                  )
                 }
               />
             </Card>
@@ -119,6 +127,7 @@ export default async function ClassDetailPage({
                       classId={classId}
                       className={klass.name}
                       otherClasses={otherClasses}
+                      limited={limited}
                     />
                   </li>
                 ))}
@@ -129,6 +138,8 @@ export default async function ClassDetailPage({
 
         {/* Settings column */}
         <div className="space-y-4">
+          {!limited && (
+          <>
           <Card>
             <h3 className="font-display text-lg text-wood-900 mb-4">
               Class settings
@@ -183,6 +194,8 @@ export default async function ClassDetailPage({
             </p>
             <ClassColorPicker classId={classId} current={classColor} />
           </Card>
+          </>
+          )}
 
           {students.length > 0 && (
             <Card>
@@ -198,6 +211,7 @@ export default async function ClassDetailPage({
             </Card>
           )}
 
+          {!limited && (
           <Card className="border-terracotta-200 bg-terracotta-50/50">
             <h3 className="font-display text-base text-terracotta-900 mb-1">
               Danger zone
@@ -218,6 +232,7 @@ export default async function ClassDetailPage({
               </Button>
             </form>
           </Card>
+          )}
         </div>
       </div>
     </>

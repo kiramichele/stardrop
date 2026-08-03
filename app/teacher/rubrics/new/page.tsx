@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { requireTeacher } from "@/lib/auth";
+import { requireFullTeacher } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { RubricEditor } from "@/components/rubrics/RubricEditor";
 import { createRubric } from "../actions";
 
 export default async function NewRubricPage() {
-  await requireTeacher();
+  await requireFullTeacher();
 
   return (
     <>

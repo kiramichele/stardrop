@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink } from "lucide-react";
+import { requireFullTeacher } from "@/lib/auth";
 import {
   computeLateness,
   computeAutoGrade,
@@ -51,6 +52,7 @@ export default async function GradeSubmissionPage({
 }: {
   params: Promise<{ assignmentId: string; submissionId: string }>;
 }) {
+  await requireFullTeacher();
   const { assignmentId, submissionId } = await params;
   const [submission, queue] = await Promise.all([
     getSubmissionForGrading(submissionId),

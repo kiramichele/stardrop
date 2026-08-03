@@ -2,23 +2,27 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { teacherNav, studentNav } from "./nav";
+import { teacherNav, studentNav, limitedStaffNav } from "./nav";
 
 interface SidebarProps {
   role: "teacher" | "student";
+  limited?: boolean;
 }
 
-export function Sidebar({ role }: SidebarProps) {
+export function Sidebar({ role, limited = false }: SidebarProps) {
   const pathname = usePathname();
-  const items = role === "teacher" ? teacherNav : studentNav;
+  const items =
+    role === "teacher"
+      ? limited
+        ? limitedStaffNav
+        : teacherNav
+      : studentNav;
+  const home = limited ? "/teacher/classes" : role === "teacher" ? "/teacher" : "/student";
 
   return (
     <aside className="hidden md:flex w-60 flex-col bg-cream-50/80 backdrop-blur-sm border-r border-wood-100/70">
       <div className="px-6 py-6">
-        <Link
-          href={role === "teacher" ? "/teacher" : "/student"}
-          className="block"
-        >
+        <Link href={home} className="block">
           <h1 className="font-display text-2xl text-terracotta-700 leading-none">
             Stardrop
           </h1>

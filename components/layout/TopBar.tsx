@@ -16,7 +16,10 @@ export function TopBar({ user }: TopBarProps) {
 
   return (
     <header className="h-16 border-b border-wood-100/70 bg-cream-50/60 backdrop-blur-sm flex items-center justify-end px-6 gap-2">
-      <MobileNav role={user.role === "teacher" ? "teacher" : "student"} />
+      <MobileNav
+        role={user.role === "teacher" ? "teacher" : "student"}
+        limited={user.role === "teacher" && user.limited_staff}
+      />
       <ThemeToggle />
       <NotificationBell userId={user.id} />
       <Link

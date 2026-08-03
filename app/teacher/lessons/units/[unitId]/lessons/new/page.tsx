@@ -7,12 +7,14 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, FieldHint } from "@/components/ui/Input";
 import { createLesson } from "../../../../actions";
+import { requireFullTeacher } from "@/lib/auth";
 
 export default async function NewLessonPage({
   params,
 }: {
   params: Promise<{ unitId: string }>;
 }) {
+  await requireFullTeacher();
   const { unitId } = await params;
   const unit = await getUnit(unitId);
   if (!unit) notFound();

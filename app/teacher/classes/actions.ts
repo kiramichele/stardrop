@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireTeacher } from "@/lib/auth";
+import { requireTeacher, requireFullTeacher } from "@/lib/auth";
 import { updateProfileColumns } from "@/lib/profile-server";
 import { setClassColorRecord } from "@/lib/class-colors-server";
 import { isClassColorKey } from "@/lib/class-colors";
@@ -18,7 +18,7 @@ import { sendNewPasswordEmail } from "@/lib/email";
 // =============================================================
 
 export async function updateClass(classId: string, formData: FormData) {
-  await requireTeacher();
+  await requireFullTeacher();
 
   const name = formData.get("name")?.toString().trim();
   const periodRaw = formData.get("period_number")?.toString();
@@ -48,7 +48,7 @@ export async function setClassColor(
   classId: string,
   color: string | null
 ): Promise<{ ok: boolean; error?: string }> {
-  await requireTeacher();
+  await requireFullTeacher();
 
   if (color !== null && !isClassColorKey(color)) {
     return { ok: false, error: "Unknown color." };
@@ -64,7 +64,7 @@ export async function setClassColor(
 }
 
 export async function deleteClass(classId: string) {
-  await requireTeacher();
+  await requireFullTeacher();
   const supabase = await createClient();
   const { error } = await supabase.from("classes").delete().eq("id", classId);
   if (error) throw new Error(error.message);
@@ -87,7 +87,7 @@ export async function moveStudent(
   fromClassId: string,
   toClassId: string
 ) {
-  await requireTeacher();
+  await requireFullTeacher();
   if (fromClassId === toClassId) return;
 
   const supabase = await createClient();
@@ -118,7 +118,7 @@ export async function moveStudent(
  * Remove a student from a class. Deletes the enrollment but keeps the user.
  */
 export async function removeStudentFromClass(userId: string, classId: string) {
-  await requireTeacher();
+  await requireFullTeacher();
   const supabase = await createClient();
   const { error } = await supabase
     .from("enrollments")
@@ -196,7 +196,7 @@ export async function addStudentToClass(
   | { ok: true; username: string; password: string }
   | { ok: false; error: string }
 > {
-  await requireTeacher();
+  await requireFullTeacher();
   const admin = createAdminClient();
 
   const firstName = (formData.get("first_name") ?? "").toString().trim();
@@ -421,7 +421,7 @@ export async function removeStudentAvatar(
   userId: string,
   classId: string
 ): Promise<{ ok: boolean; error?: string }> {
-  await requireTeacher();
+  await requireFullTeacher();
   const admin = createAdminClient();
   await admin.storage.from("avatars").remove([userId]);
   const { error } = await updateProfileColumns(admin, userId, {

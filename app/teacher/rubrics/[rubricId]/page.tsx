@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { requireTeacher } from "@/lib/auth";
+import { requireFullTeacher } from "@/lib/auth";
 import { getRubric } from "@/lib/rubrics-server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -14,7 +14,7 @@ export default async function EditRubricPage({
 }: {
   params: Promise<{ rubricId: string }>;
 }) {
-  await requireTeacher();
+  await requireFullTeacher();
   const { rubricId } = await params;
   const rubric = await getRubric(rubricId);
   if (!rubric) notFound();

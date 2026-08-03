@@ -1,4 +1,4 @@
-import { requireTeacher } from "@/lib/auth";
+import { requireFullTeacher } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { asProfile, type UserProfile } from "@/lib/profile";
 import { getGradebookStatus } from "@/lib/gradebook-server";
@@ -28,7 +28,7 @@ function byName(a: RosterStudent, b: RosterStudent): number {
 }
 
 export default async function RosterPage() {
-  await requireTeacher();
+  await requireFullTeacher();
   const admin = createAdminClient();
 
   const [classesRes, enrollmentsRes, studentsRes, gradebookStatus] =

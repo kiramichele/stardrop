@@ -24,8 +24,10 @@ import {
 import { UnitLessonPicker } from "@/components/assignments/UnitLessonPicker";
 import { CollaborativeFields } from "@/components/assignments/CollaborativeFields";
 import { createAssignment } from "../actions";
+import { requireFullTeacher } from "@/lib/auth";
 
 export default async function NewAssignmentPage() {
+  await requireFullTeacher();
   const supabase = await createClient();
   const { data: classes } = await supabase
     .from("classes")

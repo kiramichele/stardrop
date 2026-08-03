@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, ClipboardCheck } from "lucide-react";
-import { requireTeacher } from "@/lib/auth";
+import { requireFullTeacher } from "@/lib/auth";
 import { getGradingQueue } from "@/lib/assignments-server";
 import { getClassColorMap } from "@/lib/class-colors-server";
 import {
@@ -51,7 +51,7 @@ export default async function GradingQueuePage({
 }: {
   searchParams: Promise<{ class?: string }>;
 }) {
-  await requireTeacher();
+  await requireFullTeacher();
   const { class: classFilter } = await searchParams;
   const [queue, classColors] = await Promise.all([
     getGradingQueue(),

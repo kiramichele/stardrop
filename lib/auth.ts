@@ -57,6 +57,28 @@ export async function requireTeacher() {
 }
 
 /**
+ * Require a FULL teacher — a real teacher, not a limited-staff account
+ * (e.g. an assistant principal who may only view content + reset passwords).
+ * Use this to gate everything that exposes student data or edits content:
+ * grades, analytics, rosters/profiles, settings, create/edit/delete actions.
+ * Limited staff are bounced to a page they're allowed to see.
+ */
+export async function requireFullTeacher() {
+  const user = await requireTeacher();
+  if ((user as { limited_staff?: boolean }).limited_staff) {
+    redirect("/teacher/classes");
+  }
+  return user;
+}
+
+/** True when the signed-in user is a reduced-access staff account. */
+export function isLimitedStaff(
+  user: { role?: string; limited_staff?: boolean } | null | undefined
+): boolean {
+  return !!user && user.role === "teacher" && user.limited_staff === true;
+}
+
+/**
  * Require a student. Redirects teachers to /teacher.
  */
 export async function requireStudent() {

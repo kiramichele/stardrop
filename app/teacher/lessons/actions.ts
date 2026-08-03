@@ -4,14 +4,14 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireTeacher, requireStudent } from "@/lib/auth";
+import { requireFullTeacher, requireStudent } from "@/lib/auth";
 
 // =============================================================
 // Units
 // =============================================================
 
 export async function createUnit(formData: FormData) {
-  await requireTeacher();
+  await requireFullTeacher();
   const title = formData.get("title")?.toString().trim();
   const description = formData.get("description")?.toString().trim() || null;
   if (!title) throw new Error("Title required");
@@ -37,7 +37,7 @@ export async function createUnit(formData: FormData) {
 }
 
 export async function updateUnit(unitId: string, formData: FormData) {
-  await requireTeacher();
+  await requireFullTeacher();
   const title = formData.get("title")?.toString().trim();
   const description = formData.get("description")?.toString().trim() || null;
   const published = formData.get("published") === "on";
@@ -55,7 +55,7 @@ export async function updateUnit(unitId: string, formData: FormData) {
 }
 
 export async function deleteUnit(unitId: string) {
-  await requireTeacher();
+  await requireFullTeacher();
   const supabase = await createClient();
   const { error } = await supabase.from("units").delete().eq("id", unitId);
   if (error) throw new Error(error.message);
@@ -71,7 +71,7 @@ export async function deleteUnit(unitId: string) {
 export async function bulkDeleteUnits(
   unitIds: string[]
 ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
-  await requireTeacher();
+  await requireFullTeacher();
   if (unitIds.length === 0) {
     return { ok: false, error: "No units selected." };
   }
@@ -108,7 +108,7 @@ export async function bulkDeleteUnits(
 // =============================================================
 
 export async function createLesson(unitId: string, formData: FormData) {
-  await requireTeacher();
+  await requireFullTeacher();
   const title = formData.get("title")?.toString().trim();
   const file = formData.get("html_file") as File | null;
   if (!title) throw new Error("Title required");
@@ -142,7 +142,7 @@ export async function createLesson(unitId: string, formData: FormData) {
 }
 
 export async function updateLesson(lessonId: string, formData: FormData) {
-  await requireTeacher();
+  await requireFullTeacher();
   const title = formData.get("title")?.toString().trim();
   const published = formData.get("published") === "on";
   const completionRequired =
@@ -180,7 +180,7 @@ export async function moveLesson(
   lessonId: string,
   direction: "up" | "down"
 ) {
-  await requireTeacher();
+  await requireFullTeacher();
   // Use the service-role client: the swap is a set of UPDATEs, and lessons
   // RLS doesn't grant the teacher's session client UPDATE, so session writes
   // silently affect 0 rows. Matches deleteLesson / bulkDeleteUnits.
@@ -223,7 +223,7 @@ export async function moveLesson(
 }
 
 export async function deleteLesson(lessonId: string) {
-  await requireTeacher();
+  await requireFullTeacher();
   const supabase = await createClient();
   const { data: lesson } = await supabase
     .from("lessons")

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, ClipboardList } from "lucide-react";
-import { requireTeacher } from "@/lib/auth";
+import { requireFullTeacher } from "@/lib/auth";
 import { getStudentOverview, getStudentNotes } from "@/lib/students-server";
 import { letterGrade, type AssignmentType } from "@/lib/assignments";
 import { Card } from "@/components/ui/Card";
@@ -17,7 +17,7 @@ export default async function StudentOverviewPage({
 }: {
   params: Promise<{ studentId: string }>;
 }) {
-  await requireTeacher();
+  await requireFullTeacher();
   const { studentId } = await params;
   const [overview, notes] = await Promise.all([
     getStudentOverview(studentId),

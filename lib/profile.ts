@@ -14,6 +14,9 @@ export type UserProfile = {
   username: string;
   real_email: string | null;
   role: "teacher" | "student";
+  /** A teacher account with reduced access (e.g. an assistant principal):
+      can view content + reset passwords, but not grades/analytics/profiles. */
+  limited_staff: boolean;
   avatar_url: string | null;
   email_notifications: boolean;
   reduced_motion: boolean;
@@ -32,6 +35,7 @@ export function asProfile(row: unknown): UserProfile {
     username: typeof r.username === "string" ? r.username : "",
     real_email: typeof r.real_email === "string" ? r.real_email : null,
     role: r.role === "teacher" ? "teacher" : "student",
+    limited_staff: r.limited_staff === true,
     avatar_url: typeof r.avatar_url === "string" ? r.avatar_url : null,
     student_id: typeof r.student_id === "string" ? r.student_id : null,
     extended_time: asExtendedTime(r.extended_time),

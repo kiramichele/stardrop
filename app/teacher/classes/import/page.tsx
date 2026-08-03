@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { ArrowLeft, FileText, Download } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { requireFullTeacher } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import ImportForm from "./ImportForm";
 
 export default async function ImportPage() {
+  await requireFullTeacher();
   const supabase = await createClient();
 
   const { data: classes } = await supabase

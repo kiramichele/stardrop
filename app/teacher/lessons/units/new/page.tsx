@@ -5,8 +5,10 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Textarea, FieldHint } from "@/components/ui/Input";
 import { createUnit } from "../../actions";
+import { requireFullTeacher } from "@/lib/auth";
 
-export default function NewUnitPage() {
+export default async function NewUnitPage() {
+  await requireFullTeacher();
   return (
     <>
       <Link

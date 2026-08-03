@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireTeacher, getCurrentUser } from "@/lib/auth";
+import { requireFullTeacher, getCurrentUser } from "@/lib/auth";
 import { sendEmail, escapeHtml, appBaseUrl } from "@/lib/email";
 import { notifyTeachersBySms } from "@/lib/sms-server";
 import { computeAutoGrade, type AssignmentType } from "@/lib/assignments";
@@ -79,7 +79,7 @@ function parseCollabConfig(
 }
 
 export async function createAssignment(formData: FormData) {
-  await requireTeacher();
+  await requireFullTeacher();
 
   // The create form now offers multiple classes (checkboxes named
   // "class_ids"); fall back to the legacy single "class_id" field.
@@ -197,7 +197,7 @@ export async function updateAssignment(
   assignmentId: string,
   formData: FormData
 ) {
-  await requireTeacher();
+  await requireFullTeacher();
 
   const title = formData.get("title")?.toString().trim();
   const instructions = formData.get("instructions")?.toString().trim() || null;
@@ -263,7 +263,7 @@ export async function updateAssignment(
 }
 
 export async function deleteAssignment(assignmentId: string) {
-  await requireTeacher();
+  await requireFullTeacher();
   const supabase = await createClient();
 
   const admin = createAdminClient();
@@ -322,7 +322,7 @@ export async function uploadInteractiveHtml(
   assignmentId: string,
   formData: FormData
 ) {
-  await requireTeacher();
+  await requireFullTeacher();
   const file = formData.get("html_file") as File | null;
   if (!file || file.size === 0) throw new Error("No file provided");
   await uploadAssignmentHtml(assignmentId, file);
@@ -344,7 +344,7 @@ export async function copyAssignmentToClasses(
   assignmentId: string,
   classIds: string[]
 ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
-  await requireTeacher();
+  await requireFullTeacher();
   if (classIds.length === 0) {
     return { ok: false, error: "Pick at least one class." };
   }
@@ -437,7 +437,7 @@ export async function setAssignmentPublished(
   assignmentId: string,
   published: boolean
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  await requireTeacher();
+  await requireFullTeacher();
   const supabase = await createClient();
   const { error } = await supabase
     .from("assignments")
@@ -456,7 +456,7 @@ export async function bulkSetAssignmentsPublished(
   assignmentIds: string[],
   published: boolean
 ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
-  await requireTeacher();
+  await requireFullTeacher();
   if (assignmentIds.length === 0) {
     return { ok: false, error: "No assignments selected." };
   }
@@ -480,7 +480,7 @@ export async function bulkSetAssignmentsPublished(
 export async function bulkDeleteAssignments(
   assignmentIds: string[]
 ): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
-  await requireTeacher();
+  await requireFullTeacher();
   if (assignmentIds.length === 0) {
     return { ok: false, error: "No assignments selected." };
   }
@@ -512,7 +512,7 @@ export async function bulkDeleteAssignments(
 // =============================================================
 
 export async function saveGrade(submissionId: string, formData: FormData) {
-  await requireTeacher();
+  await requireFullTeacher();
 
   const scoreRaw = formData.get("score")?.toString();
   const feedback = formData.get("feedback")?.toString().trim() || null;
@@ -679,7 +679,7 @@ export async function autoGradeInteractive(
   assignmentId: string,
   overwrite: boolean
 ): Promise<BulkResult> {
-  await requireTeacher();
+  await requireFullTeacher();
   const admin = createAdminClient();
 
   const { data: assignment } = await admin
@@ -721,7 +721,7 @@ export async function fullCreditAll(
   assignmentId: string,
   overwrite: boolean
 ): Promise<BulkResult> {
-  await requireTeacher();
+  await requireFullTeacher();
   const admin = createAdminClient();
 
   const { data: assignment } = await admin
@@ -754,7 +754,7 @@ export async function applyScoreToSubmissions(
   score: number,
   overwrite: boolean
 ): Promise<BulkResult> {
-  await requireTeacher();
+  await requireFullTeacher();
   if (submissionIds.length === 0) {
     return { ok: false, error: "No submissions selected" };
   }
@@ -778,7 +778,7 @@ export async function applyScoreToSubmissions(
 export async function zeroNonSubmitters(
   assignmentId: string
 ): Promise<{ ok: true; zeroed: number } | { ok: false; error: string }> {
-  await requireTeacher();
+  await requireFullTeacher();
   const admin = createAdminClient();
 
   const { data: assignment } = await admin

@@ -5,18 +5,29 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { teacherNav, studentNav } from "./nav";
+import { teacherNav, studentNav, limitedStaffNav } from "./nav";
 
 /**
  * Hamburger button + slide-in drawer for navigation on small screens.
  * The desktop Sidebar is hidden below the `md` breakpoint, so this is the
  * only way to reach the menu on a phone.
  */
-export function MobileNav({ role }: { role: "teacher" | "student" }) {
+export function MobileNav({
+  role,
+  limited = false,
+}: {
+  role: "teacher" | "student";
+  limited?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const items = role === "teacher" ? teacherNav : studentNav;
-  const home = role === "teacher" ? "/teacher" : "/student";
+  const items =
+    role === "teacher" ? (limited ? limitedStaffNav : teacherNav) : studentNav;
+  const home = limited
+    ? "/teacher/classes"
+    : role === "teacher"
+      ? "/teacher"
+      : "/student";
 
   // Close the drawer whenever the route changes. Done during render (React's
   // "reset state when a value changes" pattern) rather than in an effect, so

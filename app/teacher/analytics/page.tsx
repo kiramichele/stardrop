@@ -6,7 +6,7 @@ import {
   ArrowRight,
   LayoutGrid,
 } from "lucide-react";
-import { requireTeacher } from "@/lib/auth";
+import { requireFullTeacher } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   getLessonCompletionStats,
@@ -21,7 +21,7 @@ import { AiAnalysisPanel } from "@/components/analytics/AiAnalysisPanel";
 import { UnitHeatmap } from "@/components/analytics/UnitHeatmap";
 
 export default async function AnalyticsPage() {
-  await requireTeacher();
+  await requireFullTeacher();
   const admin = createAdminClient();
 
   const [completion, struggling, timeOnTask, heatmap, assignmentsRes] =
