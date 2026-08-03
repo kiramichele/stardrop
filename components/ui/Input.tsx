@@ -7,7 +7,7 @@ import {
 } from "react";
 
 const baseField =
-  "w-full px-3 py-2 rounded-cozy border border-wood-200 bg-white text-wood-900 placeholder:text-wood-400 transition-all duration-150 focus:outline-none focus:border-terracotta-400 focus:shadow-focus-warm disabled:bg-cream-100 disabled:cursor-not-allowed";
+  "w-full px-3 py-2 rounded-cozy border border-wood-200 bg-cream-50 text-wood-900 placeholder:text-wood-400 transition-all duration-150 focus:outline-none focus:border-terracotta-400 focus:shadow-focus-warm disabled:bg-cream-100 disabled:cursor-not-allowed";
 
 export const Input = forwardRef<
   HTMLInputElement,

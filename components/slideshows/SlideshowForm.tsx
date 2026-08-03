@@ -264,7 +264,7 @@ function LinkPicker({
       {options.length === 0 ? (
         <p className="text-xs text-wood-500 italic mt-1">None available yet.</p>
       ) : (
-        <div className="max-h-40 overflow-y-auto rounded-cozy border border-wood-200 bg-white divide-y divide-wood-100">
+        <div className="max-h-40 overflow-y-auto rounded-cozy border border-wood-200 bg-cream-50 divide-y divide-wood-100">
           {options.map((o) => (
             <label
               key={o.id}

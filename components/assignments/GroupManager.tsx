@@ -325,7 +325,7 @@ function DropColumn({
       }
       className={[
         "rounded-cozy border p-2 transition-colors",
-        muted ? "bg-cream-100 border-wood-200" : "bg-white border-wood-200",
+        muted ? "bg-cream-100 border-wood-200" : "bg-cream-50 border-wood-200",
         over ? "border-terracotta-400 bg-terracotta-50" : "",
       ].join(" ")}
     >

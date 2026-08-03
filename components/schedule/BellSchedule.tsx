@@ -12,7 +12,7 @@ import {
 } from "@/lib/schedule";
 
 const KIND_STYLE: Record<BlockKind, string> = {
-  instruction: "bg-white border-wood-200",
+  instruction: "bg-cream-50 border-wood-200",
   support: "bg-cream-100 border-wood-100",
   personalized: "bg-honey-50 border-honey-200",
   planning: "bg-wood-50 border-wood-100",

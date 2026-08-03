@@ -160,7 +160,7 @@ export default async function AssignmentLinkPage({
           {assignment.title}
         </h1>
 
-        <div className="rounded-cozy-lg border border-wood-100 bg-white shadow-cozy p-5">
+        <div className="rounded-cozy-lg border border-wood-100 bg-cream-50 shadow-cozy p-5">
           <p className="label-eyebrow mb-2">Directions</p>
           {assignment.instructions ? (
             <p className="text-sm text-wood-700 whitespace-pre-wrap leading-relaxed">
@@ -174,7 +174,7 @@ export default async function AssignmentLinkPage({
         </div>
 
         {assignment.interactive_html_url && (
-          <div className="mt-5 rounded-cozy-lg border border-wood-100 bg-white shadow-cozy overflow-hidden">
+          <div className="mt-5 rounded-cozy-lg border border-wood-100 bg-cream-50 shadow-cozy overflow-hidden">
             <iframe
               src={assignment.interactive_html_url}
               sandbox="allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox"

@@ -248,7 +248,7 @@ export function CollaborativeCodeEditor({
             peers.map((p, i) => (
               <span
                 key={`${p.name}-${i}`}
-                className="inline-flex items-center gap-1 rounded-full bg-white border border-wood-200 px-2 py-0.5 text-xs text-wood-700"
+                className="inline-flex items-center gap-1 rounded-full bg-cream-50 border border-wood-200 px-2 py-0.5 text-xs text-wood-700"
               >
                 <span
                   className="w-2 h-2 rounded-full"

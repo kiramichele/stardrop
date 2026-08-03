@@ -28,8 +28,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${jakarta.variable}`}>
+    <html
+      lang="en"
+      className={`${fraunces.variable} ${jakarta.variable}`}
+      suppressHydrationWarning
+    >
       <body className="font-sans antialiased text-wood-900 bg-cream-100">
+        {/* Set the theme before first paint so there's no light-mode flash.
+            Reads the saved per-device choice, else follows the OS setting. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var s=localStorage.getItem('theme');var t=(s==='light'||s==='dark')?s:(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,
+          }}
+        />
         <DictationProvider enabled={isSttConfigured()}>
           <div className="min-h-screen bg-paper bg-repeat">{children}</div>
         </DictationProvider>

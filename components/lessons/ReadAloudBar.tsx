@@ -186,7 +186,7 @@ export const ReadAloudBar = forwardRef<ReadAloudHandle, ReadAloudBarProps>(
           value={rate}
           onChange={(e) => setRate(parseFloat(e.target.value))}
           aria-label="Playback speed"
-          className="flex-shrink-0 text-xs text-wood-700 bg-white border border-wood-200 rounded-cozy px-1.5 py-1 focus:outline-none focus:border-terracotta-400"
+          className="flex-shrink-0 text-xs text-wood-700 bg-cream-50 border border-wood-200 rounded-cozy px-1.5 py-1 focus:outline-none focus:border-terracotta-400"
         >
           {RATES.map((r) => (
             <option key={r} value={r}>

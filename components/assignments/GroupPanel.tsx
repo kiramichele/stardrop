@@ -115,7 +115,7 @@ export function GroupPanel({ assignmentId, group, mode }: GroupPanelProps) {
             {group.members.map((m) => (
               <span
                 key={m.userId}
-                className="inline-flex items-center rounded-full border border-wood-200 bg-white px-2.5 py-1 text-xs text-wood-800"
+                className="inline-flex items-center rounded-full border border-wood-200 bg-cream-50 px-2.5 py-1 text-xs text-wood-800"
               >
                 {memberName(m)}
               </span>

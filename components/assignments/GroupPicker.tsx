@@ -74,7 +74,7 @@ export function GroupPicker({
             return (
               <div
                 key={g.id}
-                className="flex items-center gap-3 rounded-cozy border border-wood-200 bg-white px-3 py-2.5"
+                className="flex items-center gap-3 rounded-cozy border border-wood-200 bg-cream-50 px-3 py-2.5"
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-wood-900 truncate">
@@ -129,7 +129,7 @@ export function GroupPicker({
       </div>
 
       {allowSolo && (
-        <div className="mt-3 flex items-center justify-between gap-3 rounded-cozy border border-wood-200 bg-white px-3 py-2.5">
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-cozy border border-wood-200 bg-cream-50 px-3 py-2.5">
           <p className="text-sm text-wood-700">
             Prefer to work on your own?
           </p>

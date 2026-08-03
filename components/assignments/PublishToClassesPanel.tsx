@@ -62,7 +62,7 @@ export function PublishToClassesPanel({
         {states.length === 1 ? "class" : "classes"}. Toggle each on its own.
       </p>
 
-      <div className="rounded-cozy border border-wood-200 bg-white divide-y divide-wood-100">
+      <div className="rounded-cozy border border-wood-200 bg-cream-50 divide-y divide-wood-100">
         {states.map((s) => (
           <label
             key={s.id}

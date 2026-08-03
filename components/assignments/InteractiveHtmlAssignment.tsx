@@ -227,7 +227,7 @@ export function InteractiveHtmlAssignment({
         </Card>
       )}
 
-      <div className="bg-white rounded-cozy-lg shadow-cozy border border-wood-100 overflow-hidden">
+      <div className="bg-cream-50 rounded-cozy-lg shadow-cozy border border-wood-100 overflow-hidden">
         <iframe
           ref={iframeRef}
           src={htmlUrl}

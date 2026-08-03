@@ -62,7 +62,7 @@ export default async function NewAssignmentPage() {
         <form action={createAssignment} className="space-y-5">
           <div>
             <Label>Classes</Label>
-            <div className="rounded-cozy border border-wood-200 bg-white divide-y divide-wood-100">
+            <div className="rounded-cozy border border-wood-200 bg-cream-50 divide-y divide-wood-100">
               {classes.map((c) => (
                 <label
                   key={c.id}

@@ -160,7 +160,7 @@ export function StudentRow({
               if (e.target.value) handleMove(e.target.value);
             }}
             disabled={isPending}
-            className="text-xs px-2 py-1 rounded-cozy border border-wood-200 bg-white text-wood-700 hover:border-wood-300 focus:outline-none focus:border-terracotta-400 focus:shadow-focus-warm disabled:opacity-50"
+            className="text-xs px-2 py-1 rounded-cozy border border-wood-200 bg-cream-50 text-wood-700 hover:border-wood-300 focus:outline-none focus:border-terracotta-400 focus:shadow-focus-warm disabled:opacity-50"
             aria-label={`Move ${user.first_name} ${user.last_name} to another class`}
           >
             <option value="">Move to…</option>

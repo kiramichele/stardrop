@@ -68,7 +68,7 @@ export function CopyToClassPanel({
         </p>
       ) : (
         <>
-          <div className="rounded-cozy border border-wood-200 bg-white divide-y divide-wood-100 mb-3">
+          <div className="rounded-cozy border border-wood-200 bg-cream-50 divide-y divide-wood-100 mb-3">
             {classes.map((c) => (
               <label
                 key={c.id}

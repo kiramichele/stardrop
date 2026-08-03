@@ -111,6 +111,97 @@
 }
 
 /* =============================================================
+   Dark theme
+   -------------------------------------------------------------
+   The whole app is built on semantic tokens (cream = surfaces,
+   wood = text + borders, terracotta/sage/honey = accents), so dark
+   mode is just a re-mapping of those same tokens — no component
+   markup changes. `data-theme` is set on <html> by the no-flash
+   script in layout.tsx (from localStorage, else the OS preference).
+
+   cream: inverts to deep-navy surfaces — cream-100 is the darkest
+     (page base / recessed), cream-50 sits a touch lighter (cards),
+     and higher numbers get lighter (hover/fills).
+   wood: inverts — high numbers become light (text), low numbers
+     become dark (borders/faint fills).
+   accents: keep the vivid mid shades for fills; the deep shades
+     (used for link/badge text) are remapped brighter so they read
+     on dark, and the pale shades (subtle tinted panels) go dark.
+   ============================================================= */
+:root {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* cream — surfaces */
+  --color-cream-50: #1b2436;
+  --color-cream-100: #0f1724;
+  --color-cream-200: #242f45;
+  --color-cream-300: #30405c;
+  --color-cream-400: #435473;
+  --color-cream-500: #566a8c;
+
+  /* wood — text + borders (inverted) */
+  --color-wood-50: #1a2333;
+  --color-wood-100: #263149;
+  --color-wood-200: #35435e;
+  --color-wood-300: #4c5e7b;
+  --color-wood-400: #7286a3;
+  --color-wood-500: #94a4bf;
+  --color-wood-600: #b0bdd3;
+  --color-wood-700: #ccd6e6;
+  --color-wood-800: #e0e7f1;
+  --color-wood-900: #f1f5fa;
+
+  /* terracotta — primary accent (emerald) */
+  --color-terracotta-50: #0b2a20;
+  --color-terracotta-100: #0f3a2b;
+  --color-terracotta-200: #14503b;
+  --color-terracotta-300: #1c6b4f;
+  --color-terracotta-400: #34d399;
+  --color-terracotta-500: #10b981;
+  --color-terracotta-600: #34d399;
+  --color-terracotta-700: #6ee7b7;
+  --color-terracotta-800: #a7f3d0;
+  --color-terracotta-900: #d1fae5;
+
+  /* sage — success (teal) */
+  --color-sage-50: #0a2a29;
+  --color-sage-100: #0e3a38;
+  --color-sage-200: #12504c;
+  --color-sage-300: #1a6b66;
+  --color-sage-400: #2dd4bf;
+  --color-sage-500: #14b8a6;
+  --color-sage-600: #2dd4bf;
+  --color-sage-700: #5eead4;
+  --color-sage-800: #99f6e4;
+  --color-sage-900: #ccfbf1;
+
+  /* honey — warnings + highlights (amber) */
+  --color-honey-50: #2e2408;
+  --color-honey-100: #3d300a;
+  --color-honey-200: #54410d;
+  --color-honey-300: #6b5410;
+  --color-honey-400: #fbbf24;
+  --color-honey-500: #f59e0b;
+  --color-honey-600: #fbbf24;
+  --color-honey-700: #fcd34d;
+  --color-honey-800: #fde68a;
+  --color-honey-900: #fef3c7;
+
+  /* Deeper drop shadows read better on dark surfaces. */
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(0, 0, 0, 0.2);
+  --shadow-cozy: 0 1px 3px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-cozy-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 12px 28px rgba(0, 0, 0, 0.45);
+  --shadow-focus-warm: 0 0 0 3px rgba(52, 211, 153, 0.3);
+
+  /* Light-tinted noise so dark surfaces aren't dead flat. */
+  --background-image-paper: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.6 0 0 0 0 0.68 0 0 0 0 0.8 0 0 0 0.03 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* =============================================================
    Keyframes
    ============================================================= */
 @keyframes fadeIn {
