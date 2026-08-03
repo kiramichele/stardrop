@@ -560,43 +560,34 @@ export function DevlogSubmission({
               )}
 
               {isRecording && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="flex items-center gap-1.5 text-sm text-terracotta-700 font-medium">
-                      <span className="w-2 h-2 rounded-full bg-terracotta-600 animate-pulse" />
-                      Recording {formatTime(recordingMs)}
-                    </span>
-                    <Button variant="danger" onClick={stopRecording}>
-                      <StopCircle className="w-4 h-4" strokeWidth={2} />
-                      Stop
-                    </Button>
-                  </div>
-                  {includePip && (
-                    <div className="rounded-cozy bg-cream-100 border border-wood-200 p-2">
-                      <p className="text-xs text-wood-500 mb-1">
-                        Live preview
-                      </p>
-                      <canvas
-                        ref={canvasRef}
-                        className="w-full rounded bg-black"
-                      />
-                    </div>
-                  )}
-                  {/* Hidden video elements feed the canvas. */}
-                  <video
-                    ref={screenVideoRef}
-                    className="hidden"
-                    muted
-                    playsInline
-                  />
-                  <video
-                    ref={camVideoRef}
-                    className="hidden"
-                    muted
-                    playsInline
-                  />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-1.5 text-sm text-terracotta-700 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-terracotta-600 animate-pulse" />
+                    Recording {formatTime(recordingMs)}
+                  </span>
+                  <Button variant="danger" onClick={stopRecording}>
+                    <StopCircle className="w-4 h-4" strokeWidth={2} />
+                    Stop
+                  </Button>
                 </div>
               )}
+
+              {/* Live preview + canvas feeders — ALWAYS mounted (hidden until
+                  recording) so their refs exist the instant recording starts.
+                  Previously they mounted only after isRecording flipped true,
+                  so buildPipStream drew to a detached canvas and the on-screen
+                  preview stayed black. */}
+              <div className={isRecording ? "space-y-3" : "hidden"}>
+                {includePip && (
+                  <div className="rounded-cozy bg-cream-100 border border-wood-200 p-2">
+                    <p className="text-xs text-wood-500 mb-1">Live preview</p>
+                    <canvas ref={canvasRef} className="w-full rounded bg-black" />
+                  </div>
+                )}
+                {/* Hidden video elements feed the canvas. */}
+                <video ref={screenVideoRef} className="hidden" muted playsInline />
+                <video ref={camVideoRef} className="hidden" muted playsInline />
+              </div>
             </div>
           ) : (
             <div className="space-y-3">

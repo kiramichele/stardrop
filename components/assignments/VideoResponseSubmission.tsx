@@ -576,54 +576,47 @@ export function VideoResponseSubmission({
               )}
 
               {isRecording && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="flex items-center gap-1.5 text-sm text-terracotta-700 font-medium">
-                      <span className="w-2 h-2 rounded-full bg-terracotta-600 animate-pulse" />
-                      Recording {formatTime(recordingMs)}
-                    </span>
-                    <Button variant="danger" onClick={stopRecording}>
-                      <StopCircle className="w-4 h-4" strokeWidth={2} />
-                      Stop
-                    </Button>
-                  </div>
-
-                  {/* Live preview — camera shows itself, PIP shows the canvas composite. */}
-                  {recordMode === "camera" && (
-                    <div className="rounded-cozy bg-cream-100 border border-wood-200 p-2">
-                      <p className="text-xs text-wood-500 mb-1">Live preview</p>
-                      <video
-                        ref={livePreviewRef}
-                        className="w-full rounded bg-black"
-                        muted
-                        playsInline
-                      />
-                    </div>
-                  )}
-                  {recordMode === "screen-pip" && (
-                    <div className="rounded-cozy bg-cream-100 border border-wood-200 p-2">
-                      <p className="text-xs text-wood-500 mb-1">Live preview</p>
-                      <canvas
-                        ref={canvasRef}
-                        className="w-full rounded bg-black"
-                      />
-                    </div>
-                  )}
-                  {/* Hidden feeders for canvas composite. */}
-                  <video
-                    ref={screenVideoRef}
-                    className="hidden"
-                    muted
-                    playsInline
-                  />
-                  <video
-                    ref={camVideoRef}
-                    className="hidden"
-                    muted
-                    playsInline
-                  />
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-1.5 text-sm text-terracotta-700 font-medium">
+                    <span className="w-2 h-2 rounded-full bg-terracotta-600 animate-pulse" />
+                    Recording {formatTime(recordingMs)}
+                  </span>
+                  <Button variant="danger" onClick={stopRecording}>
+                    <StopCircle className="w-4 h-4" strokeWidth={2} />
+                    Stop
+                  </Button>
                 </div>
               )}
+
+              {/* Live preview surfaces — camera shows itself, PIP shows the
+                  canvas composite. These are ALWAYS mounted (hidden until
+                  recording) so their refs exist the instant recording starts:
+                  before, they mounted only after isRecording flipped true, so
+                  startRecording attached the stream/canvas to a null ref and
+                  the preview stayed black. */}
+              <div className={isRecording ? "space-y-3" : "hidden"}>
+                {recordMode === "camera" && (
+                  <div className="rounded-cozy bg-cream-100 border border-wood-200 p-2">
+                    <p className="text-xs text-wood-500 mb-1">Live preview</p>
+                    <video
+                      ref={livePreviewRef}
+                      className="w-full rounded bg-black"
+                      muted
+                      autoPlay
+                      playsInline
+                    />
+                  </div>
+                )}
+                {recordMode === "screen-pip" && (
+                  <div className="rounded-cozy bg-cream-100 border border-wood-200 p-2">
+                    <p className="text-xs text-wood-500 mb-1">Live preview</p>
+                    <canvas ref={canvasRef} className="w-full rounded bg-black" />
+                  </div>
+                )}
+                {/* Hidden feeders for the canvas composite. */}
+                <video ref={screenVideoRef} className="hidden" muted playsInline />
+                <video ref={camVideoRef} className="hidden" muted playsInline />
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
