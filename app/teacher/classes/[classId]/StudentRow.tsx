@@ -142,15 +142,21 @@ export function StudentRow({
 
       <div className="flex-1 min-w-0">
         {limited ? (
-          <p className="block font-medium text-wood-900 truncate">
-            {user.first_name} {user.last_name}
+          <p className="flex items-baseline gap-1 min-w-0 font-medium text-wood-900">
+            <span className="flex-shrink-0 whitespace-nowrap">
+              {user.first_name}
+            </span>
+            <span className="truncate">{user.last_name}</span>
           </p>
         ) : (
           <Link
             href={`/teacher/students/${user.id}`}
-            className="block font-medium text-wood-900 truncate hover:text-terracotta-700 transition-colors"
+            className="flex items-baseline gap-1 min-w-0 font-medium text-wood-900 hover:text-terracotta-700 transition-colors"
           >
-            {user.first_name} {user.last_name}
+            <span className="flex-shrink-0 whitespace-nowrap">
+              {user.first_name}
+            </span>
+            <span className="truncate">{user.last_name}</span>
           </Link>
         )}
         <p className="text-xs text-wood-500 truncate font-mono">
@@ -186,9 +192,9 @@ export function StudentRow({
               : "border-honey-300 bg-honey-50 text-honey-800 font-medium",
           ].join(" ")}
         >
-          <option value="none">Regular time</option>
-          <option value="1.5x">1.5× time</option>
-          <option value="2x">2× time</option>
+          <option value="none">None</option>
+          <option value="1.5x">1.5×</option>
+          <option value="2x">2×</option>
         </select>
       )}
 
