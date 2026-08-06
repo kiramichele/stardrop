@@ -278,13 +278,51 @@ export default async function AssignmentDetailPage({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           {isPeerReview && peerData && (
-            <PeerReviewManager
-              assignmentId={assignmentId}
-              sourceTitle={peerData.sourceTitle}
-              students={peerData.students}
-              matchups={peerData.matchups}
-              sourceSubmitters={peerData.sourceSubmitters}
-            />
+            <>
+              {/* Pairing is per class (one copy per class). Switch between the
+                  classes this peer review was given to. */}
+              {publishStates.length > 1 && (
+                <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
+                  <p className="text-xs text-wood-500 mb-2">
+                    Pairing is per class — you&apos;re pairing{" "}
+                    <span className="font-medium text-wood-700">
+                      {klass?.name ?? "this class"}
+                      {klass?.period_number != null
+                        ? ` · Period ${klass.period_number}`
+                        : ""}
+                    </span>
+                    . Switch class to pair another period.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {publishStates.map((c) => {
+                      const active = c.id === assignmentId;
+                      return (
+                        <Link
+                          key={c.id}
+                          href={`/teacher/assignments/${c.id}`}
+                          className={[
+                            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                            active
+                              ? "bg-terracotta-500 text-white border-terracotta-500"
+                              : "bg-cream-50 text-wood-700 border-wood-200 hover:bg-cream-100 hover:border-wood-300",
+                          ].join(" ")}
+                        >
+                          {c.className}
+                          {c.periodNumber != null ? ` · P${c.periodNumber}` : ""}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <PeerReviewManager
+                assignmentId={assignmentId}
+                sourceTitle={peerData.sourceTitle}
+                students={peerData.students}
+                matchups={peerData.matchups}
+                sourceSubmitters={peerData.sourceSubmitters}
+              />
+            </>
           )}
           {!isPeerReview && (
           <>
