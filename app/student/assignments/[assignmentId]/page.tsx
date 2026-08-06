@@ -45,6 +45,8 @@ import { DiscussionFeed } from "@/components/assignments/DiscussionFeed";
 import { UnityUploadAssignment } from "@/components/assignments/UnityUploadAssignment";
 import { DevlogSubmission } from "@/components/assignments/DevlogSubmission";
 import { VideoResponseSubmission } from "@/components/assignments/VideoResponseSubmission";
+import { PeerReviewStudent } from "@/components/peer-review/PeerReviewStudent";
+import { getStudentPeerReview } from "@/lib/peer-review-server";
 
 export default async function StudentAssignmentPage({
   params,
@@ -111,6 +113,11 @@ export default async function StudentAssignmentPage({
   const otherPosts = hasSubmittedDiscussion
     ? await getOtherDiscussionPosts(assignment.id, user.id)
     : [];
+
+  const peerReview =
+    (assignment.type as AssignmentType) === "peer_review"
+      ? await getStudentPeerReview(assignment.id, user.id)
+      : null;
 
   // Only build the feedback thread once graded (initial msg is grades.feedback)
   const isGraded = submission?.status === "graded";
@@ -418,6 +425,30 @@ export default async function StudentAssignmentPage({
             </>
           )}
 
+          {(assignment.type as AssignmentType) === "peer_review" && (
+            <>
+              {assignment.interactive_html_url && (
+                <Card padded={false} className="overflow-hidden">
+                  <iframe
+                    src={assignment.interactive_html_url}
+                    title="Directions"
+                    sandbox="allow-same-origin allow-scripts"
+                    className="w-full min-h-[320px] bg-white"
+                  />
+                </Card>
+              )}
+              {peerReview && (
+                <PeerReviewStudent
+                  assignmentId={assignment.id}
+                  minimumWords={peerReview.minimumWords}
+                  reviewee={peerReview.reviewee}
+                  myFeedback={peerReview.myFeedback}
+                  received={peerReview.received}
+                />
+              )}
+            </>
+          )}
+
           {!(
             [
               "code",
@@ -427,6 +458,7 @@ export default async function StudentAssignmentPage({
               "unity_upload",
               "devlog",
               "video_response",
+              "peer_review",
             ] as AssignmentType[]
           ).includes(assignment.type as AssignmentType) && (
             <Card>

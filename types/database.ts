@@ -270,6 +270,7 @@ export type Database = {
           points: number
           published: boolean
           rubric_id: string | null
+          source_assignment_id: string | null
           title: string
           type: Database["public"]["Enums"]["assignment_type"]
           updated_at: string | null
@@ -295,6 +296,7 @@ export type Database = {
           points?: number
           published?: boolean
           rubric_id?: string | null
+          source_assignment_id?: string | null
           title: string
           type: Database["public"]["Enums"]["assignment_type"]
           updated_at?: string | null
@@ -320,6 +322,7 @@ export type Database = {
           points?: number
           published?: boolean
           rubric_id?: string | null
+          source_assignment_id?: string | null
           title?: string
           type?: Database["public"]["Enums"]["assignment_type"]
           updated_at?: string | null
@@ -347,6 +350,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      peer_reviews: {
+        Row: {
+          assignment_id: string
+          body: string | null
+          created_at: string
+          id: string
+          reviewee_id: string
+          reviewer_id: string
+          submitted_at: string | null
+        }
+        Insert: {
+          assignment_id: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          reviewee_id: string
+          reviewer_id: string
+          submitted_at?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          body?: string | null
+          created_at?: string
+          id?: string
+          reviewee_id?: string
+          reviewer_id?: string
+          submitted_at?: string | null
+        }
+        Relationships: []
       }
       calendar_events: {
         Row: {
@@ -1706,6 +1739,7 @@ export type Database = {
         | "discussion"
         | "unity_upload"
         | "check_in"
+        | "peer_review"
       day_type:
         | "regular"
         | "holiday"
@@ -1858,6 +1892,7 @@ export const Constants = {
         "discussion",
         "unity_upload",
         "check_in",
+        "peer_review",
       ],
       day_type: [
         "regular",

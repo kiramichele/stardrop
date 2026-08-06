@@ -106,6 +106,12 @@ export async function createAssignment(formData: FormData) {
   if (!title) throw new Error("Title required");
   if (!VALID_TYPES.includes(type)) throw new Error("Invalid assignment type");
 
+  // Peer review references a SOURCE assignment (also stored one copy per class).
+  const sourceRepId = formData.get("source_assignment_id")?.toString() || null;
+  if (type === "peer_review" && !sourceRepId) {
+    throw new Error("Pick the assignment students will review.");
+  }
+
   const points = pointsRaw ? Number.parseInt(pointsRaw, 10) : 100;
   const dueDate = parseDate(dueDateRaw);
   const dueDate1_5x = parseDate(formData.get("due_date_1_5x")?.toString());
@@ -130,8 +136,37 @@ export async function createAssignment(formData: FormData) {
   const groupId = crypto.randomUUID();
 
   const supabase = await createClient();
+
+  // For peer review, resolve the source assignment's GROUP so each per-class
+  // copy can link the source copy in its OWN class.
+  let sourceGroupId: string | null = null;
+  let sourceTitle: string | null = null;
+  if (type === "peer_review" && sourceRepId) {
+    const { data: srcRep } = await supabase
+      .from("assignments")
+      .select("assignment_group_id, title")
+      .eq("id", sourceRepId)
+      .maybeSingle();
+    sourceGroupId = srcRep?.assignment_group_id ?? null;
+    sourceTitle = srcRep?.title ?? null;
+  }
+
   const createdIds: string[] = [];
   for (const classId of targetClassIds) {
+    // The source copy in THIS class (falls back to the picked one).
+    let sourceForClass: string | null = null;
+    if (type === "peer_review" && sourceRepId) {
+      let sq = supabase
+        .from("assignments")
+        .select("id")
+        .eq("class_id", classId);
+      sq = sourceGroupId
+        ? sq.eq("assignment_group_id", sourceGroupId)
+        : sq.eq("title", sourceTitle ?? "");
+      const { data: srcCopy } = await sq.limit(1).maybeSingle();
+      sourceForClass = srcCopy?.id ?? sourceRepId;
+    }
+
     const { data, error } = await supabase
       .from("assignments")
       .insert({
@@ -139,6 +174,7 @@ export async function createAssignment(formData: FormData) {
         assignment_group_id: groupId,
         lesson_id: lessonId,
         is_unit_quiz: isUnitQuiz,
+        source_assignment_id: sourceForClass,
         title,
         // Cast: "devlog" isn't in the regenerated enum until the matching
         // migration is applied + types regen runs.

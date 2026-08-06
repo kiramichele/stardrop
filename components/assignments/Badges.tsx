@@ -54,6 +54,11 @@ const typeMeta: Record<
     label: "Video",
     tint: "bg-sage-100 text-sage-800",
   },
+  peer_review: {
+    icon: Eye,
+    label: "Peer review",
+    tint: "bg-honey-100 text-honey-800",
+  },
   check_in: {
     icon: Smile,
     label: "Check-in",

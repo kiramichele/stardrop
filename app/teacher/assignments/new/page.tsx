@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   ASSIGNMENT_TYPE_LABELS,
   SUPPORTED_TYPES,
@@ -37,6 +38,26 @@ export default async function NewAssignmentPage() {
   if (!classes || classes.length === 0) redirect("/teacher/classes");
 
   const allTypes = Object.keys(ASSIGNMENT_TYPE_LABELS) as AssignmentType[];
+
+  // Candidate "source" assignments for a peer review — one entry per assignment
+  // (deduped across its per-class copies). A peer review can't review a peer
+  // review.
+  const admin = createAdminClient();
+  const { data: allAssignments } = await admin
+    .from("assignments")
+    .select("id, title, type, assignment_group_id, created_at")
+    .order("created_at", { ascending: false });
+  const seenSource = new Set<string>();
+  const sourceOptions = (allAssignments ?? [])
+    .filter((a) => a.type !== "peer_review")
+    .filter((a) => {
+      const key = (a.assignment_group_id as string | null) ?? a.id;
+      if (seenSource.has(key)) return false;
+      seenSource.add(key);
+      return true;
+    })
+    .map((a) => ({ id: a.id as string, title: a.title as string }));
+
   const rubrics = await getRubricsForTeacher();
   const units = (await getUnitsForTeacher()).map((u) => ({
     id: u.id,
@@ -107,6 +128,33 @@ export default async function NewAssignmentPage() {
               Code, Interactive HTML, Short answer, Discussion, Unity upload,
               Dev log, and Video response are all available. Check-in is being
               retired in favor of Dev log.
+            </FieldHint>
+          </div>
+
+          <div>
+            <Label htmlFor="source_assignment_id">
+              Peer review — work to review{" "}
+              <span className="text-wood-500 font-normal">
+                (Peer review only)
+              </span>
+            </Label>
+            <Select
+              id="source_assignment_id"
+              name="source_assignment_id"
+              defaultValue=""
+            >
+              <option value="">— Pick the assignment students review —</option>
+              {sourceOptions.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.title}
+                </option>
+              ))}
+            </Select>
+            <FieldHint>
+              Each student reviews their partner&apos;s submission to this
+              assignment. Every class links its own copy automatically. Set a{" "}
+              <strong>minimum word count</strong> below to require real feedback
+              before the give-to-get reveal unlocks.
             </FieldHint>
           </div>
 

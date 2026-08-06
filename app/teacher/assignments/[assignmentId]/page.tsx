@@ -32,6 +32,8 @@ import {
   BulkGradePanel,
   type BulkSubmissionRow,
 } from "@/components/assignments/BulkGradePanel";
+import { PeerReviewManager } from "@/components/peer-review/PeerReviewManager";
+import { getTeacherPeerReview } from "@/lib/peer-review-server";
 import { getRubricsForTeacher } from "@/lib/rubrics-server";
 import { rubricMaxPoints } from "@/lib/rubrics";
 import { getUnitsForTeacher } from "@/lib/lessons";
@@ -114,6 +116,11 @@ export default async function AssignmentDetailPage({
       </>
     );
   }
+
+  const isPeerReview = (assignment.type as AssignmentType) === "peer_review";
+  const peerData = isPeerReview
+    ? await getTeacherPeerReview(assignmentId)
+    : null;
 
   const submissions = await getSubmissionsForAssignment(assignmentId);
   const rubrics = await getRubricsForTeacher();
@@ -270,6 +277,17 @@ export default async function AssignmentDetailPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
+          {isPeerReview && peerData && (
+            <PeerReviewManager
+              assignmentId={assignmentId}
+              sourceTitle={peerData.sourceTitle}
+              students={peerData.students}
+              matchups={peerData.matchups}
+              sourceSubmitters={peerData.sourceSubmitters}
+            />
+          )}
+          {!isPeerReview && (
+          <>
           <div className="grid grid-cols-3 gap-3">
             <Card padded={false} className="p-4">
               <div className="flex items-center gap-2">
@@ -400,6 +418,8 @@ export default async function AssignmentDetailPage({
             maxPoints={assignment.points}
             rows={submissionRows}
           />
+          </>
+          )}
         </div>
 
         <div className="space-y-4">
