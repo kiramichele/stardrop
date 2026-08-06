@@ -745,7 +745,11 @@ export default async function AssignmentDetailPage({
               Danger zone
             </h3>
             <p className="text-xs text-terracotta-800 mb-3">
-              Deleting an assignment also deletes its submissions.
+              Deletes this assignment from{" "}
+              {publishStates.length > 1
+                ? `all ${publishStates.length} of its classes`
+                : "its class"}{" "}
+              — along with every submission. This can&apos;t be undone.
             </p>
             <form action={deleteAction}>
               <Button

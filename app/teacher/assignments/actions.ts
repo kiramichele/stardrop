@@ -301,18 +301,47 @@ export async function updateAssignment(
 
 export async function deleteAssignment(assignmentId: string) {
   await requireFullTeacher();
-  const supabase = await createClient();
-
   const admin = createAdminClient();
-  await admin.storage.from("lessons").remove([`assignments/${assignmentId}.html`]);
 
-  const { error } = await supabase
+  // The board shows one row per assignment across its per-class copies, so
+  // deleting removes the WHOLE group — otherwise the row lingers because
+  // sibling copies in other classes still exist.
+  const { data: a } = await admin
     .from("assignments")
-    .delete()
-    .eq("id", assignmentId);
+    .select("assignment_group_id, title, type, lesson_id, is_unit_quiz")
+    .eq("id", assignmentId)
+    .maybeSingle();
+
+  let ids = [assignmentId];
+  if (a) {
+    let q = admin.from("assignments").select("id");
+    if (a.assignment_group_id) {
+      q = q.eq("assignment_group_id", a.assignment_group_id);
+    } else {
+      q = q
+        .eq("title", a.title)
+        .eq("type", a.type)
+        .eq("is_unit_quiz", a.is_unit_quiz);
+      q = a.lesson_id ? q.eq("lesson_id", a.lesson_id) : q.is("lesson_id", null);
+    }
+    const { data: sibs } = await q;
+    if (sibs && sibs.length > 0) ids = sibs.map((s) => s.id);
+  }
+
+  try {
+    await admin.storage
+      .from("lessons")
+      .remove(ids.map((id) => `assignments/${id}.html`));
+  } catch {
+    // ignore — the row delete below is what matters
+  }
+
+  const { error } = await admin.from("assignments").delete().in("id", ids);
   if (error) throw new Error(error.message);
 
   revalidatePath("/teacher/assignments");
+  revalidatePath("/student/assignments");
+  revalidatePath("/teacher/grading");
   redirect("/teacher/assignments");
 }
 
