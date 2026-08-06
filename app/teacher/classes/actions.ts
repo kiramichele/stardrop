@@ -177,6 +177,31 @@ export async function resetStudentPassword(
   return { ok: true, password: newPassword, emailed };
 }
 
+/**
+ * Set a student's extended-time tier (none / 1.5x / 2x). This is a per-student
+ * accommodation used everywhere due dates are computed (effectiveDueDate); the
+ * class roster is just a convenient place to set it. Assignments still need
+ * their 1.5×/2× due dates filled in for the tier to change a specific deadline.
+ */
+export async function setStudentExtendedTime(
+  userId: string,
+  classId: string,
+  tier: string
+): Promise<{ ok: boolean; error?: string }> {
+  await requireFullTeacher();
+  const value = asExtendedTime(tier);
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("users")
+    .update({ extended_time: value })
+    .eq("id", userId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/teacher/classes/${classId}`);
+  revalidatePath(`/teacher/students/${userId}`);
+  return { ok: true };
+}
+
 // =============================================================
 // Manually add a single student to a class
 // =============================================================

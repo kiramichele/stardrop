@@ -9,6 +9,7 @@ import {
   removeStudentFromClass,
   resetStudentPassword,
   removeStudentAvatar,
+  setStudentExtendedTime,
 } from "../actions";
 
 interface StudentRowProps {
@@ -19,6 +20,8 @@ interface StudentRowProps {
     username: string;
     real_email: string | null;
     avatar_url: string | null;
+    /** Due-date accommodation tier: "none" | "1.5x" | "2x". */
+    extended_time: string;
   };
   classId: string;
   className: string;
@@ -39,6 +42,19 @@ export function StudentRow({
   const [isPending, startTransition] = useTransition();
   const [hasAvatar, setHasAvatar] = useState(!!user.avatar_url);
   const [resetPassword, setResetPassword] = useState<string | null>(null);
+  const [tier, setTier] = useState(user.extended_time || "none");
+
+  function handleSetTier(value: string) {
+    const previous = tier;
+    setTier(value); // optimistic
+    startTransition(async () => {
+      const r = await setStudentExtendedTime(user.id, classId, value);
+      if (!r.ok) {
+        setTier(previous);
+        alert(`Couldn't update extended time: ${r.error ?? "unknown error"}`);
+      }
+    });
+  }
 
   function handleMove(targetClassId: string) {
     const target = otherClasses.find((c) => c.id === targetClassId);
@@ -153,6 +169,28 @@ export function StudentRow({
           </p>
         )}
       </div>
+
+      {/* Due-date accommodation — always visible so tiers are easy to scan.
+          Assignments still need their 1.5×/2× dates filled in to take effect. */}
+      {!limited && (
+        <select
+          value={tier}
+          onChange={(e) => handleSetTier(e.target.value)}
+          disabled={isPending}
+          aria-label={`Due-date accommodation for ${user.first_name} ${user.last_name}`}
+          title="Due-date accommodation (extended time)"
+          className={[
+            "flex-shrink-0 text-xs px-2 py-1 rounded-cozy border focus:outline-none focus:border-terracotta-400 focus:shadow-focus-warm disabled:opacity-50 transition-colors",
+            tier === "none"
+              ? "border-wood-200 bg-cream-50 text-wood-500"
+              : "border-honey-300 bg-honey-50 text-honey-800 font-medium",
+          ].join(" ")}
+        >
+          <option value="none">Regular time</option>
+          <option value="1.5x">1.5× time</option>
+          <option value="2x">2× time</option>
+        </select>
+      )}
 
       <div className="flex items-center gap-2 opacity-60 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150">
         {isPending && (
