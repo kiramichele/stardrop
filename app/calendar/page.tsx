@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCalendarEvents } from "@/lib/calendar-server";
 import { getSlideshows } from "@/lib/slideshows-server";
 import { parseMonthParam } from "@/lib/calendar";
+import { effectiveDueDate, asExtendedTime } from "@/lib/assignments";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { CalendarClient } from "@/components/calendar/CalendarClient";
 
@@ -24,7 +25,9 @@ export default async function CalendarPage({
       getSlideshows(),
       admin
         .from("assignments")
-        .select("id, title, due_date, published, class_id, assignment_group_id"),
+        .select(
+          "id, title, due_date, due_date_1_5x, due_date_2x, published, class_id, assignment_group_id"
+        ),
       admin.from("lessons").select("id, title"),
       // A student only sees deadlines for their own class(es); assignments are
       // stored one copy per class, so without this they'd see every period's
@@ -43,26 +46,60 @@ export default async function CalendarPage({
         )
       : null;
 
+  // A student's own extended-time tier drives which due date they're held to.
+  const tier =
+    role === "student"
+      ? asExtendedTime((user as { extended_time?: unknown }).extended_time)
+      : "none";
+
   // Title lookups so the day-detail popup can name a slideshow's links.
   const lessonTitle = new Map<string, string>();
   for (const l of lessonsRes.data ?? []) lessonTitle.set(l.id, l.title);
-  const assignmentTitle = new Map<string, string>();
-  for (const a of assignmentsRes.data ?? []) assignmentTitle.set(a.id, a.title);
+  // Per-assignment metadata so we can filter/dedupe the copies a slideshow
+  // links (assignments are stored one copy per class).
+  const assignmentMeta = new Map<
+    string,
+    { title: string; classId: string; groupId: string | null }
+  >();
+  for (const a of assignmentsRes.data ?? []) {
+    assignmentMeta.set(a.id, {
+      title: a.title,
+      classId: (a as { class_id: string }).class_id,
+      groupId: (a as { assignment_group_id: string | null })
+        .assignment_group_id,
+    });
+  }
 
-  const slideshowsEnriched = slideshows.map((s) => ({
-    date: s.classDate,
-    id: s.id,
-    title: s.title,
-    description: s.description,
-    lessons: s.lessonIds.map((id) => ({
-      id,
-      title: lessonTitle.get(id) ?? "Lesson",
-    })),
-    assignments: s.assignmentIds.map((id) => ({
-      id,
-      title: assignmentTitle.get(id) ?? "Assignment",
-    })),
-  }));
+  const slideshowsEnriched = slideshows.map((s) => {
+    // A slideshow links every per-class copy of an assignment. Show a student
+    // only their class's copy, and collapse the rest to one per assignment.
+    const seenLink = new Set<string>();
+    const assignments = s.assignmentIds
+      .map((id) => ({ id, meta: assignmentMeta.get(id) }))
+      .filter(
+        ({ meta }) =>
+          enrolledClassIds === null ||
+          (!!meta && enrolledClassIds.has(meta.classId))
+      )
+      .filter(({ id, meta }) => {
+        const key = meta?.groupId ?? id;
+        if (seenLink.has(key)) return false;
+        seenLink.add(key);
+        return true;
+      })
+      .map(({ id, meta }) => ({ id, title: meta?.title ?? "Assignment" }));
+    return {
+      date: s.classDate,
+      id: s.id,
+      title: s.title,
+      description: s.description,
+      lessons: s.lessonIds.map((id) => ({
+        id,
+        title: lessonTitle.get(id) ?? "Lesson",
+      })),
+      assignments,
+    };
+  });
 
   // Collapse the per-class copies of one assignment into a single calendar
   // entry (by shared group id; fall back to title+date for older copies), so
@@ -84,11 +121,24 @@ export default async function CalendarPage({
       seenAssignment.add(key);
       return true;
     })
-    .map((a) => ({
-      date: (a.due_date as string).slice(0, 10),
-      id: a.id,
-      title: a.title,
-    }));
+    .map((a) => {
+      // Hold a 1.5×/2× student to their extended due date when the teacher set
+      // one; otherwise this falls back to the regular date.
+      const effective =
+        effectiveDueDate(
+          a as {
+            due_date: string | null;
+            due_date_1_5x?: string | null;
+            due_date_2x?: string | null;
+          },
+          tier
+        ) ?? (a.due_date as string);
+      return {
+        date: (effective as string).slice(0, 10),
+        id: a.id,
+        title: a.title,
+      };
+    });
 
   return (
     <>
