@@ -32,16 +32,23 @@ export default async function AnalyticsPage() {
       getUnitClassHeatmap(),
       admin
         .from("assignments")
-        .select("id, title")
+        .select("id, title, assignment_group_id")
         .order("created_at", { ascending: false }),
     ]);
 
   const apiConfigured = isAnthropicConfigured();
 
-  const assignmentOptions = (assignmentsRes.data ?? []).map((a) => ({
-    id: a.id,
-    label: a.title,
-  }));
+  // One option per assignment (not per class copy) — the analysis aggregates
+  // every class's submissions for the picked assignment.
+  const seenAssignment = new Set<string>();
+  const assignmentOptions = (assignmentsRes.data ?? [])
+    .filter((a) => {
+      const key = (a.assignment_group_id as string | null) ?? a.id;
+      if (seenAssignment.has(key)) return false;
+      seenAssignment.add(key);
+      return true;
+    })
+    .map((a) => ({ id: a.id, label: a.title }));
   const studentOptions = [...struggling]
     .map((s) => ({ id: s.id, label: s.name }))
     .sort((a, b) => a.label.localeCompare(b.label));

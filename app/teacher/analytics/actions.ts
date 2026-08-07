@@ -45,7 +45,9 @@ export async function analyzeAssignment(
 
   const { data: assignment } = await admin
     .from("assignments")
-    .select("title, type, instructions, points")
+    .select(
+      "title, type, instructions, points, assignment_group_id, lesson_id, is_unit_quiz"
+    )
     .eq("id", assignmentId)
     .maybeSingle();
   if (!assignment) {
@@ -59,10 +61,30 @@ export async function analyzeAssignment(
     };
   }
 
+  // Analyze the WHOLE assignment across every class it was given to
+  // (one copy per class), not just the copy that was picked.
+  let assignmentIds = [assignmentId];
+  {
+    let q = admin.from("assignments").select("id");
+    if (assignment.assignment_group_id) {
+      q = q.eq("assignment_group_id", assignment.assignment_group_id);
+    } else {
+      q = q
+        .eq("title", assignment.title)
+        .eq("type", assignment.type)
+        .eq("is_unit_quiz", assignment.is_unit_quiz);
+      q = assignment.lesson_id
+        ? q.eq("lesson_id", assignment.lesson_id)
+        : q.is("lesson_id", null);
+    }
+    const { data: sibs } = await q;
+    if (sibs && sibs.length > 0) assignmentIds = sibs.map((s) => s.id);
+  }
+
   const { data: submissions } = await admin
     .from("submissions")
     .select("content, structured_data, status")
-    .eq("assignment_id", assignmentId)
+    .in("assignment_id", assignmentIds)
     .in("status", ["submitted", "graded"]);
 
   const rows = (submissions ?? []).slice(0, 40);

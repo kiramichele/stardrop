@@ -193,17 +193,21 @@ export async function moveLesson(
     .single();
   if (!current) return;
 
-  let q = admin
+  // Find the neighbor in JS rather than filtering on the "order" column:
+  // PostgREST treats `order` as its sort keyword, so `.lt("order", …)` /
+  // `.gt("order", …)` collide with `.order("order")` and the lookup returns
+  // nothing — which is why the arrows appeared to do nothing.
+  const { data: siblings } = await admin
     .from("lessons")
     .select("id, order")
-    .eq("unit_id", current.unit_id);
-  if (direction === "up") {
-    q = q.lt("order", current.order).order("order", { ascending: false });
-  } else {
-    q = q.gt("order", current.order).order("order", { ascending: true });
-  }
-  const { data: adjacent } = await q.limit(1).maybeSingle();
-  if (!adjacent) return;
+    .eq("unit_id", current.unit_id)
+    .order("order");
+  const list = siblings ?? [];
+  const idx = list.findIndex((l) => l.id === current.id);
+  if (idx === -1) return;
+  const adjIdx = direction === "up" ? idx - 1 : idx + 1;
+  if (adjIdx < 0 || adjIdx >= list.length) return;
+  const adjacent = list[adjIdx];
 
   // Three-step swap through a sentinel so a (unit_id, order) unique index,
   // if one is ever added, never trips mid-swap.
