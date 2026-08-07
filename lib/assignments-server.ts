@@ -22,9 +22,9 @@ const SELECTS = {
     "id, class_id, assignment_group_id, lesson_id, is_unit_quiz, title, type, due_date, points, published, interactive_html_url, created_at, submissions(count), classes(name, period_number)",
   assignmentWithClass: "*, classes(id, name, period_number)",
   submissionsList:
-    "id, user_id, status, submitted_at, updated_at, users(first_name, last_name, username, extended_time), grades(score, graded_at)",
+    "id, user_id, status, submitted_at, updated_at, revision_requested_at, users(first_name, last_name, username, extended_time), grades(score, graded_at)",
   gradingQueue:
-    "id, user_id, assignment_id, submitted_at, status, users(first_name, last_name, extended_time), assignments(id, title, type, due_date, due_date_1_5x, due_date_2x, classes(id, name, period_number))",
+    "id, user_id, assignment_id, submitted_at, status, revision_requested_at, users(first_name, last_name, extended_time), assignments(id, title, type, due_date, due_date_1_5x, due_date_2x, classes(id, name, period_number))",
   submissionForGrading:
     "*, users(first_name, last_name, username, extended_time), assignments(title, type, instructions, points, due_date, due_date_1_5x, due_date_2x, class_id, interactive_html_url, minimum_word_count, rubric_id), grades(score, feedback, graded_at, rubric_scores)",
   studentAssignmentsList:

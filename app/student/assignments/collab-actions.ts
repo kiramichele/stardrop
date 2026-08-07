@@ -67,7 +67,7 @@ export async function submitGroup(groupId: string): Promise<Result> {
     return { ok: false, error: "Only the group leader can submit." };
   }
 
-  const r = await writeGroupSubmission(groupId);
+  const r = await writeGroupSubmission(groupId, { allowOverGraded: true });
   if (!r.ok) return { ok: false, error: "Submit failed." };
 
   revalidatePath(`/student/assignments/${m.assignmentId}`);

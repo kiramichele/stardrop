@@ -59,7 +59,10 @@ export function CodeAssignmentEditor({
   );
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSubmitting, startSubmit] = useTransition();
-  const isLocked = status === "graded";
+  // Grading no longer locks editing — students can turn in a revision any
+  // time, so `isLocked` stays false; `isGraded` just drives the copy below.
+  const isLocked = false;
+  const isGraded = status === "graded";
 
   const ensuredRef = useRef(false);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -150,17 +153,14 @@ export function CodeAssignmentEditor({
 
   return (
     <div className="space-y-4">
-      {isLocked && (
+      {isGraded && (
         <Card className="bg-sage-50 border-sage-200">
           <div className="flex items-center gap-3">
             <Lock className="w-5 h-5 text-sage-700" strokeWidth={1.75} />
             <div>
-              <p className="font-display text-base text-sage-900">
-                Graded — editing locked
-              </p>
+              <p className="font-display text-base text-sage-900">Graded</p>
               <p className="text-sm text-sage-700">
-                Your submission has been graded. Ask Ms. Shinn if you need to
-                revise.
+                You can still edit and turn in a revision any time.
               </p>
             </div>
           </div>
@@ -212,9 +212,11 @@ export function CodeAssignmentEditor({
               {saveError}
             </span>
           )}
-          {saveState === "idle" && status === "submitted" && (
+          {saveState === "idle" && status !== "draft" && (
             <span className="text-wood-500">
-              Submitted — changes will save and update your submission.
+              {status === "graded"
+                ? "Graded — changes are saved as a draft. Click Re-submit to turn it in."
+                : "Submitted — changes will save and update your submission."}
             </span>
           )}
         </div>
@@ -227,7 +229,7 @@ export function CodeAssignmentEditor({
           <Send className="w-4 h-4" strokeWidth={2} />
           {isSubmitting
             ? "Submitting…"
-            : status === "submitted"
+            : status !== "draft"
               ? "Re-submit"
               : "Submit"}
         </Button>

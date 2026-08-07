@@ -1576,6 +1576,7 @@ export type Database = {
           content: string | null
           created_at: string | null
           id: string
+          revision_requested_at: string | null
           status: Database["public"]["Enums"]["submission_status"]
           structured_data: Json | null
           submitted_at: string | null
@@ -1588,6 +1589,7 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           id?: string
+          revision_requested_at?: string | null
           status?: Database["public"]["Enums"]["submission_status"]
           structured_data?: Json | null
           submitted_at?: string | null
@@ -1600,6 +1602,7 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           id?: string
+          revision_requested_at?: string | null
           status?: Database["public"]["Enums"]["submission_status"]
           structured_data?: Json | null
           submitted_at?: string | null

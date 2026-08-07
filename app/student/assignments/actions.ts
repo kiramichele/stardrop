@@ -72,9 +72,6 @@ export async function saveDraft(submissionId: string, payload: DraftPayload) {
   if (!sub || sub.user_id !== user.id) {
     return { ok: false, error: "Not authorized" };
   }
-  if (sub.status === "graded") {
-    return { ok: false, error: "Submission already graded — can't edit." };
-  }
 
   const update = buildUpdate(payload);
   if (Object.keys(update).length === 0) return { ok: true };
@@ -106,9 +103,6 @@ export async function submitAssignment(
 
   if (!sub || sub.user_id !== user.id) {
     return { ok: false, error: "Not authorized" };
-  }
-  if (sub.status === "graded") {
-    return { ok: false, error: "Submission already graded — can't edit." };
   }
 
   // Auto-publish to StarHub when the instructor turned on the flag for
@@ -158,6 +152,9 @@ export async function submitAssignment(
     // regen'd types yet depending on when the regen ran.
     (update as { is_public?: boolean }).is_public = true;
   }
+  // A resubmit (whether the student was asked to revise or just wants to
+  // update graded work) clears any outstanding revision request.
+  update.revision_requested_at = null;
 
   const { error } = await supabase
     .from("submissions")
@@ -202,9 +199,6 @@ export async function prepareDevlogSubmission(
     .maybeSingle();
 
   if (existing) {
-    if (existing.status === "graded") {
-      return { ok: false, error: "Submission already graded — can't replace." };
-    }
     return { ok: true, submissionId: existing.id, userId: user.id };
   }
 
@@ -243,9 +237,6 @@ export async function createDevlogUploadUrl(
   if (!sub || sub.user_id !== user.id) {
     return { ok: false, error: "Not authorized" };
   }
-  if (sub.status === "graded") {
-    return { ok: false, error: "Submission already graded — can't replace." };
-  }
 
   const safeExt = /^[a-z0-9]{2,5}$/i.test(ext) ? ext.toLowerCase() : "webm";
   const fileId = crypto.randomUUID();
@@ -282,9 +273,6 @@ export async function finalizeDevlogSubmission(
   if (!sub || sub.user_id !== user.id) {
     return { ok: false, error: "Not authorized" };
   }
-  if (sub.status === "graded") {
-    return { ok: false, error: "Submission already graded — can't replace." };
-  }
 
   const admin = createAdminClient();
 
@@ -319,6 +307,7 @@ export async function finalizeDevlogSubmission(
   if (!sub.submitted_at) {
     update.submitted_at = new Date().toISOString();
   }
+  update.revision_requested_at = null;
 
   const { error } = await supabase
     .from("submissions")
@@ -371,11 +360,9 @@ export async function uploadSubmissionMedia(
     .maybeSingle();
 
   let submissionId: string;
-  let status: "draft" | "submitted" | "graded";
   let currentList: SubmissionMedia[];
   if (existing) {
     submissionId = existing.id;
-    status = existing.status;
     currentList = parseSubmissionMedia(existing.uploaded_files);
   } else {
     const { data: created, error } = await supabase
@@ -385,18 +372,13 @@ export async function uploadSubmissionMedia(
         user_id: user.id,
         status: "draft",
       })
-      .select("id, status")
+      .select("id")
       .single();
     if (error || !created) {
       return { ok: false, error: error?.message ?? "Failed to create submission" };
     }
     submissionId = created.id;
-    status = created.status;
     currentList = [];
-  }
-
-  if (status === "graded") {
-    return { ok: false, error: "Submission already graded — can't edit." };
   }
 
   // Upload to private bucket via admin client
@@ -459,9 +441,6 @@ export async function removeSubmissionMedia(
 
   if (!sub || sub.user_id !== user.id) {
     return { ok: false, error: "Not authorized" };
-  }
-  if (sub.status === "graded") {
-    return { ok: false, error: "Submission already graded — can't edit." };
   }
 
   const list = parseSubmissionMedia(sub.uploaded_files);

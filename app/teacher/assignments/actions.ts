@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireFullTeacher, getCurrentUser } from "@/lib/auth";
 import { sendEmail, escapeHtml, appBaseUrl } from "@/lib/email";
 import { notifyTeachersBySms } from "@/lib/sms-server";
+import { createNotifications } from "@/lib/notifications-server";
 import { computeAutoGrade, type AssignmentType } from "@/lib/assignments";
 import { asProfile } from "@/lib/profile";
 import type { Json } from "@/types/database";
@@ -629,6 +630,49 @@ export async function saveGrade(submissionId: string, formData: FormData) {
     .select("assignment_id")
     .single();
   if (subError) throw new Error(subError.message);
+
+  revalidatePath(`/teacher/assignments/${sub.assignment_id}`);
+  revalidatePath(
+    `/teacher/assignments/${sub.assignment_id}/grade/${submissionId}`
+  );
+}
+
+/**
+ * Flag a submission for revision and notify the student. Students can
+ * already resubmit any time — this just gives the teacher a deliberate
+ * way to ask for one. The flag clears itself on the student's next
+ * resubmit (see submitAssignment / finalizeDevlogSubmission).
+ */
+export async function requestRevision(submissionId: string) {
+  const teacher = await requireFullTeacher();
+  const supabase = await createClient();
+
+  const { data: sub, error } = await supabase
+    .from("submissions")
+    .update({ revision_requested_at: new Date().toISOString() })
+    .eq("id", submissionId)
+    .select("id, user_id, assignment_id, assignments(title)")
+    .single();
+  if (error || !sub) throw new Error(error?.message ?? "Submission not found");
+
+  const assignment = Array.isArray(sub.assignments)
+    ? sub.assignments[0]
+    : sub.assignments;
+  const teacherProfile = asProfile(teacher);
+
+  await createNotifications([
+    {
+      userId: sub.user_id,
+      type: "revision_requested",
+      payload: {
+        message: `${teacherProfile.first_name} asked you to revise "${
+          assignment?.title ?? "an assignment"
+        }"`,
+        href: `/student/assignments/${sub.assignment_id}`,
+        actorName: teacherProfile.first_name,
+      },
+    },
+  ]);
 
   revalidatePath(`/teacher/assignments/${sub.assignment_id}`);
   revalidatePath(

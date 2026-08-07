@@ -99,8 +99,7 @@ export function CollaborativeCodeEditor({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit =
-    status !== "graded" && (!leaderSubmitsOnly || isLeader);
+  const canSubmit = !leaderSubmitsOnly || isLeader;
 
   // Rebuild the per-peer cursor colors/labels whenever awareness changes.
   function refreshPeerStyles(awareness: Awareness) {
@@ -184,9 +183,9 @@ export function CollaborativeCodeEditor({
     awareness.on("change", () => refreshPeerStyles(awareness));
     refreshPeerStyles(awareness);
 
-    // Debounced autosave of the shared doc (skip once graded).
+    // Debounced autosave of the shared doc — keeps saving even after
+    // grading, since the group can still turn in a revision.
     doc.on("update", () => {
-      if (status === "graded") return;
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
         setSaveState("saving");
@@ -222,7 +221,6 @@ export function CollaborativeCodeEditor({
   }
 
   const runAs = resolveRunAs(codeRunMode);
-  const readOnly = status === "graded";
 
   return (
     <div className="space-y-4">
@@ -231,7 +229,8 @@ export function CollaborativeCodeEditor({
           <div className="flex items-center gap-3">
             <Lock className="w-5 h-5 text-sage-700" strokeWidth={1.75} />
             <p className="text-sm text-sage-800">
-              Graded — the shared editor is now read-only.
+              Graded — the group can still edit and turn in a revision any
+              time.
             </p>
           </div>
         </Card>
@@ -297,7 +296,6 @@ export function CollaborativeCodeEditor({
               fontFamily:
                 'ui-monospace, SFMono-Regular, Menlo, "Cascadia Code", monospace',
               fontLigatures: true,
-              readOnly,
               automaticLayout: true,
               tabSize: 4,
               insertSpaces: true,
@@ -329,36 +327,34 @@ export function CollaborativeCodeEditor({
               {error}
             </span>
           )}
-          {!error && status === "submitted" && (
+          {!error && (status === "submitted" || status === "graded") && (
             <span className="flex items-center gap-1.5 text-sage-700">
               <Check className="w-3.5 h-3.5" />
-              Submitted for the group — edits keep saving.
+              {status === "graded"
+                ? "Graded — edits keep saving."
+                : "Submitted for the group — edits keep saving."}
             </span>
           )}
-          {!error && leaderSubmitsOnly && !isLeader && status !== "graded" && (
+          {!error && leaderSubmitsOnly && !isLeader && (
             <span className="text-wood-500">
               Only the group leader can submit.
             </span>
           )}
         </div>
 
-        {status !== "graded" && (
-          <Button
-            onClick={handleSubmit}
-            disabled={!canSubmit || submitting}
-            size="lg"
-            title={
-              !canSubmit ? "Only the group leader can submit" : undefined
-            }
-          >
-            <Send className="w-4 h-4" strokeWidth={2} />
-            {submitting
-              ? "Submitting…"
-              : status === "submitted"
-                ? "Re-submit"
-                : "Submit for group"}
-          </Button>
-        )}
+        <Button
+          onClick={handleSubmit}
+          disabled={!canSubmit || submitting}
+          size="lg"
+          title={!canSubmit ? "Only the group leader can submit" : undefined}
+        >
+          <Send className="w-4 h-4" strokeWidth={2} />
+          {submitting
+            ? "Submitting…"
+            : status === "submitted" || status === "graded"
+              ? "Re-submit"
+              : "Submit for group"}
+        </Button>
       </div>
     </div>
   );

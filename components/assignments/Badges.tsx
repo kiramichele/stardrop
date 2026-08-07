@@ -84,6 +84,12 @@ export function AssignmentTypeBadge({ type }: { type: AssignmentType }) {
 
 type StatusInput = {
   status?: "draft" | "submitted" | "graded" | null;
+  /**
+   * True when a grade row exists, even if the student has since turned in
+   * a revision (which flips `status` back to "submitted" so it re-enters
+   * the grading queue). Only trust this as "currently graded" alongside
+   * status === "graded" — see the "needs regrade" case below.
+   */
   hasGrade?: boolean;
   isLate?: boolean;
 };
@@ -93,10 +99,17 @@ export function SubmissionStatusBadge({
   hasGrade,
   isLate,
 }: StatusInput) {
-  if (hasGrade || status === "graded") {
+  if (status === "graded") {
     return (
       <span className="inline-flex items-center gap-1 text-[0.7rem] font-semibold uppercase tracking-wide-label text-sage-700">
         <Award className="w-3 h-3" /> Graded
+      </span>
+    );
+  }
+  if (status === "submitted" && hasGrade) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[0.7rem] font-semibold uppercase tracking-wide-label text-honey-700">
+        <Sparkles className="w-3 h-3" /> Revised — needs regrade
       </span>
     );
   }

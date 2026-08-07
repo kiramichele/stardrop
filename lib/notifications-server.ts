@@ -6,7 +6,8 @@ import type { Json } from "@/types/database";
 export type NotificationType =
   | "discussion_post"
   | "discussion_reply"
-  | "discussion_mention";
+  | "discussion_mention"
+  | "revision_requested";
 
 export type NotificationPayload = {
   message: string;

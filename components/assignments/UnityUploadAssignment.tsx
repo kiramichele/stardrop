@@ -46,7 +46,10 @@ export function UnityUploadAssignment({
   const [isUploading, startUpload] = useTransition();
   const [isSubmitting, startSubmit] = useTransition();
 
-  const isLocked = status === "graded";
+  // Grading no longer locks editing — students can turn in a revision any
+  // time, so `isLocked` stays false; `isGraded` just drives the copy below.
+  const isLocked = false;
+  const isGraded = status === "graded";
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -234,16 +237,14 @@ export function UnityUploadAssignment({
 
   return (
     <div className="space-y-4">
-      {isLocked && (
+      {isGraded && (
         <Card className="bg-sage-50 border-sage-200">
           <div className="flex items-center gap-3">
             <Lock className="w-5 h-5 text-sage-700" strokeWidth={1.75} />
             <div>
-              <p className="font-display text-base text-sage-900">
-                Graded — submission locked
-              </p>
+              <p className="font-display text-base text-sage-900">Graded</p>
               <p className="text-sm text-sage-700">
-                Your work has been graded. Ask Ms. Shinn if you need to revise.
+                You can still capture more and turn in a revision any time.
               </p>
             </div>
           </div>
@@ -332,10 +333,10 @@ export function UnityUploadAssignment({
             Uploading…
           </span>
         )}
-        {status === "submitted" && !isUploading && !isSubmitting && (
+        {status !== "draft" && !isUploading && !isSubmitting && (
           <span className="flex items-center gap-1.5 text-sm text-sage-700">
             <Check className="w-3.5 h-3.5" />
-            Submitted
+            {status === "graded" ? "Graded" : "Submitted"}
           </span>
         )}
         <Button
@@ -346,7 +347,7 @@ export function UnityUploadAssignment({
           <Send className="w-4 h-4" strokeWidth={2} />
           {isSubmitting
             ? "Submitting…"
-            : status === "submitted"
+            : status !== "draft"
               ? "Re-submit"
               : "Submit"}
         </Button>

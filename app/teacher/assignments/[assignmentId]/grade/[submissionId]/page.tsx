@@ -33,6 +33,7 @@ import { SubmissionStatusBadge } from "@/components/assignments/Badges";
 import { PasteTimeline } from "@/components/assignments/PasteTimeline";
 import { GradingForm } from "@/components/assignments/GradingForm";
 import { GradingNav } from "@/components/assignments/GradingNav";
+import { RequestRevisionButton } from "@/components/assignments/RequestRevisionButton";
 import { InteractiveResponseView } from "@/components/assignments/InteractiveResponseView";
 import { StudentNoteCallout } from "@/components/students/StudentNoteCallout";
 import { DevlogVisibilityChip } from "@/components/devlogs/DevlogVisibilityChip";
@@ -436,6 +437,13 @@ export default async function GradeSubmissionPage({
               autoGrade={autoGrade}
               rubric={rubric}
               initialRubricScores={initialRubricScores}
+            />
+          </Card>
+
+          <Card>
+            <RequestRevisionButton
+              submissionId={submissionId}
+              initialRequestedAt={submission.revision_requested_at}
             />
           </Card>
 

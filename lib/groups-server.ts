@@ -122,12 +122,19 @@ export async function getStudentGroupId(
 
 /**
  * Record the group's shared code as a submission for EVERY member (so the
- * existing per-student gradebook/analytics keep working). Skips members whose
- * submission is already graded. Used by manual submit, on-access auto-submit,
- * and the daily cron sweep.
+ * existing per-student gradebook/analytics keep working). Used by manual
+ * submit, on-access auto-submit, and the daily cron sweep.
+ *
+ * The automatic paths (auto-submit, cron) never touch an already-graded
+ * member — that's a background sweep and shouldn't silently knock a grade
+ * back to "needs regrade" behind the student's back. A student explicitly
+ * hitting Submit is different: pass `allowOverGraded` so a deliberate
+ * resubmit after grading still goes through, same as every other
+ * assignment type.
  */
 export async function writeGroupSubmission(
-  groupId: string
+  groupId: string,
+  opts: { allowOverGraded?: boolean } = {}
 ): Promise<{ ok: boolean; count: number }> {
   const admin = createAdminClient();
 
@@ -155,13 +162,14 @@ export async function writeGroupSubmission(
       .maybeSingle();
 
     if (existing) {
-      if (existing.status === "graded") continue; // don't clobber a grade
+      if (existing.status === "graded" && !opts.allowOverGraded) continue;
       await admin
         .from("submissions")
         .update({
           content,
           status: "submitted",
           submitted_at: existing.submitted_at ?? now,
+          revision_requested_at: null,
         })
         .eq("id", existing.id);
     } else {

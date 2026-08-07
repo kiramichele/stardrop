@@ -84,7 +84,10 @@ export function DevlogSubmission({
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  const isLocked = status === "graded";
+  // Grading no longer locks editing — students can turn in a revision any
+  // time, so `isLocked` stays false; `isGraded` just drives the copy below.
+  const isLocked = false;
+  const isGraded = status === "graded";
 
   // Stream + recorder refs (so cleanup can find them).
   const screenStreamRef = useRef<MediaStream | null>(null);
@@ -429,17 +432,15 @@ export function DevlogSubmission({
 
   return (
     <div className="space-y-4">
-      {isLocked && (
+      {isGraded && (
         <Card className="bg-sage-50 border-sage-200">
           <div className="flex items-center gap-3">
             <Lock className="w-5 h-5 text-sage-700" strokeWidth={1.75} />
             <div>
-              <p className="font-display text-base text-sage-900">
-                Graded — submission locked
-              </p>
+              <p className="font-display text-base text-sage-900">Graded</p>
               <p className="text-sm text-sage-700">
-                Your devlog has been graded. Ask Ms. Shinn if you need to
-                revise.
+                You can still record or upload a new take and turn in a
+                revision any time.
               </p>
             </div>
           </div>
@@ -451,43 +452,41 @@ export function DevlogSubmission({
           <div className="px-4 py-3 border-b border-wood-100 flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <p className="label-eyebrow">
-                {status === "graded" ? "Submitted devlog" : "Your latest submission"}
+                {isGraded ? "Graded devlog" : "Your latest submission"}
               </p>
               <p className="text-xs text-wood-500 mt-0.5">
                 {(submittedMedia.size / 1024 / 1024).toFixed(1)} MB ·{" "}
                 {new Date(submittedMedia.createdAt).toLocaleString()}
               </p>
             </div>
-            {!isLocked && (
-              <button
-                type="button"
-                onClick={togglePublicOnSubmitted}
-                className={[
-                  "flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-                  isPublic
-                    ? "bg-sage-100 text-sage-800 border-sage-200 hover:bg-sage-200"
-                    : "bg-cream-100 text-wood-600 border-wood-200 hover:bg-cream-200",
-                ].join(" ")}
-                aria-pressed={isPublic}
-                title={
-                  isPublic
-                    ? "Shared on the Devlogs wall — click to make private"
-                    : "Private — click to share on the Devlogs wall"
-                }
-              >
-                {isPublic ? (
-                  <>
-                    <Eye className="h-3.5 w-3.5" />
-                    Shared with class
-                  </>
-                ) : (
-                  <>
-                    <EyeOff className="h-3.5 w-3.5" />
-                    Private
-                  </>
-                )}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={togglePublicOnSubmitted}
+              className={[
+                "flex-shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
+                isPublic
+                  ? "bg-sage-100 text-sage-800 border-sage-200 hover:bg-sage-200"
+                  : "bg-cream-100 text-wood-600 border-wood-200 hover:bg-cream-200",
+              ].join(" ")}
+              aria-pressed={isPublic}
+              title={
+                isPublic
+                  ? "Shared on the Devlogs wall — click to make private"
+                  : "Private — click to share on the Devlogs wall"
+              }
+            >
+              {isPublic ? (
+                <>
+                  <Eye className="h-3.5 w-3.5" />
+                  Shared with class
+                </>
+              ) : (
+                <>
+                  <EyeOff className="h-3.5 w-3.5" />
+                  Private
+                </>
+              )}
+            </button>
           </div>
           <video
             src={submissionMediaUrl(submittedMedia)}
@@ -497,128 +496,126 @@ export function DevlogSubmission({
         </Card>
       )}
 
-      {!isLocked && (
-        <Card>
-          {/* Mode tabs */}
-          <div className="mb-4 inline-flex rounded-cozy border border-wood-200 p-0.5">
-            <ModeTab
-              active={mode === "record"}
-              onClick={() => {
-                if (!isRecording) setMode("record");
-              }}
-              disabled={isRecording}
-              icon={<Video className="w-3.5 h-3.5" />}
-              label="Record"
-            />
-            <ModeTab
-              active={mode === "upload"}
-              onClick={() => {
-                if (!isRecording) setMode("upload");
-              }}
-              disabled={isRecording}
-              icon={<Upload className="w-3.5 h-3.5" />}
-              label="Upload video"
-            />
-          </div>
+      <Card>
+        {/* Mode tabs */}
+        <div className="mb-4 inline-flex rounded-cozy border border-wood-200 p-0.5">
+          <ModeTab
+            active={mode === "record"}
+            onClick={() => {
+              if (!isRecording) setMode("record");
+            }}
+            disabled={isRecording}
+            icon={<Video className="w-3.5 h-3.5" />}
+            label="Record"
+          />
+          <ModeTab
+            active={mode === "upload"}
+            onClick={() => {
+              if (!isRecording) setMode("upload");
+            }}
+            disabled={isRecording}
+            icon={<Upload className="w-3.5 h-3.5" />}
+            label="Upload video"
+          />
+        </div>
 
-          {mode === "record" ? (
-            <div className="space-y-3">
-              {!isRecording && !previewBlob && (
-                <>
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={includePip}
-                      onChange={(e) => setIncludePip(e.target.checked)}
-                      className="w-4 h-4 mt-0.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
-                    />
-                    <span>
-                      <span className="block text-sm font-medium text-wood-900 inline-flex items-center gap-1.5">
-                        {includePip ? (
-                          <Camera className="w-3.5 h-3.5 text-terracotta-600" />
-                        ) : (
-                          <CameraOff className="w-3.5 h-3.5 text-wood-400" />
-                        )}
-                        Camera overlay (PIP)
-                      </span>
-                      <span className="block text-xs text-wood-500">
-                        Adds a small camera box in the bottom-right corner of
-                        the recording.
-                      </span>
+        {mode === "record" ? (
+          <div className="space-y-3">
+            {!isRecording && !previewBlob && (
+              <>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includePip}
+                    onChange={(e) => setIncludePip(e.target.checked)}
+                    className="w-4 h-4 mt-0.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-wood-900 inline-flex items-center gap-1.5">
+                      {includePip ? (
+                        <Camera className="w-3.5 h-3.5 text-terracotta-600" />
+                      ) : (
+                        <CameraOff className="w-3.5 h-3.5 text-wood-400" />
+                      )}
+                      Camera overlay (PIP)
                     </span>
-                  </label>
-                  <p className="text-xs text-wood-500">
-                    Your browser will ask which screen/window/tab to share,
-                    then for microphone access
-                    {includePip ? ", then camera access" : ""}.
-                  </p>
-                  <Button onClick={startRecording}>
-                    <Video className="w-4 h-4" strokeWidth={2} />
-                    Start recording
-                  </Button>
-                </>
-              )}
-
-              {isRecording && (
-                <div className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-1.5 text-sm text-terracotta-700 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-terracotta-600 animate-pulse" />
-                    Recording {formatTime(recordingMs)}
+                    <span className="block text-xs text-wood-500">
+                      Adds a small camera box in the bottom-right corner of
+                      the recording.
+                    </span>
                   </span>
-                  <Button variant="danger" onClick={stopRecording}>
-                    <StopCircle className="w-4 h-4" strokeWidth={2} />
-                    Stop
-                  </Button>
+                </label>
+                <p className="text-xs text-wood-500">
+                  Your browser will ask which screen/window/tab to share,
+                  then for microphone access
+                  {includePip ? ", then camera access" : ""}.
+                </p>
+                <Button onClick={startRecording}>
+                  <Video className="w-4 h-4" strokeWidth={2} />
+                  Start recording
+                </Button>
+              </>
+            )}
+
+            {isRecording && (
+              <div className="flex items-center justify-between gap-3">
+                <span className="flex items-center gap-1.5 text-sm text-terracotta-700 font-medium">
+                  <span className="w-2 h-2 rounded-full bg-terracotta-600 animate-pulse" />
+                  Recording {formatTime(recordingMs)}
+                </span>
+                <Button variant="danger" onClick={stopRecording}>
+                  <StopCircle className="w-4 h-4" strokeWidth={2} />
+                  Stop
+                </Button>
+              </div>
+            )}
+
+            {/* Live preview + canvas feeders — ALWAYS mounted (hidden until
+                recording) so their refs exist the instant recording starts.
+                Previously they mounted only after isRecording flipped true,
+                so buildPipStream drew to a detached canvas and the on-screen
+                preview stayed black. */}
+            <div className={isRecording ? "space-y-3" : "hidden"}>
+              {includePip && (
+                <div className="rounded-cozy bg-cream-100 border border-wood-200 p-2">
+                  <p className="text-xs text-wood-500 mb-1">Live preview</p>
+                  <canvas ref={canvasRef} className="w-full rounded bg-black" />
                 </div>
               )}
-
-              {/* Live preview + canvas feeders — ALWAYS mounted (hidden until
-                  recording) so their refs exist the instant recording starts.
-                  Previously they mounted only after isRecording flipped true,
-                  so buildPipStream drew to a detached canvas and the on-screen
-                  preview stayed black. */}
-              <div className={isRecording ? "space-y-3" : "hidden"}>
-                {includePip && (
-                  <div className="rounded-cozy bg-cream-100 border border-wood-200 p-2">
-                    <p className="text-xs text-wood-500 mb-1">Live preview</p>
-                    <canvas ref={canvasRef} className="w-full rounded bg-black" />
-                  </div>
-                )}
-                {/* Hidden video elements feed the canvas. */}
-                <video ref={screenVideoRef} className="hidden" muted playsInline />
-                <video ref={camVideoRef} className="hidden" muted playsInline />
-              </div>
+              {/* Hidden video elements feed the canvas. */}
+              <video ref={screenVideoRef} className="hidden" muted playsInline />
+              <video ref={camVideoRef} className="hidden" muted playsInline />
             </div>
-          ) : (
-            <div className="space-y-3">
-              {!previewBlob && (
-                <>
-                  <label className="flex items-center gap-3 rounded-cozy border border-dashed border-wood-300 bg-cream-50 px-4 py-3 cursor-pointer hover:border-terracotta-400 hover:bg-cream-100 transition-colors">
-                    <Upload
-                      className="w-5 h-5 text-terracotta-600 flex-shrink-0"
-                      strokeWidth={1.75}
-                    />
-                    <span className="text-sm text-wood-700">
-                      Choose a video file…
-                    </span>
-                    <input
-                      type="file"
-                      accept="video/*"
-                      className="sr-only"
-                      onChange={onFilePicked}
-                    />
-                  </label>
-                  <p className="text-xs text-wood-500">
-                    Most formats work — mp4, webm, mov. Up to 500 MB.
-                  </p>
-                </>
-              )}
-            </div>
-          )}
-        </Card>
-      )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {!previewBlob && (
+              <>
+                <label className="flex items-center gap-3 rounded-cozy border border-dashed border-wood-300 bg-cream-50 px-4 py-3 cursor-pointer hover:border-terracotta-400 hover:bg-cream-100 transition-colors">
+                  <Upload
+                    className="w-5 h-5 text-terracotta-600 flex-shrink-0"
+                    strokeWidth={1.75}
+                  />
+                  <span className="text-sm text-wood-700">
+                    Choose a video file…
+                  </span>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    className="sr-only"
+                    onChange={onFilePicked}
+                  />
+                </label>
+                <p className="text-xs text-wood-500">
+                  Most formats work — mp4, webm, mov. Up to 500 MB.
+                </p>
+              </>
+            )}
+          </div>
+        )}
+      </Card>
 
-      {previewBlob && previewUrl && !isLocked && (
+      {previewBlob && previewUrl && (
         <Card>
           <p className="label-eyebrow mb-2">Preview</p>
           <video
@@ -691,10 +688,12 @@ export function DevlogSubmission({
         </div>
       )}
 
-      {status === "submitted" && !previewBlob && !isUploading && (
+      {status !== "draft" && !previewBlob && !isUploading && (
         <p className="flex items-center gap-1.5 text-sm text-sage-700">
           <Check className="w-3.5 h-3.5" />
-          Submitted. You can replace it any time until it&apos;s graded.
+          {isGraded
+            ? "Graded. You can replace it any time to turn in a revision."
+            : "Submitted. You can replace it any time."}
         </p>
       )}
     </div>

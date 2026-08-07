@@ -7,6 +7,7 @@ import {
   BookOpen,
   Eye,
   MessagesSquare,
+  RotateCcw,
   Users,
 } from "lucide-react";
 import { requireStudent } from "@/lib/auth";
@@ -165,6 +166,32 @@ export default async function StudentAssignmentPage({
                   </p>
                 )}
               </div>
+              {submission?.status === "submitted" && (
+                <p className="text-xs text-wood-500 mt-1">
+                  You&apos;ve turned in changes since this grade — it&apos;ll
+                  update once your teacher regrades it.
+                </p>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {submission?.revision_requested_at && (
+        <Card className="mb-6 bg-honey-50 border-honey-200">
+          <div className="flex items-start gap-3">
+            <RotateCcw
+              className="w-5 h-5 text-honey-700 flex-shrink-0 mt-0.5"
+              strokeWidth={1.75}
+            />
+            <div>
+              <p className="font-display text-base text-honey-900">
+                Your teacher asked you to revise this
+              </p>
+              <p className="text-sm text-honey-700">
+                Make your changes below, then turn it in again whenever
+                you&apos;re ready.
+              </p>
             </div>
           </div>
         </Card>
