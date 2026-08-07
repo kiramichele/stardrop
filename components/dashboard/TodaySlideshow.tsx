@@ -61,7 +61,12 @@ export async function TodaySlideshow({
   const { lessons, assignments: linkedAssignments } = slideshow
     ? await resolveSlideshowLinks(slideshow)
     : { lessons: [], assignments: [] as LinkedAssignment[] };
-  const assignments = forThisStudent(linkedAssignments);
+  // Don't repeat an assignment in the slideshow row if it's already under
+  // "Due today" — otherwise the same item shows up twice on the card.
+  const dueKeys = new Set(dueAssignments.map((a) => a.groupId ?? a.id));
+  const assignments = forThisStudent(linkedAssignments).filter(
+    (a) => !dueKeys.has(a.groupId ?? a.id)
+  );
 
   const title =
     slideshow?.title ??

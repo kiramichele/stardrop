@@ -112,8 +112,13 @@ export default async function SlideshowPage({
         return true;
       });
   };
-  const assignments = forThisStudent(linkedAssignments);
   const dueAssignments = forThisStudent(dueAssignmentsRaw);
+  // Don't repeat an assignment under "What we covered" if it's already in the
+  // "Due this day" list.
+  const dueKeys = new Set(dueAssignments.map((a) => a.groupId ?? a.id));
+  const assignments = forThisStudent(linkedAssignments).filter(
+    (a) => !dueKeys.has(a.groupId ?? a.id)
+  );
 
   const lessonBase = isTeacher ? "/teacher/lessons" : "/student/lessons";
   const assignmentBase = isTeacher
