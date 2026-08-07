@@ -280,14 +280,31 @@ export default async function StudentAssignmentPage({
             )}
 
           {assignment.type === "short_answer" && (
-            <TextAssignmentEditor
-              assignmentId={assignment.id}
-              initialContent={submission?.content ?? ""}
-              initialStatus={submission?.status ?? "draft"}
-              initialSubmissionId={submission?.id ?? null}
-              minimumWordCount={assignment.minimum_word_count}
-              placeholder="Type your answer here…"
-            />
+            <>
+              {/* Instructions sit directly above the answer box for short
+                  answer, so students read the prompt before they type. */}
+              {assignment.instructions && (
+                <Card>
+                  <p className="label-eyebrow mb-2">Instructions</p>
+                  <p className="text-sm text-wood-700 whitespace-pre-wrap">
+                    {assignment.instructions}
+                  </p>
+                  {assignment.minimum_word_count && (
+                    <p className="text-xs text-honey-700 mt-3 pt-3 border-t border-wood-100">
+                      Minimum {assignment.minimum_word_count} words.
+                    </p>
+                  )}
+                </Card>
+              )}
+              <TextAssignmentEditor
+                assignmentId={assignment.id}
+                initialContent={submission?.content ?? ""}
+                initialStatus={submission?.status ?? "draft"}
+                initialSubmissionId={submission?.id ?? null}
+                minimumWordCount={assignment.minimum_word_count}
+                placeholder="Type your answer here…"
+              />
+            </>
           )}
 
           {assignment.type === "discussion" && (
@@ -470,15 +487,16 @@ export default async function StudentAssignmentPage({
         </div>
 
         <div className="space-y-4">
-          {assignment.instructions ? (
+          {/* Short answer shows its instructions inline above the answer box,
+              so the sidebar copy would be redundant. */}
+          {assignment.type === "short_answer" ? null : assignment.instructions ? (
             <Card>
               <p className="label-eyebrow mb-2">Instructions</p>
               <p className="text-sm text-wood-700 whitespace-pre-wrap">
                 {assignment.instructions}
               </p>
               {assignment.minimum_word_count &&
-                (assignment.type === "short_answer" ||
-                  assignment.type === "discussion") && (
+                assignment.type === "discussion" && (
                   <p className="text-xs text-honey-700 mt-3 pt-3 border-t border-wood-100">
                     Minimum {assignment.minimum_word_count} words.
                   </p>
