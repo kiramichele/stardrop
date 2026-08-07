@@ -28,11 +28,19 @@ export function formatClassDate(date: string): string {
 }
 
 /** Today's date as "YYYY-MM-DD" in local time. */
+// The school runs on Eastern time, but the server clock is UTC — so after
+// ~8pm Eastern the UTC date is already "tomorrow". Compute the calendar date
+// (and compare due dates) in America/New_York so "today" matches the room.
+const EASTERN_TZ = "America/New_York";
+
+/** A Date's calendar date in Eastern time, as "YYYY-MM-DD". */
+export function easternDateString(d: Date = new Date()): string {
+  // en-CA formats as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: EASTERN_TZ }).format(d);
+}
+
 export function todayDateString(): string {
-  const now = new Date();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${mm}-${dd}`;
+  return easternDateString(new Date());
 }
 
 /**

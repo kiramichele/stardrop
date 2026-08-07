@@ -7,8 +7,11 @@ import {
   getAssignmentsDueOn,
 } from "@/lib/slideshows-server";
 import { todayDateString, formatClassDate } from "@/lib/slideshows";
+import type { LinkedAssignment } from "@/lib/slideshows-server";
 import { getEventsForDate } from "@/lib/calendar-server";
 import { dominantDayType, CATEGORY_META } from "@/lib/calendar";
+import { getCurrentUser } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function TodaySlideshow({
   role,
@@ -16,21 +19,49 @@ export async function TodaySlideshow({
   role: "teacher" | "student";
 }) {
   const today = todayDateString();
-  const [slideshow, events, dueAssignments] = await Promise.all([
+  const [slideshow, events, dueAssignmentsRaw, user] = await Promise.all([
     getSlideshowByDate(today),
     getEventsForDate(today),
     getAssignmentsDueOn(today),
+    getCurrentUser(),
   ]);
   const dayType = dominantDayType(events);
+
+  // Assignments are one copy per class. Show a student only their class's
+  // copies, and collapse the rest to one entry per assignment (teachers too).
+  let enrolledClassIds: Set<string> | null = null;
+  if (role === "student" && user) {
+    const admin = createAdminClient();
+    const { data: enr } = await admin
+      .from("enrollments")
+      .select("class_id")
+      .eq("user_id", user.id);
+    enrolledClassIds = new Set((enr ?? []).map((e) => e.class_id));
+  }
+  function forThisStudent(items: LinkedAssignment[]): LinkedAssignment[] {
+    const seen = new Set<string>();
+    return items
+      .filter(
+        (a) => enrolledClassIds === null || enrolledClassIds.has(a.classId)
+      )
+      .filter((a) => {
+        const key = a.groupId ?? a.id;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }
+  const dueAssignments = forThisStudent(dueAssignmentsRaw);
 
   const lessonBase =
     role === "teacher" ? "/teacher/lessons" : "/student/lessons";
   const assignmentBase =
     role === "teacher" ? "/teacher/assignments" : "/student/assignments";
 
-  const { lessons, assignments } = slideshow
+  const { lessons, assignments: linkedAssignments } = slideshow
     ? await resolveSlideshowLinks(slideshow)
-    : { lessons: [], assignments: [] };
+    : { lessons: [], assignments: [] as LinkedAssignment[] };
+  const assignments = forThisStudent(linkedAssignments);
 
   const title =
     slideshow?.title ??

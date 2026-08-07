@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Slideshow } from "@/lib/slideshows";
+import { easternDateString } from "@/lib/slideshows";
 
 // =============================================================
 // TEMPORARY: the `slideshows` table isn't in types/database.ts yet.
@@ -132,13 +133,20 @@ export async function deleteSlideshowRow(id: string) {
 }
 
 /** Resolve a slideshow's linked lesson/assignment ids to titles. */
+export type LinkedAssignment = {
+  id: string;
+  title: string;
+  classId: string;
+  groupId: string | null;
+};
+
 export async function resolveSlideshowLinks(s: Slideshow): Promise<{
   lessons: Array<{ id: string; title: string }>;
-  assignments: Array<{ id: string; title: string }>;
+  assignments: LinkedAssignment[];
 }> {
   const admin = createAdminClient();
   let lessons: Array<{ id: string; title: string }> = [];
-  let assignments: Array<{ id: string; title: string }> = [];
+  let assignments: LinkedAssignment[] = [];
 
   if (s.lessonIds.length > 0) {
     const { data } = await admin
@@ -150,28 +158,40 @@ export async function resolveSlideshowLinks(s: Slideshow): Promise<{
   if (s.assignmentIds.length > 0) {
     const { data } = await admin
       .from("assignments")
-      .select("id, title")
+      .select("id, title, class_id, assignment_group_id")
       .in("id", s.assignmentIds);
-    assignments = data ?? [];
+    assignments = (data ?? []).map((a) => ({
+      id: a.id,
+      title: a.title,
+      classId: a.class_id,
+      groupId: a.assignment_group_id,
+    }));
   }
   return { lessons, assignments };
 }
 
 /**
- * Published assignments whose due date lands on `date` ("YYYY-MM-DD").
- * Powers the "assignments due today" line on the daily plan.
+ * Published assignments whose due date lands on `date` ("YYYY-MM-DD"), compared
+ * in Eastern time. Powers the "assignments due today" line on the daily plan.
  */
 export async function getAssignmentsDueOn(
   date: string
-): Promise<Array<{ id: string; title: string }>> {
+): Promise<LinkedAssignment[]> {
   const admin = createAdminClient();
   const { data } = await admin
     .from("assignments")
-    .select("id, title, due_date")
+    .select("id, title, due_date, class_id, assignment_group_id")
     .eq("published", true);
   return (data ?? [])
     .filter(
-      (a) => typeof a.due_date === "string" && a.due_date.slice(0, 10) === date
+      (a) =>
+        typeof a.due_date === "string" &&
+        easternDateString(new Date(a.due_date)) === date
     )
-    .map((a) => ({ id: a.id, title: a.title }));
+    .map((a) => ({
+      id: a.id,
+      title: a.title,
+      classId: a.class_id,
+      groupId: a.assignment_group_id,
+    }));
 }
