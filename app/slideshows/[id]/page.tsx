@@ -2,12 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, BookOpen, ClipboardList, Clock, LogIn } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getUnitsForTeacher } from "@/lib/lessons";
 import { getAssignmentsForTeacher } from "@/lib/assignments-server";
 import {
   getSlideshow,
   resolveSlideshowLinks,
   getAssignmentsDueOn,
+  type LinkedAssignment,
 } from "@/lib/slideshows-server";
 import { formatClassDate } from "@/lib/slideshows";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -82,8 +84,37 @@ export default async function SlideshowPage({
     );
   }
 
-  const { lessons, assignments } = await resolveSlideshowLinks(slideshow);
-  const dueAssignments = await getAssignmentsDueOn(slideshow.classDate);
+  const { lessons, assignments: linkedAssignments } =
+    await resolveSlideshowLinks(slideshow);
+  const dueAssignmentsRaw = await getAssignmentsDueOn(slideshow.classDate);
+
+  // Assignments are one copy per class. A student sees only their class's
+  // copy; everyone gets one entry per assignment (collapse the duplicates).
+  let enrolledClassIds: Set<string> | null = null;
+  if (!isTeacher) {
+    const admin = createAdminClient();
+    const { data: enr } = await admin
+      .from("enrollments")
+      .select("class_id")
+      .eq("user_id", user.id);
+    enrolledClassIds = new Set((enr ?? []).map((e) => e.class_id));
+  }
+  const forThisStudent = (items: LinkedAssignment[]): LinkedAssignment[] => {
+    const seen = new Set<string>();
+    return items
+      .filter(
+        (a) => enrolledClassIds === null || enrolledClassIds.has(a.classId)
+      )
+      .filter((a) => {
+        const key = a.groupId ?? a.id;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  };
+  const assignments = forThisStudent(linkedAssignments);
+  const dueAssignments = forThisStudent(dueAssignmentsRaw);
+
   const lessonBase = isTeacher ? "/teacher/lessons" : "/student/lessons";
   const assignmentBase = isTeacher
     ? "/teacher/assignments"
