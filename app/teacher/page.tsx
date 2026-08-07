@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Users, BookOpen, ClipboardList, Code2 } from "lucide-react";
 import { requireFullTeacher } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
 import { TodaySlideshow } from "@/components/dashboard/TodaySlideshow";
@@ -9,17 +10,20 @@ import { TodaySlideshow } from "@/components/dashboard/TodaySlideshow";
 export default async function TeacherDashboard() {
   const user = await requireFullTeacher();
   const supabase = await createClient();
+  // Submissions RLS is scoped to each student, so the "to grade" count must go
+  // through the service role (same as the grading queue) or it always reads 0.
+  const admin = createAdminClient();
 
   const [
     { data: classes },
     { data: units },
     { data: assignments },
-    { data: ungraded },
+    { count: ungradedCountRaw },
   ] = await Promise.all([
     supabase.from("classes").select("id, enrollments(count)"),
     supabase.from("units").select("id, published"),
     supabase.from("assignments").select("id, published"),
-    supabase
+    admin
       .from("submissions")
       .select("id", { count: "exact", head: true })
       .eq("status", "submitted"),
@@ -40,7 +44,7 @@ export default async function TeacherDashboard() {
   const assignmentCount = assignments?.length ?? 0;
   const publishedAssignments =
     assignments?.filter((a) => a.published).length ?? 0;
-  const ungradedCount = (ungraded as unknown as { count?: number })?.count ?? 0;
+  const ungradedCount = ungradedCountRaw ?? 0;
 
   return (
     <>
