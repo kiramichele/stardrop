@@ -18,6 +18,8 @@ interface EditStudentFormProps {
     firstName: string;
     lastName: string;
     email: string | null;
+    parentEmail: string | null;
+    parentEmail2: string | null;
     studentIdNumber: string | null;
     extendedTime: ExtendedTime;
   };
@@ -78,16 +80,45 @@ export function EditStudentForm({ studentId, initial }: EditStudentFormProps) {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <Label htmlFor="es-email" className="text-xs">
+            Email{" "}
+            <span className="text-wood-500 font-normal">(optional)</span>
+          </Label>
+          <Input
+            id="es-email"
+            name="real_email"
+            type="email"
+            defaultValue={initial.email ?? ""}
+            placeholder="Not set"
+          />
+        </div>
+        <div>
+          <Label htmlFor="es-parent-email" className="text-xs">
+            Parent/guardian email{" "}
+            <span className="text-wood-500 font-normal">(optional)</span>
+          </Label>
+          <Input
+            id="es-parent-email"
+            name="parent_email"
+            type="email"
+            defaultValue={initial.parentEmail ?? ""}
+            placeholder="Not set"
+          />
+        </div>
+      </div>
+
       <div>
-        <Label htmlFor="es-email" className="text-xs">
-          Email{" "}
+        <Label htmlFor="es-parent-email-2" className="text-xs">
+          Second parent/guardian email{" "}
           <span className="text-wood-500 font-normal">(optional)</span>
         </Label>
         <Input
-          id="es-email"
-          name="real_email"
+          id="es-parent-email-2"
+          name="parent_email_2"
           type="email"
-          defaultValue={initial.email ?? ""}
+          defaultValue={initial.parentEmail2 ?? ""}
           placeholder="Not set"
         />
       </div>
@@ -146,7 +177,9 @@ export function EditStudentForm({ studentId, initial }: EditStudentFormProps) {
 
       <p className="text-xs text-wood-400">
         Student ID matches the Canvas gradebook export. Extended time sets which
-        due date this student gets on every assignment.
+        due date this student gets on every assignment. Parent/guardian emails
+        are who parent digests go to from the Parent digest page — both get a
+        copy if you set two.
       </p>
     </form>
   );

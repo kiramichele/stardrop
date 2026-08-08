@@ -28,6 +28,8 @@ export default async function StudentOverviewPage({
 
   const {
     student,
+    parentEmail,
+    parentEmail2,
     classes,
     grades,
     lessonsCompleted,
@@ -123,6 +125,8 @@ export default async function StudentOverviewPage({
                   firstName: student.first_name,
                   lastName: student.last_name,
                   email: student.real_email,
+                  parentEmail,
+                  parentEmail2,
                   studentIdNumber: student.student_id,
                   extendedTime: student.extended_time,
                 }}

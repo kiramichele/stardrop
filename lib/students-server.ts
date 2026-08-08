@@ -20,6 +20,9 @@ export type StudentGradeRow = {
 
 export type StudentOverview = {
   student: UserProfile;
+  /** Not on UserProfile (teacher-only data) — kept as its own fields. Up to two. */
+  parentEmail: string | null;
+  parentEmail2: string | null;
   classes: { id: string; name: string; periodNumber: number | null }[];
   grades: StudentGradeRow[];
   lessonsCompleted: number;
@@ -39,6 +42,8 @@ export async function getStudentOverview(
     .maybeSingle();
   if (!userRow) return null;
   const student = asProfile(userRow);
+  const parentEmail = userRow.parent_email ?? null;
+  const parentEmail2 = userRow.parent_email_2 ?? null;
 
   // Enrolled classes
   const { data: enrollmentRows } = await admin
@@ -130,6 +135,8 @@ export async function getStudentOverview(
 
   return {
     student,
+    parentEmail,
+    parentEmail2,
     classes,
     grades,
     lessonsCompleted: lessonsDoneRes.count ?? 0,

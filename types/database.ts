@@ -1538,6 +1538,44 @@ export type Database = {
           },
         ]
       }
+      parent_digests: {
+        Row: {
+          body: string
+          class_ids: string[] | null
+          created_at: string
+          id: string
+          recipient_count: number
+          sent_by: string | null
+          subject: string
+        }
+        Insert: {
+          body: string
+          class_ids?: string[] | null
+          created_at?: string
+          id?: string
+          recipient_count?: number
+          sent_by?: string | null
+          subject: string
+        }
+        Update: {
+          body?: string
+          class_ids?: string[] | null
+          created_at?: string
+          id?: string
+          recipient_count?: number
+          sent_by?: string | null
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_digests_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submission_events: {
         Row: {
           event_type: Database["public"]["Enums"]["submission_event_type"]
@@ -1679,6 +1717,8 @@ export type Database = {
           last_name: string
           limited_staff: boolean
           onboarded_at: string | null
+          parent_email: string | null
+          parent_email_2: string | null
           real_email: string | null
           reduced_motion: boolean
           role: Database["public"]["Enums"]["user_role"]
@@ -1696,6 +1736,8 @@ export type Database = {
           last_name: string
           limited_staff?: boolean
           onboarded_at?: string | null
+          parent_email?: string | null
+          parent_email_2?: string | null
           real_email?: string | null
           reduced_motion?: boolean
           role?: Database["public"]["Enums"]["user_role"]
@@ -1713,6 +1755,8 @@ export type Database = {
           last_name?: string
           limited_staff?: boolean
           onboarded_at?: string | null
+          parent_email?: string | null
+          parent_email_2?: string | null
           real_email?: string | null
           reduced_motion?: boolean
           role?: Database["public"]["Enums"]["user_role"]

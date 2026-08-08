@@ -18,6 +18,7 @@ import {
   Sparkles,
   Terminal,
   Settings,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 
@@ -36,6 +37,7 @@ export const teacherNav: NavItem[] = [
   { label: "Analytics", href: "/teacher/analytics", icon: BarChart3 },
   { label: "Classes", href: "/teacher/classes", icon: Users },
   { label: "Roster", href: "/teacher/students", icon: UserRound },
+  { label: "Parent digest", href: "/teacher/parent-digest", icon: Mail },
   { label: "Lessons", href: "/teacher/lessons", icon: BookOpen },
   { label: "Assignments", href: "/teacher/assignments", icon: ClipboardList },
   { label: "Grading", href: "/teacher/grading", icon: ClipboardCheck },

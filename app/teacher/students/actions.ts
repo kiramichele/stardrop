@@ -113,14 +113,26 @@ export async function updateStudentDetails(
   const firstName = (formData.get("first_name") ?? "").toString().trim();
   const lastName = (formData.get("last_name") ?? "").toString().trim();
   const email = (formData.get("real_email") ?? "").toString().trim();
+  const parentEmail = (formData.get("parent_email") ?? "").toString().trim();
+  const parentEmail2 = (formData.get("parent_email_2") ?? "").toString().trim();
   const rawId = (formData.get("student_id") ?? "").toString().trim();
   const extendedTime = asExtendedTime(formData.get("extended_time"));
 
   if (!firstName || !lastName) {
     return { ok: false, error: "First and last name are required." };
   }
-  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+  const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  if (email && !emailPattern.test(email)) {
     return { ok: false, error: "That email address doesn't look right." };
+  }
+  if (parentEmail && !emailPattern.test(parentEmail)) {
+    return { ok: false, error: "That parent email address doesn't look right." };
+  }
+  if (parentEmail2 && !emailPattern.test(parentEmail2)) {
+    return {
+      ok: false,
+      error: "That second parent email address doesn't look right.",
+    };
   }
 
   const admin = createAdminClient();
@@ -130,6 +142,8 @@ export async function updateStudentDetails(
       first_name: firstName,
       last_name: lastName,
       real_email: email || null,
+      parent_email: parentEmail || null,
+      parent_email_2: parentEmail2 || null,
       student_id: rawId || null,
       extended_time: extendedTime,
     })
