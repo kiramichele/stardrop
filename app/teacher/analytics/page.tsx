@@ -19,6 +19,11 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { AiAnalysisPanel } from "@/components/analytics/AiAnalysisPanel";
 import { UnitHeatmap } from "@/components/analytics/UnitHeatmap";
+import { MasteryHeatmapPanel } from "@/components/analytics/MasteryHeatmapPanel";
+
+function isPastDue(dueDate: string | null): boolean {
+  return !!dueDate && new Date(dueDate).getTime() < Date.now();
+}
 
 export default async function AnalyticsPage() {
   await requireFullTeacher();
@@ -32,7 +37,7 @@ export default async function AnalyticsPage() {
       getUnitClassHeatmap(),
       admin
         .from("assignments")
-        .select("id, title, assignment_group_id")
+        .select("id, title, assignment_group_id, due_date")
         .order("created_at", { ascending: false }),
     ]);
 
@@ -48,7 +53,12 @@ export default async function AnalyticsPage() {
       seenAssignment.add(key);
       return true;
     })
-    .map((a) => ({ id: a.id, label: a.title }));
+    .map((a) => ({
+      id: a.id,
+      label: a.title,
+      dueDate: a.due_date,
+      isPastDue: isPastDue(a.due_date),
+    }));
   const studentOptions = [...struggling]
     .map((s) => ({ id: s.id, label: s.name }))
     .sort((a, b) => a.label.localeCompare(b.label));
@@ -78,6 +88,15 @@ export default async function AnalyticsPage() {
           <Card>
             <UnitHeatmap data={heatmap} />
           </Card>
+        </section>
+
+        {/* AI-rated mastery heatmap, by assignment x class */}
+        <section>
+          <MasteryHeatmapPanel
+            assignmentOptions={assignmentOptions}
+            classes={heatmap.classes}
+            apiConfigured={apiConfigured}
+          />
         </section>
 
         {/* Lesson completions */}
