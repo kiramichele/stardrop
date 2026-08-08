@@ -139,6 +139,99 @@ export async function getStudentOverview(
 }
 
 // =============================================================
+// Roster grouped by class — shared by the student roster page and the
+// teacher's StarHub landing (browse portfolios by class).
+// =============================================================
+
+export type RosterGroupData = {
+  key: string;
+  label: string;
+  students: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    username: string;
+    avatarUrl: string | null;
+  }[];
+};
+
+function byName(
+  a: RosterGroupData["students"][number],
+  b: RosterGroupData["students"][number]
+): number {
+  return (
+    a.lastName.localeCompare(b.lastName) ||
+    a.firstName.localeCompare(b.firstName)
+  );
+}
+
+/** Every student, grouped by class (period order), plus an "unassigned" tail. */
+export async function getStudentRosterGroups(): Promise<RosterGroupData[]> {
+  const admin = createAdminClient();
+
+  const [classesRes, enrollmentsRes, studentsRes] = await Promise.all([
+    admin
+      .from("classes")
+      .select("id, name, period_number")
+      .order("period_number", { ascending: true, nullsFirst: false }),
+    admin.from("enrollments").select("class_id, user_id"),
+    admin.from("users").select("*").eq("role", "student"),
+  ]);
+
+  const students = (studentsRes.data ?? []).map(asProfile);
+  const studentById = new Map(students.map((s) => [s.id, s]));
+  const enrollments = enrollmentsRes.data ?? [];
+
+  const toItem = (s: UserProfile) => ({
+    id: s.id,
+    firstName: s.first_name,
+    lastName: s.last_name,
+    username: s.username,
+    avatarUrl: s.avatar_url,
+  });
+
+  const groups: RosterGroupData[] = [];
+  const enrolledIds = new Set<string>();
+
+  for (const c of classesRes.data ?? []) {
+    const members = enrollments
+      .filter((e) => e.class_id === c.id)
+      .map((e) => {
+        enrolledIds.add(e.user_id);
+        return studentById.get(e.user_id);
+      })
+      .filter((s): s is UserProfile => s !== undefined)
+      .map(toItem)
+      .sort(byName);
+
+    if (members.length > 0) {
+      groups.push({
+        key: c.id,
+        label:
+          c.period_number != null
+            ? `${c.name} · Period ${c.period_number}`
+            : c.name,
+        students: members,
+      });
+    }
+  }
+
+  const unassigned = students
+    .filter((s) => !enrolledIds.has(s.id))
+    .map(toItem)
+    .sort(byName);
+  if (unassigned.length > 0) {
+    groups.push({
+      key: "__unassigned__",
+      label: "Not enrolled in a class",
+      students: unassigned,
+    });
+  }
+
+  return groups;
+}
+
+// =============================================================
 // Pinned reminders ("sticky notes") on a student
 // =============================================================
 

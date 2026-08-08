@@ -22,7 +22,14 @@ export type RosterGroup = {
   students: RosterStudent[];
 };
 
-export function RosterView({ groups }: { groups: RosterGroup[] }) {
+export function RosterView({
+  groups,
+  linkTo = (s) => `/teacher/students/${s.id}`,
+}: {
+  groups: RosterGroup[];
+  /** Where a student row links to. Defaults to their teacher-facing record. */
+  linkTo?: (student: RosterStudent) => string;
+}) {
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
 
@@ -84,7 +91,7 @@ export function RosterView({ groups }: { groups: RosterGroup[] }) {
                 {g.students.map((s) => (
                   <li key={s.id} className="p-1.5">
                     <Link
-                      href={`/teacher/students/${s.id}`}
+                      href={linkTo(s)}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-cozy hover:bg-cream-200 transition-colors"
                     >
                       <Avatar
