@@ -24,11 +24,16 @@ export type RosterGroup = {
 
 export function RosterView({
   groups,
-  linkTo = (s) => `/teacher/students/${s.id}`,
+  linkTo = "record",
 }: {
   groups: RosterGroup[];
-  /** Where a student row links to. Defaults to their teacher-facing record. */
-  linkTo?: (student: RosterStudent) => string;
+  /**
+   * Where a student row links to. "record" (default) -> their teacher-facing
+   * record; "starhub" -> their public StarHub profile. A plain string, not a
+   * function — this crosses the server/client boundary as a prop, and
+   * functions aren't serializable across it.
+   */
+  linkTo?: "record" | "starhub";
 }) {
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
@@ -91,7 +96,11 @@ export function RosterView({
                 {g.students.map((s) => (
                   <li key={s.id} className="p-1.5">
                     <Link
-                      href={linkTo(s)}
+                      href={
+                        linkTo === "starhub"
+                          ? `/starhub/${s.username}`
+                          : `/teacher/students/${s.id}`
+                      }
                       className="flex items-center gap-3 px-3 py-2.5 rounded-cozy hover:bg-cream-200 transition-colors"
                     >
                       <Avatar

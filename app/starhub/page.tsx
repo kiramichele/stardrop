@@ -18,7 +18,7 @@ export default async function StarHubRootPage() {
           title="Student portfolios"
           description="Browse by class, then open a student's page to see their public work."
         />
-        <RosterView groups={groups} linkTo={(s) => `/starhub/${s.username}`} />
+        <RosterView groups={groups} linkTo="starhub" />
       </>
     );
   }
