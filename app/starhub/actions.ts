@@ -11,6 +11,7 @@ import {
   insertPostRecord,
   deletePostRecord,
   setPostPublicRecord,
+  setPortfolioPublicRecord,
 } from "@/lib/starhub-server";
 import { setSubmissionPublicRecord } from "@/lib/devlog-wall-server";
 import type { SubmissionMedia } from "@/lib/assignments";
@@ -171,6 +172,23 @@ export async function setSubmissionVisibility(
   if (result.ok) {
     revalidatePath(`/starhub/${user.username}`);
     revalidatePath("/devlogs");
+  }
+  return result;
+}
+
+/**
+ * Owner-only: turn the no-login share link (/portfolio/[username]) on or
+ * off. Never a teacher override — this is the student's own consent to
+ * make their page reachable without a Stardrop login.
+ */
+export async function setPortfolioPublic(
+  isPublic: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+  const result = await setPortfolioPublicRecord(user.id, isPublic);
+  if (result.ok) {
+    revalidatePath(`/starhub/${user.username}`);
+    revalidatePath(`/portfolio/${user.username}`);
   }
   return result;
 }

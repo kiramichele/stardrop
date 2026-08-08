@@ -55,6 +55,7 @@ type UserIdentityRow = {
   avatar_url: string | null;
   bio: string | null;
   studio: string | null;
+  portfolio_public: boolean;
 };
 
 type SubmissionPortfolioRow = {
@@ -175,7 +176,9 @@ export async function getStudentIdentityByUsername(
 ): Promise<StarHubIdentity | null> {
   const admin = createAdminClient();
   const { data } = await shim<UserIdentityRow>(admin, "users")
-    .select("id, username, first_name, last_name, avatar_url, bio, studio")
+    .select(
+      "id, username, first_name, last_name, avatar_url, bio, studio, portfolio_public"
+    )
     .eq("username", username)
     .maybeSingle();
   if (!data) return null;
@@ -187,6 +190,7 @@ export async function getStudentIdentityByUsername(
     avatarUrl: data.avatar_url,
     bio: data.bio,
     studio: data.studio,
+    portfolioPublic: data.portfolio_public,
   };
 }
 
@@ -197,6 +201,19 @@ export async function updateIdentityFields(
   const admin = createAdminClient();
   const { error } = await shim<UserIdentityRow>(admin, "users")
     .update(patch)
+    .eq("id", userId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+/** Owner-only: turn the no-login /portfolio/[username] link on or off. */
+export async function setPortfolioPublicRecord(
+  userId: string,
+  isPublic: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = createAdminClient();
+  const { error } = await shim<UserIdentityRow>(admin, "users")
+    .update({ portfolio_public: isPublic })
     .eq("id", userId);
   if (error) return { ok: false, error: error.message };
   return { ok: true };

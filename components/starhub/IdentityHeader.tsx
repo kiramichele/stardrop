@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { PortfolioShareToggle } from "@/components/starhub/PortfolioShareToggle";
 import {
   starHubDisplayName,
   type StarHubIdentity,
@@ -80,6 +81,13 @@ export function IdentityHeader({
               </Button>
             </Link>
           </div>
+        )}
+
+        {isOwner && (
+          <PortfolioShareToggle
+            username={identity.username}
+            initialPublic={identity.portfolioPublic}
+          />
         )}
       </div>
     </header>

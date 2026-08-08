@@ -13,6 +13,8 @@ export type StarHubIdentity = {
   avatarUrl: string | null;
   bio: string | null;
   studio: string | null;
+  /** Student opted in to a no-login share link at /portfolio/[username]. */
+  portfolioPublic: boolean;
 };
 
 /** A free-form code post — the gist-style portfolio entry. */
