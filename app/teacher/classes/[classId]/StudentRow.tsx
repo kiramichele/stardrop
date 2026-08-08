@@ -225,10 +225,14 @@ export function StudentRow({
               if (e.target.value) handleMove(e.target.value);
             }}
             disabled={isPending}
-            className="text-xs px-2 py-1 rounded-cozy border border-wood-200 bg-cream-50 text-wood-700 hover:border-wood-300 focus:outline-none focus:border-terracotta-400 focus:shadow-focus-warm disabled:opacity-50"
+            // Fixed + narrow so it can't size itself to its widest option
+            // (some browsers do that even while closed) and crowd out the
+            // student's name.
+            className="w-16 flex-shrink-0 text-xs px-2 py-1 rounded-cozy border border-wood-200 bg-cream-50 text-wood-700 hover:border-wood-300 focus:outline-none focus:border-terracotta-400 focus:shadow-focus-warm disabled:opacity-50"
+            title="Move to another class"
             aria-label={`Move ${user.first_name} ${user.last_name} to another class`}
           >
-            <option value="">Move to…</option>
+            <option value="">Move…</option>
             {otherClasses.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
