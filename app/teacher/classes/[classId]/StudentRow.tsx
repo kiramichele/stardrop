@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { UserMinus, Loader2, KeyRound, ImageOff } from "lucide-react";
+import { UserMinus, Loader2, KeyRound, ImageOff, SquarePen } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import {
   moveStudent,
@@ -142,7 +142,7 @@ export function StudentRow({
 
       <div className="flex-1 min-w-0">
         {limited ? (
-          <p className="flex items-baseline gap-1 min-w-0 font-medium text-wood-900">
+          <p className="flex items-baseline gap-1 min-w-0 overflow-hidden font-medium text-wood-900">
             <span className="flex-shrink-0 whitespace-nowrap">
               {user.first_name}
             </span>
@@ -151,7 +151,7 @@ export function StudentRow({
         ) : (
           <Link
             href={`/teacher/students/${user.id}`}
-            className="flex items-baseline gap-1 min-w-0 font-medium text-wood-900 hover:text-terracotta-700 transition-colors"
+            className="flex items-baseline gap-1 min-w-0 overflow-hidden font-medium text-wood-900 hover:text-terracotta-700 transition-colors"
           >
             <span className="flex-shrink-0 whitespace-nowrap">
               {user.first_name}
@@ -204,6 +204,17 @@ export function StudentRow({
             className="w-3.5 h-3.5 text-wood-500 animate-spin"
             aria-label="Working…"
           />
+        )}
+
+        {!limited && (
+          <Link
+            href={`/teacher/students/${user.id}`}
+            className="p-1.5 rounded-cozy text-wood-500 hover:text-terracotta-700 hover:bg-terracotta-50 transition-colors"
+            title="Edit student info"
+            aria-label={`Edit ${user.first_name} ${user.last_name}'s info`}
+          >
+            <SquarePen className="w-3.5 h-3.5" strokeWidth={1.75} />
+          </Link>
         )}
 
         {!limited && otherClasses.length > 0 && (
