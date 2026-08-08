@@ -1,23 +1,15 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, escapeHtml } from "@/lib/email";
+import { getClassOptions, type ClassOption } from "@/lib/classes-server";
 
 // Manual parent/guardian digest emails — a teacher writes one, picks which
 // classes it goes to (or everyone), and sends it. No scheduling; the log
 // just remembers what already went out.
 
-export type DigestClassOption = { id: string; label: string };
+export type DigestClassOption = ClassOption;
 
 export async function getClassOptionsForDigest(): Promise<DigestClassOption[]> {
-  const admin = createAdminClient();
-  const { data } = await admin
-    .from("classes")
-    .select("id, name, period_number")
-    .order("period_number", { ascending: true, nullsFirst: false });
-  return (data ?? []).map((c) => ({
-    id: c.id,
-    label:
-      c.period_number != null ? `${c.name} · Period ${c.period_number}` : c.name,
-  }));
+  return getClassOptions();
 }
 
 export type DigestHistoryEntry = {

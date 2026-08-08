@@ -1538,6 +1538,38 @@ export type Database = {
           },
         ]
       }
+      announcements: {
+        Row: {
+          body: string
+          class_ids: string[] | null
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          body: string
+          class_ids?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          body?: string
+          class_ids?: string[] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parent_digests: {
         Row: {
           body: string

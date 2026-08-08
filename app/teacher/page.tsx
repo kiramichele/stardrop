@@ -3,9 +3,12 @@ import { ArrowRight, Users, BookOpen, ClipboardList, Code2 } from "lucide-react"
 import { requireFullTeacher } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAnnouncementsForTeacher } from "@/lib/announcements-server";
+import { getClassOptions } from "@/lib/classes-server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardTitle, CardDescription } from "@/components/ui/Card";
 import { TodaySlideshow } from "@/components/dashboard/TodaySlideshow";
+import { AnnouncementsManager } from "@/components/dashboard/AnnouncementsManager";
 
 export default async function TeacherDashboard() {
   const user = await requireFullTeacher();
@@ -19,6 +22,8 @@ export default async function TeacherDashboard() {
     { data: units },
     { data: assignments },
     { count: ungradedCountRaw },
+    announcements,
+    classOptions,
   ] = await Promise.all([
     supabase.from("classes").select("id, enrollments(count)"),
     supabase.from("units").select("id, published"),
@@ -27,6 +32,8 @@ export default async function TeacherDashboard() {
       .from("submissions")
       .select("id", { count: "exact", head: true })
       .eq("status", "submitted"),
+    getAnnouncementsForTeacher(),
+    getClassOptions(),
   ]);
 
   const classCount = classes?.length ?? 0;
@@ -112,6 +119,10 @@ export default async function TeacherDashboard() {
             {ungradedCount > 0 ? "Submissions waiting" : "All caught up"}
           </p>
         </Card>
+      </div>
+
+      <div className="mb-10">
+        <AnnouncementsManager announcements={announcements} classes={classOptions} />
       </div>
 
       <h2 className="font-display text-xl text-wood-800 mb-4">Get to work</h2>
