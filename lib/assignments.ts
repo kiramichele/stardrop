@@ -151,6 +151,22 @@ export function letterGrade(pct: number): string {
   return "F";
 }
 
+/**
+ * The terracotta(low) -> honey -> sage(high) score band used everywhere a
+ * percentage gets a color: the unit/class heatmap, the score trend chart.
+ * One spot for the cutoffs so every chart reads the same way.
+ */
+export type ScoreBand = "none" | "low" | "midLow" | "midHigh" | "high" | "top";
+
+export function scoreBand(pct: number | null): ScoreBand {
+  if (pct === null) return "none";
+  if (pct >= 90) return "top";
+  if (pct >= 80) return "high";
+  if (pct >= 70) return "midHigh";
+  if (pct >= 60) return "midLow";
+  return "low";
+}
+
 export function computeLateness(
   submittedAt: string | null | undefined,
   dueDate: string | null | undefined

@@ -1,13 +1,17 @@
 import type { UnitClassHeatmap } from "@/lib/analytics-server";
+import { scoreBand, type ScoreBand } from "@/lib/assignments";
 
 // Average-score heat ramp: terracotta (low) -> honey -> sage (high).
+const BAND_CELL_CLASS: Record<ScoreBand, string> = {
+  none: "bg-cream-100 text-wood-400",
+  top: "bg-sage-300 text-sage-900",
+  high: "bg-sage-200 text-sage-900",
+  midHigh: "bg-honey-200 text-honey-900",
+  midLow: "bg-honey-300 text-honey-900",
+  low: "bg-terracotta-200 text-terracotta-900",
+};
 function heatClass(pct: number | null): string {
-  if (pct === null) return "bg-cream-100 text-wood-400";
-  if (pct >= 90) return "bg-sage-300 text-sage-900";
-  if (pct >= 80) return "bg-sage-200 text-sage-900";
-  if (pct >= 70) return "bg-honey-200 text-honey-900";
-  if (pct >= 60) return "bg-honey-300 text-honey-900";
-  return "bg-terracotta-200 text-terracotta-900";
+  return BAND_CELL_CLASS[scoreBand(pct)];
 }
 
 const LEGEND: { label: string; cls: string }[] = [

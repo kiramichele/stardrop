@@ -11,6 +11,7 @@ import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 import { ExcuseToggle } from "@/components/students/ExcuseToggle";
 import { StudentNotes } from "@/components/students/StudentNotes";
 import { EditStudentForm } from "@/components/students/EditStudentForm";
+import { ScoreTrendChart, type TrendPoint } from "@/components/students/ScoreTrendChart";
 
 export default async function StudentOverviewPage({
   params,
@@ -39,6 +40,17 @@ export default async function StudentOverviewPage({
   const earned = graded.reduce((s, g) => s + (g.score ?? 0), 0);
   const possible = graded.reduce((s, g) => s + g.points, 0);
   const averagePct = possible > 0 ? (earned / possible) * 100 : null;
+
+  // Chronological (grades is already ordered by due date) score trend —
+  // graded, non-excused, point-bearing work only.
+  const trendPoints: TrendPoint[] = graded
+    .filter((g) => g.points > 0)
+    .map((g) => ({
+      id: g.assignmentId,
+      title: g.title,
+      date: g.dueDate,
+      pct: ((g.score ?? 0) / g.points) * 100,
+    }));
   const awaitingGrade = grades.filter(
     (g) => g.status === "submitted" && !g.excused
   ).length;
@@ -181,6 +193,16 @@ export default async function StudentOverviewPage({
           <p className="text-xs text-wood-500 mt-1">
             {discussionPosts === 1 ? "post" : "posts"}
           </p>
+        </Card>
+      </div>
+
+      {/* Score trend */}
+      <div className="mb-6">
+        <h2 className="font-display text-xl text-wood-800 mb-3">
+          Score trend
+        </h2>
+        <Card>
+          <ScoreTrendChart points={trendPoints} />
         </Card>
       </div>
 
