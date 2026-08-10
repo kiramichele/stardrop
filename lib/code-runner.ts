@@ -83,9 +83,12 @@ function cleanCSharpDiagnostics(raw: string, offset: number): string {
   if (out.length > 0) return out.join("\n");
 
   // Fallback: no recognizable error line — strip the .NET build chatter and
-  // show whatever's left, so we never dump the raw "Getting ready…" log.
+  // show whatever's left. If that leaves nothing (the whole "failure" was
+  // just setup chatter — a transient runner hiccup, not a real code error),
+  // say so plainly. Never fall back to the raw, unfiltered log.
   const leftover = stripBuildChatter(raw);
-  return leftover.trim() ? leftover : raw.trim();
+  if (leftover.trim()) return leftover;
+  return "The code runner hit a snag and couldn't report a specific error — this usually isn't your code. Try running it again.";
 }
 
 /** Clean sandbox paths + shift line numbers in a runtime stack trace. */
