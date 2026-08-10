@@ -51,9 +51,9 @@ const MONACO_LANG: Record<string, string> = {
   csharp_unity: "csharp",
 };
 
-// Default new-program template: Unity, since this is a Unity class.
-// The "New" button below offers Console / Unity / Blank explicitly.
-const DEFAULT_STARTER = CSHARP_UNITY_STARTER;
+// Default new-program template: plain console C#. The "New" button below
+// still offers Console / Unity / Blank explicitly.
+const DEFAULT_STARTER = CSHARP_CONSOLE_STARTER;
 
 type NewTemplate = "unity" | "console" | "blank";
 
@@ -93,7 +93,7 @@ export function PlaygroundClient({
 
   const [title, setTitle] = useState(initialProgram?.title ?? "");
   const [language, setLanguage] = useState(
-    initialProgram?.language ?? "csharp_unity"
+    initialProgram?.language ?? "csharp"
   );
 
   /** Replace the editor's buffer AND our cached ref in one go. */
