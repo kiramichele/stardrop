@@ -19,6 +19,7 @@ import {
   Terminal,
   Settings,
   Mail,
+  Table2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -41,6 +42,7 @@ export const teacherNav: NavItem[] = [
   { label: "Lessons", href: "/teacher/lessons", icon: BookOpen },
   { label: "Assignments", href: "/teacher/assignments", icon: ClipboardList },
   { label: "Grading", href: "/teacher/grading", icon: ClipboardCheck },
+  { label: "Gradebook", href: "/teacher/gradebook", icon: Table2 },
   { label: "Slideshows", href: "/slideshows", icon: Presentation },
   { label: "StarHub", href: "/starhub", icon: Sparkles },
   { label: "Playground", href: "/playground", icon: Terminal },
