@@ -28,6 +28,25 @@ function prepareCSharp(code: string): { content: string; offset: number } {
   return { content: `${CSHARP_USINGS}\n${code}`, offset: 1 };
 }
 
+// Lines Piston's .NET sandbox prints while setting up the project
+// ("dotnet new", "dotnet restore", the MSBuild banner) — infrastructure
+// noise, never anything the student wrote or should see. Piston seems to
+// mix this into stdout on some runs (cold container start?), not just on
+// compile failure, so every stdout/stderr we hand back gets run through it.
+const BUILD_CHATTER =
+  /^(Getting ready|The template |\s*Determining |\s*Restored |Microsoft \(R\)|Copyright |Build succeeded|Build FAILED|\s*\d+ (Warning|Error)\(s\)|\s*Time Elapsed|\s+\S+ -> )/;
+
+/** Strip the .NET setup chatter + sandbox paths out of any runner output. */
+function stripBuildChatter(raw: string): string {
+  return raw
+    .split(/\r?\n/)
+    .map((l) =>
+      l.replace(/\/box\/submission\//g, "").replace(/main\.cs\.cs/g, "main.cs")
+    )
+    .filter((l) => l.trim() && !BUILD_CHATTER.test(l))
+    .join("\n");
+}
+
 /**
  * Turn the .NET SDK's verbose build output into just the student's errors:
  * drop the "Getting ready / Restored / Build FAILED / Time Elapsed" chatter,
@@ -65,14 +84,8 @@ function cleanCSharpDiagnostics(raw: string, offset: number): string {
 
   // Fallback: no recognizable error line — strip the .NET build chatter and
   // show whatever's left, so we never dump the raw "Getting ready…" log.
-  const NOISE =
-    /^(Getting ready|The template |\s*Determining |\s*Restored |Microsoft \(R\)|Copyright |Build succeeded|Build FAILED|\s*\d+ (Warning|Error)\(s\)|\s*Time Elapsed|\s+\S+ -> )/;
-  const leftover = lines
-    .map((l) =>
-      l.replace(/\/box\/submission\//g, "").replace(/main\.cs\.cs/g, "main.cs")
-    )
-    .filter((l) => l.trim() && !NOISE.test(l));
-  return leftover.length > 0 ? leftover.join("\n") : raw.trim();
+  const leftover = stripBuildChatter(raw);
+  return leftover.trim() ? leftover : raw.trim();
 }
 
 /** Clean sandbox paths + shift line numbers in a runtime stack trace. */
@@ -198,7 +211,7 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
       ok: false,
       kind: "timeout",
       message: "Code took too long to run (over 3 seconds) and was stopped.",
-      stdout: body.run.stdout ?? "",
+      stdout: stripBuildChatter(body.run.stdout ?? ""),
       stderr: body.run.stderr ?? "",
     };
   }
@@ -208,7 +221,7 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
       ok: false,
       kind: "runtime",
       message: "Code threw an error while running.",
-      stdout: body.run.stdout ?? "",
+      stdout: stripBuildChatter(body.run.stdout ?? ""),
       stderr: cleanCSharpRuntime(
         body.run.stderr || body.run.output || "",
         prepared.offset
@@ -218,7 +231,7 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
 
   return {
     ok: true,
-    stdout: body.run.stdout ?? "",
+    stdout: stripBuildChatter(body.run.stdout ?? ""),
     stderr: body.run.stderr ?? "",
   };
 }
