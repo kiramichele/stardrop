@@ -178,6 +178,7 @@ export function CodeAssignmentEditor({
         onPaste={(e) => handlePaste(e.content, e.length)}
         readOnly={isLocked}
         height="60vh"
+        languageLabel={codeRunMode === "csharp" ? "C#" : "C# · Unity"}
       />
 
       {(() => {

@@ -270,7 +270,7 @@ export function CollaborativeCodeEditor({
           <div className="flex items-center gap-2 text-wood-600">
             <span className="font-mono">script.cs</span>
             <span className="text-wood-400">·</span>
-            <span>C# · Unity · shared</span>
+            <span>{codeRunMode === "csharp" ? "C#" : "C# · Unity"} · shared</span>
           </div>
           <div className="text-wood-500">
             {!ready ? (

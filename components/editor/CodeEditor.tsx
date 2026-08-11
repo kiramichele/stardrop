@@ -40,6 +40,12 @@ export type CodeEditorProps = {
   onBlur?: () => void;
   readOnly?: boolean;
   height?: string;
+  /**
+   * Status-bar language label. Defaults to "C# · Unity" — override this
+   * for anything that isn't a Unity script (e.g. a plain-C#-only
+   * assignment), so the label matches what will actually run.
+   */
+  languageLabel?: string;
 };
 
 export function CodeEditor({
@@ -51,6 +57,7 @@ export function CodeEditor({
   onBlur,
   readOnly = false,
   height = "500px",
+  languageLabel = "C# · Unity",
 }: CodeEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -97,7 +104,7 @@ export function CodeEditor({
         <div className="flex items-center gap-2 text-wood-600">
           <span className="font-mono">script.cs</span>
           <span className="text-wood-400">·</span>
-          <span>C# · Unity</span>
+          <span>{languageLabel}</span>
         </div>
         <div className="text-wood-500">
           {isReady ? (
