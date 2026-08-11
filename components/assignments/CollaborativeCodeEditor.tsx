@@ -10,6 +10,7 @@ import { Send, Check, Lock, AlertCircle, Loader2, Users } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CodeRunner } from "@/components/playground/CodeRunner";
+import { CheatSheetButton } from "@/components/cheatsheet/CheatSheetButton";
 import { resolveRunAs, type CodeRunMode } from "@/lib/playground";
 import { setupMonaco } from "@/lib/monaco/setup";
 import { createClient } from "@/lib/supabase/client";
@@ -258,6 +259,10 @@ export function CollaborativeCodeEditor({
             ))
           )}
         </div>
+      </div>
+
+      <div className="flex justify-end">
+        <CheatSheetButton />
       </div>
 
       <div className="rounded-cozy-lg overflow-hidden border border-wood-200 shadow-cozy bg-cream-50">

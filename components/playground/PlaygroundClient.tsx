@@ -30,6 +30,7 @@ import {
   type PlaygroundProgram,
 } from "@/lib/playground";
 import { CodeRunner } from "./CodeRunner";
+import { CheatSheetButton } from "@/components/cheatsheet/CheatSheetButton";
 
 const Editor = dynamic(
   () => import("@monaco-editor/react").then((mod) => mod.default),
@@ -339,6 +340,7 @@ export function PlaygroundClient({
               </option>
             ))}
           </Select>
+          <CheatSheetButton />
         </div>
 
         <div className="rounded-cozy border border-wood-200 overflow-hidden">

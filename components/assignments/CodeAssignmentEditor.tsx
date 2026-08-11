@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CodeEditor } from "@/components/editor/CodeEditor";
 import { CodeRunner } from "@/components/playground/CodeRunner";
+import { CheatSheetButton } from "@/components/cheatsheet/CheatSheetButton";
 import {
   starterCodeFor,
   resolveRunAs,
@@ -166,6 +167,10 @@ export function CodeAssignmentEditor({
           </div>
         </Card>
       )}
+
+      <div className="flex justify-end">
+        <CheatSheetButton />
+      </div>
 
       <CodeEditor
         value={code}
