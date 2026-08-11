@@ -213,6 +213,17 @@ export default async function StudentAssignmentPage({
         <div className="lg:col-span-2 space-y-6">
           {assignment.type === "code" && (
             <>
+              {assignment.interactive_html_url && (
+                <Card padded={false} className="overflow-hidden">
+                  <iframe
+                    src={assignment.interactive_html_url}
+                    title="Prompt"
+                    sandbox="allow-same-origin allow-scripts"
+                    className="w-full min-h-[320px] bg-white"
+                  />
+                </Card>
+              )}
+
               {needsGroup && collab.groupMode === "choice" && (
                 <GroupPicker
                   assignmentId={assignment.id}

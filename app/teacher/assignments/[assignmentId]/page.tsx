@@ -198,17 +198,17 @@ export default async function AssignmentDetailPage({
   });
 
   const isInteractive = assignment.type === "interactive_html";
-  // Devlog + video_response assignments also use the interactive_html_url
-  // column — for them it's an optional rich-HTML prompt rendered above
-  // the recorder.
-  const isDevlog = (assignment.type as AssignmentType) === "devlog";
-  const isVideoResponse =
-    (assignment.type as AssignmentType) === "video_response";
-  const acceptsHtml = isInteractive || isDevlog || isVideoResponse;
-  const hasInteractiveHtml = !!assignment.interactive_html_url;
   const isTextual =
     assignment.type === "short_answer" || assignment.type === "discussion";
   const isCode = assignment.type === "code";
+  // Devlog + video_response + code assignments also use the
+  // interactive_html_url column — for them it's an optional rich-HTML
+  // prompt rendered above the recorder / editor.
+  const isDevlog = (assignment.type as AssignmentType) === "devlog";
+  const isVideoResponse =
+    (assignment.type as AssignmentType) === "video_response";
+  const acceptsHtml = isInteractive || isDevlog || isVideoResponse || isCode;
+  const hasInteractiveHtml = !!assignment.interactive_html_url;
   const collabConfig = readCollabConfig(assignment);
 
   const [groups, roster] = collabConfig.collaborative
@@ -485,7 +485,7 @@ export default async function AssignmentDetailPage({
                   ? "File uploaded. Re-uploading replaces it."
                   : isInteractive
                     ? "Upload the activity file to make this assignment visible to students."
-                    : "Optional — upload an HTML file to render a rich prompt above the recorder."}
+                    : "Optional — upload an HTML file to render a rich prompt above the assignment."}
               </p>
               <form action={uploadHtmlAction} className="space-y-3">
                 <div className="flex items-start gap-2 p-2 rounded-cozy border border-dashed border-wood-300 bg-cream-50">
