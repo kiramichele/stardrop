@@ -263,6 +263,7 @@ export type Database = {
           id: string
           instructions: string | null
           interactive_html_url: string | null
+          is_practice: boolean
           is_unit_quiz: boolean
           leader_submits_only: boolean
           lesson_id: string | null
@@ -288,6 +289,7 @@ export type Database = {
           id?: string
           instructions?: string | null
           interactive_html_url?: string | null
+          is_practice?: boolean
           is_unit_quiz?: boolean
           leader_submits_only?: boolean
           lesson_id?: string | null
@@ -314,6 +316,7 @@ export type Database = {
           id?: string
           instructions?: string | null
           interactive_html_url?: string | null
+          is_practice?: boolean
           is_unit_quiz?: boolean
           leader_submits_only?: boolean
           lesson_id?: string | null

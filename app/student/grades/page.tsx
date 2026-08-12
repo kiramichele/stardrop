@@ -32,11 +32,13 @@ export default async function StudentGradesPage() {
       score,
       graded: score !== null,
       excused: excused.has(a.id),
+      isPractice: a.is_practice,
     };
   });
 
-  // Excused assignments are dropped from the average.
-  const graded = rows.filter((r) => r.graded && !r.excused);
+  // Excused and practice assignments are dropped from the average — practice
+  // still shows a score below, it just doesn't move the overall number.
+  const graded = rows.filter((r) => r.graded && !r.excused && !r.isPractice);
   const earned = graded.reduce((sum, r) => sum + (r.score ?? 0), 0);
   const possible = graded.reduce((sum, r) => sum + r.points, 0);
   const averagePct = possible > 0 ? (earned / possible) * 100 : null;
@@ -108,6 +110,11 @@ export default async function StudentGradesPage() {
                             {r.title}
                           </p>
                           <AssignmentTypeBadge type={r.type} />
+                          {r.isPractice && (
+                            <span className="flex-shrink-0 text-[0.65rem] font-semibold uppercase tracking-wide-label text-honey-700 bg-honey-100 border border-honey-200 rounded px-1.5 py-0.5">
+                              Practice
+                            </span>
+                          )}
                         </div>
                         {r.className && (
                           <p className="text-xs text-wood-500">

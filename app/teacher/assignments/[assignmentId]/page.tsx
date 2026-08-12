@@ -699,6 +699,27 @@ export default async function AssignmentDetailPage({
                 <label className="flex items-start gap-2 cursor-pointer">
                   <input
                     type="checkbox"
+                    id="is_practice"
+                    name="is_practice"
+                    defaultChecked={assignment.is_practice}
+                    className="w-4 h-4 mt-0.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
+                  />
+                  <span>
+                    <Label htmlFor="is_practice" className="mb-0 cursor-pointer">
+                      Practice — worth 0% of the grade
+                    </Label>
+                    <p className="text-xs text-wood-500 mt-0.5">
+                      Still graded normally (score + feedback), but left out
+                      of every average: Grades, gradebook views, analytics.
+                    </p>
+                  </span>
+                </label>
+              </div>
+
+              <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
                     id="auto_publish_to_starhub"
                     name="auto_publish_to_starhub"
                     defaultChecked={Boolean(

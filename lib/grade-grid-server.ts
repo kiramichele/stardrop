@@ -18,6 +18,7 @@ export type GradeGridAssignment = {
   title: string;
   points: number;
   dueDate: string | null;
+  isPractice: boolean;
 };
 
 export type GradeGridCell = {
@@ -44,7 +45,7 @@ export async function getGradeGrid(classId: string): Promise<GradeGridData> {
     admin
       .from("assignments")
       .select(
-        "id, title, points, due_date, due_date_1_5x, due_date_2x, interactive_html_url, type"
+        "id, title, points, due_date, due_date_1_5x, due_date_2x, interactive_html_url, type, is_practice"
       )
       .eq("class_id", classId)
       .eq("published", true),
@@ -84,6 +85,7 @@ export async function getGradeGrid(classId: string): Promise<GradeGridData> {
       title: a.title,
       points: a.points,
       dueDate: a.due_date,
+      isPractice: a.is_practice,
     }))
     .sort((a, b) => {
       if (!a.dueDate && !b.dueDate) return 0;

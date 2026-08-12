@@ -235,6 +235,27 @@ export default async function NewAssignmentPage() {
           </div>
 
           <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                id="is_practice"
+                name="is_practice"
+                className="w-4 h-4 mt-0.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
+              />
+              <span>
+                <span className="block text-sm font-medium text-wood-900">
+                  Practice — worth 0% of the grade
+                </span>
+                <span className="block text-xs text-wood-500">
+                  Still graded normally (students see a score + feedback),
+                  but it&apos;s left out of every average: their Grades page,
+                  your gradebook views, and analytics.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
             <p className="text-sm font-medium text-wood-800 mb-2">
               Extended-time due dates{" "}
               <span className="text-wood-500 font-normal">(optional)</span>

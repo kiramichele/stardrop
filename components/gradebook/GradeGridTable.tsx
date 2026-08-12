@@ -68,7 +68,11 @@ export function GradeGridTable({ data }: { classId: string; data: GradeGridData 
                   key={a.id}
                   className="sticky top-0 z-20 bg-cream-100 border-b border-r border-wood-200 px-2 py-2 text-center align-bottom w-24"
                   scope="col"
-                  title={`${a.title} · ${a.points} pts`}
+                  title={
+                    a.isPractice
+                      ? `${a.title} · ${a.points} pts · Practice, worth 0% of the grade`
+                      : `${a.title} · ${a.points} pts`
+                  }
                 >
                   <span className="block text-xs font-medium text-wood-800 leading-tight line-clamp-3">
                     {a.title}
@@ -76,6 +80,11 @@ export function GradeGridTable({ data }: { classId: string; data: GradeGridData 
                   <span className="block text-[0.65rem] text-wood-400 mt-0.5">
                     /{a.points}
                   </span>
+                  {a.isPractice && (
+                    <span className="mt-1 inline-block text-[0.6rem] font-semibold uppercase tracking-wide-label text-honey-700 bg-honey-100 border border-honey-200 rounded px-1 py-0.5">
+                      Practice
+                    </span>
+                  )}
                 </th>
               ))}
             </tr>

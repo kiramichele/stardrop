@@ -88,7 +88,7 @@ export async function getStrugglingStudents(): Promise<StrugglingStudent[]> {
     admin
       .from("assignments")
       .select(
-        "id, class_id, points, due_date, due_date_1_5x, due_date_2x, type, interactive_html_url"
+        "id, class_id, points, due_date, due_date_1_5x, due_date_2x, type, interactive_html_url, is_practice"
       )
       .eq("published", true),
     admin
@@ -142,7 +142,10 @@ export async function getStrugglingStudents(): Promise<StrugglingStudent[]> {
       // Excused work doesn't count for or against the student.
       if (excusals.has(`${stu.id}::${a.id}`)) continue;
       const sub = subByUserAssignment.get(subKey(stu.id, a.id));
-      if (sub && sub.score !== null) {
+      // Practice work is scored but doesn't move the average — missing
+      // practice still counts as missing, below, since that's still a
+      // useful "are they engaged" signal.
+      if (sub && sub.score !== null && !a.is_practice) {
         earned += sub.score;
         possible += a.points;
         gradedCount++;
@@ -273,7 +276,9 @@ export async function getUnitClassHeatmap(): Promise<UnitClassHeatmap> {
       .order("period_number", { ascending: true, nullsFirst: false }),
     admin
       .from("assignments")
-      .select("id, class_id, lesson_id, points, type, interactive_html_url")
+      .select(
+        "id, class_id, lesson_id, points, type, interactive_html_url, is_practice"
+      )
       .eq("published", true),
     admin.from("enrollments").select("class_id, user_id"),
     admin
@@ -358,7 +363,9 @@ export async function getUnitClassHeatmap(): Promise<UnitClassHeatmap> {
           ) {
             completed++;
           }
-          if (sub && sub.score !== null) {
+          // Practice work still counts toward completion above, just not
+          // the score average.
+          if (sub && sub.score !== null && !a.is_practice) {
             sumScore += sub.score;
             sumPoints += a.points;
           }

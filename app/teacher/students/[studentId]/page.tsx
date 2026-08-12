@@ -37,14 +37,16 @@ export default async function StudentOverviewPage({
     discussionPosts,
   } = overview;
 
-  // Excused work is dropped from the average entirely.
-  const graded = grades.filter((g) => g.score !== null && !g.excused);
+  // Excused and practice work is dropped from the average entirely.
+  const graded = grades.filter(
+    (g) => g.score !== null && !g.excused && !g.isPractice
+  );
   const earned = graded.reduce((s, g) => s + (g.score ?? 0), 0);
   const possible = graded.reduce((s, g) => s + g.points, 0);
   const averagePct = possible > 0 ? (earned / possible) * 100 : null;
 
   // Chronological (grades is already ordered by due date) score trend —
-  // graded, non-excused, point-bearing work only.
+  // graded, non-excused, non-practice, point-bearing work only.
   const trendPoints: TrendPoint[] = graded
     .filter((g) => g.points > 0)
     .map((g) => ({
@@ -249,6 +251,11 @@ export default async function StudentOverviewPage({
                           {g.title}
                         </p>
                         <AssignmentTypeBadge type={g.type as AssignmentType} />
+                        {g.isPractice && (
+                          <span className="flex-shrink-0 text-[0.65rem] font-semibold uppercase tracking-wide-label text-honey-700 bg-honey-100 border border-honey-200 rounded px-1.5 py-0.5">
+                            Practice
+                          </span>
+                        )}
                       </div>
                       <p className="text-xs text-wood-500">
                         {g.dueDate

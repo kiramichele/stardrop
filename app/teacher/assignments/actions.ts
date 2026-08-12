@@ -100,6 +100,7 @@ export async function createAssignment(formData: FormData) {
   const pointsRaw = formData.get("points")?.toString();
   const lessonId = formData.get("lesson_id")?.toString() || null;
   const isUnitQuiz = formData.get("is_unit_quiz") === "on";
+  const isPractice = formData.get("is_practice") === "on";
   const minWordsRaw = formData.get("minimum_word_count")?.toString();
   const rubricIdRaw = formData.get("rubric_id")?.toString();
   const rubricId = rubricIdRaw && rubricIdRaw !== "" ? rubricIdRaw : null;
@@ -176,6 +177,7 @@ export async function createAssignment(formData: FormData) {
         assignment_group_id: groupId,
         lesson_id: lessonId,
         is_unit_quiz: isUnitQuiz,
+        is_practice: isPractice,
         source_assignment_id: sourceForClass,
         title,
         // Cast: "devlog" isn't in the regenerated enum until the matching
@@ -246,6 +248,7 @@ export async function updateAssignment(
   const rubricId = rubricIdRaw && rubricIdRaw !== "" ? rubricIdRaw : null;
   const lessonId = formData.get("lesson_id")?.toString() || null;
   const isUnitQuiz = formData.get("is_unit_quiz") === "on";
+  const isPractice = formData.get("is_practice") === "on";
 
   if (!title) throw new Error("Title required");
   const points = pointsRaw ? Number.parseInt(pointsRaw, 10) : 100;
@@ -285,6 +288,7 @@ export async function updateAssignment(
       rubric_id: rubricId,
       lesson_id: lessonId,
       is_unit_quiz: isUnitQuiz,
+      is_practice: isPractice,
       auto_publish_to_starhub: autoPublishToStarhub,
       code_run_mode: codeRunMode,
       collaborative: collab.collaborative,

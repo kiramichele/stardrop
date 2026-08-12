@@ -16,6 +16,7 @@ export type StudentGradeRow = {
   submissionId: string | null;
   score: number | null;
   excused: boolean;
+  isPractice: boolean;
 };
 
 export type StudentOverview = {
@@ -73,12 +74,13 @@ export async function getStudentOverview(
     due_date_1_5x: string | null;
     due_date_2x: string | null;
     interactive_html_url: string | null;
+    is_practice: boolean;
   }> = [];
   if (classIds.length > 0) {
     const { data } = await admin
       .from("assignments")
       .select(
-        "id, title, type, points, due_date, due_date_1_5x, due_date_2x, interactive_html_url"
+        "id, title, type, points, due_date, due_date_1_5x, due_date_2x, interactive_html_url, is_practice"
       )
       .in("class_id", classIds)
       .eq("published", true)
@@ -114,6 +116,7 @@ export async function getStudentOverview(
       submissionId: sub?.id ?? null,
       score: grade?.score ?? null,
       excused: excusals.has(a.id),
+      isPractice: a.is_practice,
     };
   });
 
