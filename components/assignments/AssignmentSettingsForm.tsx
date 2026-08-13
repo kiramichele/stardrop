@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, AlertCircle } from "lucide-react";
@@ -77,6 +77,19 @@ export function AssignmentSettingsForm({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  // datetime-local inputs are fiddly to clear by hand — every segment
+  // (month/day/year/hour/minute) needs backspacing individually, and if
+  // any segment is left even partially filled the browser treats the
+  // field as invalid and silently blocks the whole form from submitting.
+  // These refs back a one-click "Clear" that sets the field to a clean
+  // empty string instead.
+  const dueDateRef = useRef<HTMLInputElement>(null);
+  const due1_5xRef = useRef<HTMLInputElement>(null);
+  const due2xRef = useRef<HTMLInputElement>(null);
+  function clearDateField(ref: React.RefObject<HTMLInputElement | null>) {
+    if (ref.current) ref.current.value = "";
+  }
+
   function handleSubmit(formData: FormData) {
     setStatus("idle");
     setError(null);
@@ -128,13 +141,30 @@ export function AssignmentSettingsForm({
       />
 
       <div>
-        <Label htmlFor="due_date">Due date</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="due_date" className="mb-0">
+            Due date
+          </Label>
+          <button
+            type="button"
+            onClick={() => clearDateField(dueDateRef)}
+            className="text-xs text-wood-500 hover:text-terracotta-700 transition-colors mb-1.5"
+          >
+            Clear
+          </button>
+        </div>
         <Input
+          ref={dueDateRef}
           id="due_date"
           name="due_date"
           type="datetime-local"
           defaultValue={dueLocal}
         />
+        <FieldHint>
+          Datetime pickers can be fiddly to clear by hand (every segment
+          needs backspacing) — use Clear above instead if you want no due
+          date.
+        </FieldHint>
       </div>
       <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
         <p className="text-sm font-medium text-wood-800 mb-2">
@@ -143,10 +173,20 @@ export function AssignmentSettingsForm({
         </p>
         <div className="space-y-3">
           <div>
-            <Label htmlFor="due_date_1_5x" className="text-xs">
-              1.5× time
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="due_date_1_5x" className="text-xs mb-0">
+                1.5× time
+              </Label>
+              <button
+                type="button"
+                onClick={() => clearDateField(due1_5xRef)}
+                className="text-xs text-wood-500 hover:text-terracotta-700 transition-colors"
+              >
+                Clear
+              </button>
+            </div>
             <Input
+              ref={due1_5xRef}
               id="due_date_1_5x"
               name="due_date_1_5x"
               type="datetime-local"
@@ -154,10 +194,20 @@ export function AssignmentSettingsForm({
             />
           </div>
           <div>
-            <Label htmlFor="due_date_2x" className="text-xs">
-              2× (double) time
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="due_date_2x" className="text-xs mb-0">
+                2× (double) time
+              </Label>
+              <button
+                type="button"
+                onClick={() => clearDateField(due2xRef)}
+                className="text-xs text-wood-500 hover:text-terracotta-700 transition-colors"
+              >
+                Clear
+              </button>
+            </div>
             <Input
+              ref={due2xRef}
               id="due_date_2x"
               name="due_date_2x"
               type="datetime-local"
