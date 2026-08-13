@@ -88,6 +88,14 @@ function cleanCSharpDiagnostics(raw: string, offset: number): string {
   // say so plainly. Never fall back to the raw, unfiltered log.
   const leftover = stripBuildChatter(raw);
   if (leftover.trim()) return leftover;
+  // Log the raw response server-side so this doesn't stay a black box —
+  // students never see it, but it's the only way to tell "genuinely
+  // transient hiccup" from "the runner is actually misconfigured/down"
+  // from server logs.
+  console.error(
+    "[code-runner] compile failed with no recognizable error line. Raw response:",
+    raw
+  );
   return "The code runner hit a snag and couldn't report a specific error — this usually isn't your code. Try running it again.";
 }
 
@@ -164,6 +172,16 @@ export async function runCSharp(code: string): Promise<CSharpRunResult> {
   }
 
   if (!response.ok) {
+    // Logged unconditionally (not just the compile-fallback case) so any
+    // transport-level failure — wrong PISTON_URL, expired token, the
+    // instance being down — shows up in server logs instead of only ever
+    // reaching students as a vague "service issue" message.
+    const bodySnippet = await response.text().catch(() => "");
+    console.error(
+      `[code-runner] Piston request failed: HTTP ${response.status} ${pistonUrl()}`,
+      bodySnippet.slice(0, 500)
+    );
+
     // 401/403 → the configured Piston endpoint is rejecting us (the free
     // emkc.org instance went whitelist-only on 2026-02-15). 429 → rate limit.
     // Make these say "service problem", not "your code is wrong".
