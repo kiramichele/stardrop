@@ -236,7 +236,7 @@ export async function createAssignment(formData: FormData) {
 export async function updateAssignment(
   assignmentId: string,
   formData: FormData
-) {
+): Promise<{ ok: true } | { ok: false; error: string }> {
   await requireFullTeacher();
 
   const title = formData.get("title")?.toString().trim();
@@ -250,8 +250,10 @@ export async function updateAssignment(
   const isUnitQuiz = formData.get("is_unit_quiz") === "on";
   const isPractice = formData.get("is_practice") === "on";
 
-  if (!title) throw new Error("Title required");
-  const points = pointsRaw ? Number.parseInt(pointsRaw, 10) : 100;
+  if (!title) return { ok: false, error: "Title required" };
+  // step="0.5" on the field — parseFloat so half-point values don't
+  // silently truncate to whole numbers.
+  const points = pointsRaw ? Number.parseFloat(pointsRaw) : 100;
   const dueDate = parseDate(dueDateRaw);
   const dueDate1_5x = parseDate(formData.get("due_date_1_5x")?.toString());
   const dueDate2x = parseDate(formData.get("due_date_2x")?.toString());
@@ -298,10 +300,11 @@ export async function updateAssignment(
       leader_submits_only: collab.leader_submits_only,
     } as never)
     .eq("id", assignmentId);
-  if (error) throw new Error(error.message);
+  if (error) return { ok: false, error: error.message };
 
   revalidatePath("/teacher/assignments");
   revalidatePath(`/teacher/assignments/${assignmentId}`);
+  return { ok: true };
 }
 
 export async function deleteAssignment(assignmentId: string) {

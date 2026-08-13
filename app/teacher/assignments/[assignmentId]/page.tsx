@@ -24,7 +24,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ShareLink } from "@/components/ui/ShareLink";
-import { Input, Label, Textarea, Select, FieldHint } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 import { CopyToClassPanel } from "@/components/assignments/CopyToClassPanel";
 import { PublishToClassesPanel } from "@/components/assignments/PublishToClassesPanel";
@@ -35,21 +35,15 @@ import {
 import { PeerReviewManager } from "@/components/peer-review/PeerReviewManager";
 import { getTeacherPeerReview } from "@/lib/peer-review-server";
 import { getRubricsForTeacher } from "@/lib/rubrics-server";
-import { rubricMaxPoints } from "@/lib/rubrics";
 import { getUnitsForTeacher } from "@/lib/lessons";
-import { UnitLessonPicker } from "@/components/assignments/UnitLessonPicker";
-import { CollaborativeFields } from "@/components/assignments/CollaborativeFields";
+import { AssignmentSettingsForm } from "@/components/assignments/AssignmentSettingsForm";
 import { GroupManager } from "@/components/assignments/GroupManager";
 import { readCollabConfig } from "@/lib/groups";
 import {
   getAssignmentGroups,
   getEnrolledStudents,
 } from "@/lib/groups-server";
-import {
-  updateAssignment,
-  deleteAssignment,
-  uploadInteractiveHtml,
-} from "../actions";
+import { deleteAssignment, uploadInteractiveHtml } from "../actions";
 
 export default async function AssignmentDetailPage({
   params,
@@ -151,7 +145,6 @@ export default async function AssignmentDetailPage({
     lessons: u.lessons.map((l) => ({ id: l.id, title: l.title })),
   }));
 
-  const updateAction = updateAssignment.bind(null, assignmentId);
   const deleteAction = deleteAssignment.bind(null, assignmentId);
   const uploadHtmlAction = uploadInteractiveHtml.bind(null, assignmentId);
 
@@ -210,6 +203,18 @@ export default async function AssignmentDetailPage({
   const acceptsHtml = isInteractive || isDevlog || isVideoResponse || isCode;
   const hasInteractiveHtml = !!assignment.interactive_html_url;
   const collabConfig = readCollabConfig(assignment);
+  // Legacy "both" rows collapse to "unity" — the form no longer offers a
+  // "both" option.
+  const storedCodeRunMode = (assignment as { code_run_mode?: string })
+    .code_run_mode;
+  const resolvedCodeRunMode =
+    !storedCodeRunMode || storedCodeRunMode === "both"
+      ? "unity"
+      : storedCodeRunMode;
+  const autoPublishToStarhub = Boolean(
+    (assignment as { auto_publish_to_starhub?: boolean })
+      .auto_publish_to_starhub
+  );
 
   const [groups, roster] = collabConfig.collaborative
     ? await Promise.all([
@@ -534,226 +539,30 @@ export default async function AssignmentDetailPage({
             <h3 className="font-display text-lg text-wood-900 mb-4">
               Settings
             </h3>
-            <form action={updateAction} className="space-y-4">
-              {/* Hidden so updateAssignment can gate the collaborative config
-                  to Code assignments (type isn't otherwise editable). */}
-              <input type="hidden" name="type" value={assignment.type} />
-              <div>
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  name="title"
-                  type="text"
-                  defaultValue={assignment.title}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="instructions">Instructions</Label>
-                <Textarea
-                  id="instructions"
-                  name="instructions"
-                  rows={5}
-                  defaultValue={assignment.instructions ?? ""}
-                />
-              </div>
-
-              <UnitLessonPicker
-                units={units}
-                initialLessonId={assignment.lesson_id}
-                initialIsUnitQuiz={assignment.is_unit_quiz}
-              />
-
-              <div>
-                <Label htmlFor="due_date">Due date</Label>
-                <Input
-                  id="due_date"
-                  name="due_date"
-                  type="datetime-local"
-                  defaultValue={dueLocal}
-                />
-              </div>
-              <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
-                <p className="text-sm font-medium text-wood-800 mb-2">
-                  Extended-time due dates{" "}
-                  <span className="text-wood-500 font-normal">(optional)</span>
-                </p>
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="due_date_1_5x" className="text-xs">
-                      1.5× time
-                    </Label>
-                    <Input
-                      id="due_date_1_5x"
-                      name="due_date_1_5x"
-                      type="datetime-local"
-                      defaultValue={due1_5xLocal}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="due_date_2x" className="text-xs">
-                      2× (double) time
-                    </Label>
-                    <Input
-                      id="due_date_2x"
-                      name="due_date_2x"
-                      type="datetime-local"
-                      defaultValue={due2xLocal}
-                    />
-                  </div>
-                </div>
-                <FieldHint>
-                  Students in an extended-time group are held to their
-                  group&apos;s date. Blank falls back to the regular due date.
-                </FieldHint>
-              </div>
-              <div>
-                <Label htmlFor="points">Points</Label>
-                <Input
-                  id="points"
-                  name="points"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  defaultValue={assignment.points}
-                />
-              </div>
-              {isTextual && (
-                <div>
-                  <Label htmlFor="minimum_word_count">
-                    Minimum word count{" "}
-                    <span className="text-wood-500 font-normal">(optional)</span>
-                  </Label>
-                  <Input
-                    id="minimum_word_count"
-                    name="minimum_word_count"
-                    type="number"
-                    min="1"
-                    defaultValue={assignment.minimum_word_count ?? ""}
-                  />
-                  <FieldHint>Leave blank for no minimum.</FieldHint>
-                </div>
-              )}
-              <div>
-                <Label htmlFor="rubric_id">
-                  Rubric{" "}
-                  <span className="text-wood-500 font-normal">(optional)</span>
-                </Label>
-                <Select
-                  id="rubric_id"
-                  name="rubric_id"
-                  defaultValue={assignment.rubric_id ?? ""}
-                >
-                  <option value="">No rubric (single score)</option>
-                  {rubrics.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name} — {rubricMaxPoints(r.criteria)} pts
-                    </option>
-                  ))}
-                </Select>
-                <FieldHint>
-                  Per-criterion scoring during grading.{" "}
-                  <Link
-                    href="/teacher/rubrics"
-                    className="text-terracotta-700 hover:text-terracotta-800 underline"
-                    target="_blank"
-                  >
-                    Manage rubrics
-                  </Link>
-                </FieldHint>
-              </div>
-              <div>
-                <Label htmlFor="code_run_mode">
-                  Code run button{" "}
-                  <span className="text-wood-500 font-normal">
-                    (Code assignments only)
-                  </span>
-                </Label>
-                <Select
-                  id="code_run_mode"
-                  name="code_run_mode"
-                  defaultValue={(() => {
-                    const stored = (
-                      assignment as { code_run_mode?: string }
-                    ).code_run_mode;
-                    // Legacy "both" rows collapse to "unity" — the form
-                    // no longer offers a "both" option.
-                    if (!stored || stored === "both") return "unity";
-                    return stored;
-                  })()}
-                >
-                  <option value="none">No run button (submission-only)</option>
-                  <option value="csharp">Run as C#</option>
-                  <option value="unity">Simulate in Unity</option>
-                </Select>
-                <FieldHint>
-                  Picks the kind of starter code the student sees AND what
-                  the single Run button does. <strong>Run as C#</strong>{" "}
-                  compiles + executes; <strong>Simulate in Unity</strong>{" "}
-                  has the AI describe what the script would do in the
-                  Editor.
-                </FieldHint>
-              </div>
-
-              <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
-                <label className="flex items-start gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    id="is_practice"
-                    name="is_practice"
-                    defaultChecked={assignment.is_practice}
-                    className="w-4 h-4 mt-0.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
-                  />
-                  <span>
-                    <Label htmlFor="is_practice" className="mb-0 cursor-pointer">
-                      Practice — worth 0% of the grade
-                    </Label>
-                    <p className="text-xs text-wood-500 mt-0.5">
-                      Still graded normally (score + feedback), but left out
-                      of every average: Grades, gradebook views, analytics.
-                    </p>
-                  </span>
-                </label>
-              </div>
-
-              <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
-                <label className="flex items-start gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    id="auto_publish_to_starhub"
-                    name="auto_publish_to_starhub"
-                    defaultChecked={Boolean(
-                      (assignment as { auto_publish_to_starhub?: boolean })
-                        .auto_publish_to_starhub
-                    )}
-                    className="w-4 h-4 mt-0.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
-                  />
-                  <span>
-                    <Label
-                      htmlFor="auto_publish_to_starhub"
-                      className="mb-0 cursor-pointer"
-                    >
-                      Auto-publish to StarHub on submit
-                    </Label>
-                    <p className="text-xs text-wood-500 mt-0.5">
-                      Submissions land on the student&apos;s public portfolio.
-                      For videos this only pre-fills their share toggle —
-                      students always choose for themselves.
-                    </p>
-                  </span>
-                </label>
-              </div>
-              {isInteractive && !hasInteractiveHtml && (
-                <FieldHint>
-                  Students won&apos;t see this even when published until the
-                  HTML file is uploaded above.
-                </FieldHint>
-              )}
-              {isCode && <CollaborativeFields initial={collabConfig} />}
-              <Button type="submit" size="sm" className="w-full">
-                Save changes
-              </Button>
-            </form>
+            <AssignmentSettingsForm
+              assignmentId={assignmentId}
+              type={assignment.type}
+              initialTitle={assignment.title}
+              initialInstructions={assignment.instructions ?? ""}
+              units={units}
+              initialLessonId={assignment.lesson_id}
+              initialIsUnitQuiz={assignment.is_unit_quiz}
+              dueLocal={dueLocal}
+              due1_5xLocal={due1_5xLocal}
+              due2xLocal={due2xLocal}
+              initialPoints={assignment.points}
+              isTextual={isTextual}
+              initialMinimumWordCount={assignment.minimum_word_count}
+              initialRubricId={assignment.rubric_id}
+              rubrics={rubrics}
+              initialCodeRunMode={resolvedCodeRunMode}
+              initialIsPractice={assignment.is_practice}
+              initialAutoPublishToStarhub={autoPublishToStarhub}
+              isInteractive={isInteractive}
+              hasInteractiveHtml={hasInteractiveHtml}
+              isCode={isCode}
+              collabConfig={collabConfig}
+            />
           </Card>
 
           <CopyToClassPanel
