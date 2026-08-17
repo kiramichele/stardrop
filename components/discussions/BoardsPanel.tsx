@@ -6,6 +6,7 @@ import { Plus, Pin, Lock, Trash2, MessagesSquare } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Textarea, Select } from "@/components/ui/Input";
+import { DictationButton, appendDictation } from "@/components/ui/DictationButton";
 import {
   createBoard,
   deleteBoard,
@@ -72,7 +73,17 @@ export function BoardsPanel({ boards, classes, isTeacher }: BoardsPanelProps) {
           </h3>
           <div className="space-y-3">
             <div>
-              <Label htmlFor="b-title">Title</Label>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label htmlFor="b-title" className="mb-0">
+                  Title
+                </Label>
+                <DictationButton
+                  onTranscript={(t) =>
+                    setTitle((prev) => appendDictation(prev, t))
+                  }
+                  title="Dictate the title"
+                />
+              </div>
               <Input
                 id="b-title"
                 value={title}
@@ -81,7 +92,17 @@ export function BoardsPanel({ boards, classes, isTeacher }: BoardsPanelProps) {
               />
             </div>
             <div>
-              <Label htmlFor="b-desc">Description (optional)</Label>
+              <div className="flex items-center justify-between mb-1.5">
+                <Label htmlFor="b-desc" className="mb-0">
+                  Description (optional)
+                </Label>
+                <DictationButton
+                  onTranscript={(t) =>
+                    setDescription((prev) => appendDictation(prev, t))
+                  }
+                  title="Dictate the description"
+                />
+              </div>
               <Textarea
                 id="b-desc"
                 value={description}
