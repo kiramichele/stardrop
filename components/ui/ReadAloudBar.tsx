@@ -15,28 +15,33 @@ export interface ReadAloudHandle {
 }
 
 interface ReadAloudBarProps {
-  lessonId: string;
+  /**
+   * GET endpoint that streams mp3 for the *whole* piece of content (a
+   * lesson or an assignment's HTML prompt) — e.g. `/api/tts/lesson/:id` or
+   * `/api/tts/assignment/:id`. Fetched lazily, only once "play" is pressed.
+   */
+  wholeContentUrl: string;
 }
 
 const RATES = [0.75, 1, 1.25, 1.5] as const;
 type Status = "idle" | "loading" | "playing" | "paused" | "error";
 
 /**
- * Read-aloud controls for a lesson. Owns the single <audio> element used for
- * both whole-lesson playback (streamed from /api/tts/lesson/:id) and
- * read-the-selection (posted text -> blob via /api/tts/speak). The parent
- * LessonViewer holds a ref and calls playText() when the iframe forwards a
- * selection.
+ * Read-aloud controls shared by lessons and assignment HTML prompts. Owns
+ * the single <audio> element used for both whole-content playback (streamed
+ * from `wholeContentUrl`) and read-the-selection (posted text -> blob via
+ * /api/tts/speak). The parent (LessonViewer / AssignmentHtmlViewer) holds a
+ * ref and calls playText() when the iframe forwards a selection.
  */
 export const ReadAloudBar = forwardRef<ReadAloudHandle, ReadAloudBarProps>(
-  function ReadAloudBar({ lessonId }, ref) {
+  function ReadAloudBar({ wholeContentUrl }, ref) {
     const audioRef = useRef<HTMLAudioElement>(null);
     const objectUrlRef = useRef<string | null>(null);
     const [status, setStatus] = useState<Status>("idle");
     const [error, setError] = useState<string | null>(null);
     const [rate, setRate] = useState(1);
     const [progress, setProgress] = useState(0);
-    const [source, setSource] = useState<"lesson" | "selection" | null>(null);
+    const [source, setSource] = useState<"whole" | "selection" | null>(null);
 
     function setObjectUrl(url: string | null) {
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
@@ -48,15 +53,15 @@ export const ReadAloudBar = forwardRef<ReadAloudHandle, ReadAloudBarProps>(
       if (audioRef.current) audioRef.current.playbackRate = rate;
     }, [rate]);
 
-    async function playLesson() {
+    async function playWhole() {
       const audio = audioRef.current;
       if (!audio) return;
       setError(null);
-      if (source !== "lesson") {
+      if (source !== "whole") {
         setObjectUrl(null);
-        audio.src = `/api/tts/lesson/${lessonId}`;
+        audio.src = wholeContentUrl;
         audio.playbackRate = rate;
-        setSource("lesson");
+        setSource("whole");
         setStatus("loading");
       }
       try {
@@ -105,7 +110,7 @@ export const ReadAloudBar = forwardRef<ReadAloudHandle, ReadAloudBarProps>(
       } else if (source) {
         audio.play().catch(() => {});
       } else {
-        playLesson();
+        playWhole();
       }
     }
 
@@ -159,7 +164,7 @@ export const ReadAloudBar = forwardRef<ReadAloudHandle, ReadAloudBarProps>(
           type="button"
           onClick={toggle}
           disabled={busy}
-          aria-label={playing ? "Pause" : "Play lesson"}
+          aria-label={playing ? "Pause" : "Play"}
           className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-terracotta-500 text-white hover:bg-terracotta-600 active:bg-terracotta-700 disabled:opacity-60 flex-shrink-0 transition-colors"
         >
           {busy ? (

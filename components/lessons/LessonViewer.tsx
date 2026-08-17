@@ -9,7 +9,7 @@ import {
   removeHighlight,
 } from "@/app/teacher/lessons/actions";
 import type { LessonHighlight } from "@/lib/lessons";
-import { ReadAloudBar, type ReadAloudHandle } from "./ReadAloudBar";
+import { ReadAloudBar, type ReadAloudHandle } from "@/components/ui/ReadAloudBar";
 
 interface LessonViewerProps {
   htmlUrl: string | null;
@@ -195,7 +195,10 @@ export function LessonViewer({
   return (
     <div className="space-y-4 animate-fade-in">
       {readerOn && ttsEnabled && lessonId && (
-        <ReadAloudBar ref={audioBarRef} lessonId={lessonId} />
+        <ReadAloudBar
+          ref={audioBarRef}
+          wholeContentUrl={`/api/tts/lesson/${lessonId}`}
+        />
       )}
 
       <div

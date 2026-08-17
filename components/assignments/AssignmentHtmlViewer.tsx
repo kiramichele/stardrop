@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
+import { ReadAloudBar, type ReadAloudHandle } from "@/components/ui/ReadAloudBar";
 
 interface AssignmentHtmlViewerProps {
+  assignmentId: string;
   htmlUrl: string;
   /** Whether ElevenLabs read-aloud is configured on the server. */
   ttsEnabled: boolean;
@@ -29,21 +31,22 @@ function makeNonce(): string {
  * Renders an assignment's uploaded HTML (the interactive_html_url column —
  * shared by Interactive HTML's own activity component's directions,
  * Dev log / Video response / Code prompts) through the same reader-enabled
- * proxy lessons use, so students get selection highlighting and read-
- * aloud-a-selection here too, not just on lesson pages.
+ * proxy lessons use, so students get selection highlighting, read-aloud-
+ * a-selection, AND a "Read aloud" bar for the whole prompt (streamed from
+ * /api/tts/assignment/:id) — the same trio lessons already had.
  */
 export function AssignmentHtmlViewer({
+  assignmentId,
   htmlUrl,
   ttsEnabled,
   height = "320px",
   title = "Prompt",
 }: AssignmentHtmlViewerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioBarRef = useRef<ReadAloudHandle>(null);
   const frameBoxRef = useRef<HTMLDivElement>(null);
   const [nonce] = useState(makeNonce);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const onChange = () =>
@@ -66,25 +69,6 @@ export function AssignmentHtmlViewer({
       );
     };
 
-    async function playText(text: string) {
-      const audio = audioRef.current;
-      if (!audio || !text.trim()) return;
-      setError(null);
-      try {
-        const res = await fetch("/api/tts/speak", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
-        });
-        if (!res.ok) throw new Error("Read-aloud failed");
-        const blob = await res.blob();
-        audio.src = URL.createObjectURL(blob);
-        await audio.play();
-      } catch {
-        setError("Couldn't read that aloud — try again.");
-      }
-    }
-
     const onMessage = (e: MessageEvent) => {
       if (e.source !== iframeRef.current?.contentWindow) return;
       const data = e.data;
@@ -96,7 +80,10 @@ export function AssignmentHtmlViewer({
       }
       if (data.nonce !== nonce) return;
       if (data.type === "tts:speak" && ttsEnabled && typeof data.text === "string") {
-        playText(data.text);
+        // Route selection reads through the same bar/audio element as the
+        // whole-prompt "Read aloud" button, so play/pause state stays
+        // consistent instead of two audio elements fighting each other.
+        audioBarRef.current?.playText(data.text);
       }
       // highlight:add / highlight:remove: no assignment-level highlights
       // table, so intentionally not persisted — see the note above.
@@ -125,7 +112,12 @@ export function AssignmentHtmlViewer({
 
   return (
     <div className="space-y-2">
-      <audio ref={audioRef} className="hidden" />
+      {ttsEnabled && (
+        <ReadAloudBar
+          ref={audioBarRef}
+          wholeContentUrl={`/api/tts/assignment/${assignmentId}`}
+        />
+      )}
       <Card
         padded={false}
         className="overflow-hidden"
@@ -174,12 +166,6 @@ export function AssignmentHtmlViewer({
         Select any text above to highlight it
         {ttsEnabled ? " or have it read aloud" : ""}.
       </p>
-      {error && (
-        <p className="flex items-center gap-1.5 text-xs text-terracotta-700">
-          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-          {error}
-        </p>
-      )}
     </div>
   );
 }

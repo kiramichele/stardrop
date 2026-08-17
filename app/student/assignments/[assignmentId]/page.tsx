@@ -39,6 +39,7 @@ import { FeedbackThread } from "@/components/feedback/FeedbackThread";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { ReadAloudButton } from "@/components/ui/ReadAloudButton";
+import { ReadAloudBar } from "@/components/ui/ReadAloudBar";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 import { ActivityTracker } from "@/components/assignments/ActivityTracker";
 import { AssignmentHtmlViewer } from "@/components/assignments/AssignmentHtmlViewer";
@@ -219,6 +220,7 @@ export default async function StudentAssignmentPage({
             <>
               {assignment.interactive_html_url && (
                 <AssignmentHtmlViewer
+                  assignmentId={assignment.id}
                   htmlUrl={assignment.interactive_html_url}
                   ttsEnabled={ttsEnabled}
                 />
@@ -308,13 +310,24 @@ export default async function StudentAssignmentPage({
 
           {assignment.type === "interactive_html" &&
             assignment.interactive_html_url && (
-              <InteractiveHtmlAssignment
-                assignmentId={assignment.id}
-                htmlUrl={assignment.interactive_html_url}
-                initialData={submission?.structured_data ?? null}
-                initialStatus={submission?.status ?? "draft"}
-                initialSubmissionId={submission?.id ?? null}
-              />
+              <>
+                {/* Whole-content read-aloud only — deliberately not wired
+                    into InteractiveHtmlAssignment's own iframe/postMessage
+                    protocol, which persists activity responses and is too
+                    risky to touch here. */}
+                {ttsEnabled && (
+                  <ReadAloudBar
+                    wholeContentUrl={`/api/tts/assignment/${assignment.id}`}
+                  />
+                )}
+                <InteractiveHtmlAssignment
+                  assignmentId={assignment.id}
+                  htmlUrl={assignment.interactive_html_url}
+                  initialData={submission?.structured_data ?? null}
+                  initialStatus={submission?.status ?? "draft"}
+                  initialSubmissionId={submission?.id ?? null}
+                />
+              </>
             )}
 
           {assignment.type === "short_answer" && (
@@ -415,6 +428,7 @@ export default async function StudentAssignmentPage({
             <>
               {assignment.interactive_html_url && (
                 <AssignmentHtmlViewer
+                  assignmentId={assignment.id}
                   htmlUrl={assignment.interactive_html_url}
                   ttsEnabled={ttsEnabled}
                 />
@@ -448,6 +462,7 @@ export default async function StudentAssignmentPage({
             <>
               {assignment.interactive_html_url && (
                 <AssignmentHtmlViewer
+                  assignmentId={assignment.id}
                   htmlUrl={assignment.interactive_html_url}
                   ttsEnabled={ttsEnabled}
                 />
@@ -479,6 +494,7 @@ export default async function StudentAssignmentPage({
             <>
               {assignment.interactive_html_url && (
                 <AssignmentHtmlViewer
+                  assignmentId={assignment.id}
                   htmlUrl={assignment.interactive_html_url}
                   ttsEnabled={ttsEnabled}
                   title="Directions"
