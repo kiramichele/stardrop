@@ -29,3 +29,11 @@ export function DictationProvider({
 export function useDictationEnabled(): boolean {
   return useContext(DictationContext);
 }
+
+/**
+ * Same underlying flag as dictation — isSttConfigured() is literally
+ * isTtsConfigured() under another name in lib/tts.ts, one ElevenLabs key
+ * powers both directions. Exported under its own name so a read-aloud
+ * button reads as checking "read-aloud enabled," not "dictation enabled."
+ */
+export const useReadAloudEnabled = useDictationEnabled;

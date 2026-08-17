@@ -24,6 +24,7 @@ import {
 import { getFeedbackThread } from "@/lib/feedback-server";
 import { getLesson } from "@/lib/lessons";
 import { getUnitySimulationEnabled } from "@/lib/app-settings-server";
+import { isTtsConfigured } from "@/lib/tts";
 import { readCollabConfig, type AssignmentGroup } from "@/lib/groups";
 import {
   getAssignmentGroups,
@@ -37,8 +38,10 @@ import { CollaborativeCodeEditor } from "@/components/assignments/CollaborativeC
 import { FeedbackThread } from "@/components/feedback/FeedbackThread";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
+import { ReadAloudButton } from "@/components/ui/ReadAloudButton";
 import { AssignmentTypeBadge } from "@/components/assignments/Badges";
 import { ActivityTracker } from "@/components/assignments/ActivityTracker";
+import { AssignmentHtmlViewer } from "@/components/assignments/AssignmentHtmlViewer";
 import { CodeAssignmentEditor } from "@/components/assignments/CodeAssignmentEditor";
 import { InteractiveHtmlAssignment } from "@/components/assignments/InteractiveHtmlAssignment";
 import { TextAssignmentEditor } from "@/components/assignments/TextAssignmentEditor";
@@ -60,6 +63,7 @@ export default async function StudentAssignmentPage({
   if (!result) notFound();
 
   const { assignment, submission } = result;
+  const ttsEnabled = isTtsConfigured();
 
   // Collaborative coding: work out the student's group situation.
   const collab = readCollabConfig(assignment);
@@ -214,14 +218,10 @@ export default async function StudentAssignmentPage({
           {assignment.type === "code" && (
             <>
               {assignment.interactive_html_url && (
-                <Card padded={false} className="overflow-hidden">
-                  <iframe
-                    src={assignment.interactive_html_url}
-                    title="Prompt"
-                    sandbox="allow-same-origin allow-scripts"
-                    className="w-full min-h-[320px] bg-white"
-                  />
-                </Card>
+                <AssignmentHtmlViewer
+                  htmlUrl={assignment.interactive_html_url}
+                  ttsEnabled={ttsEnabled}
+                />
               )}
 
               {needsGroup && collab.groupMode === "choice" && (
@@ -323,7 +323,10 @@ export default async function StudentAssignmentPage({
                   answer, so students read the prompt before they type. */}
               {assignment.instructions && (
                 <Card>
-                  <p className="label-eyebrow mb-2">Instructions</p>
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <p className="label-eyebrow">Instructions</p>
+                    <ReadAloudButton text={assignment.instructions} />
+                  </div>
                   <p className="text-sm text-wood-700 whitespace-pre-wrap">
                     {assignment.instructions}
                   </p>
@@ -411,14 +414,10 @@ export default async function StudentAssignmentPage({
           {(assignment.type as AssignmentType) === "devlog" && (
             <>
               {assignment.interactive_html_url && (
-                <Card padded={false} className="overflow-hidden">
-                  <iframe
-                    src={assignment.interactive_html_url}
-                    title="Prompt"
-                    sandbox="allow-same-origin allow-scripts"
-                    className="w-full min-h-[320px] bg-white"
-                  />
-                </Card>
+                <AssignmentHtmlViewer
+                  htmlUrl={assignment.interactive_html_url}
+                  ttsEnabled={ttsEnabled}
+                />
               )}
               <DevlogSubmission
                 assignmentId={assignment.id}
@@ -448,14 +447,10 @@ export default async function StudentAssignmentPage({
           {(assignment.type as AssignmentType) === "video_response" && (
             <>
               {assignment.interactive_html_url && (
-                <Card padded={false} className="overflow-hidden">
-                  <iframe
-                    src={assignment.interactive_html_url}
-                    title="Prompt"
-                    sandbox="allow-same-origin allow-scripts"
-                    className="w-full min-h-[320px] bg-white"
-                  />
-                </Card>
+                <AssignmentHtmlViewer
+                  htmlUrl={assignment.interactive_html_url}
+                  ttsEnabled={ttsEnabled}
+                />
               )}
               <VideoResponseSubmission
                 assignmentId={assignment.id}
@@ -483,14 +478,11 @@ export default async function StudentAssignmentPage({
           {(assignment.type as AssignmentType) === "peer_review" && (
             <>
               {assignment.interactive_html_url && (
-                <Card padded={false} className="overflow-hidden">
-                  <iframe
-                    src={assignment.interactive_html_url}
-                    title="Directions"
-                    sandbox="allow-same-origin allow-scripts"
-                    className="w-full min-h-[320px] bg-white"
-                  />
-                </Card>
+                <AssignmentHtmlViewer
+                  htmlUrl={assignment.interactive_html_url}
+                  ttsEnabled={ttsEnabled}
+                  title="Directions"
+                />
               )}
               {peerReview && (
                 <PeerReviewStudent
@@ -529,7 +521,10 @@ export default async function StudentAssignmentPage({
               so the sidebar copy would be redundant. */}
           {assignment.type === "short_answer" ? null : assignment.instructions ? (
             <Card>
-              <p className="label-eyebrow mb-2">Instructions</p>
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <p className="label-eyebrow">Instructions</p>
+                <ReadAloudButton text={assignment.instructions} />
+              </div>
               <p className="text-sm text-wood-700 whitespace-pre-wrap">
                 {assignment.instructions}
               </p>
