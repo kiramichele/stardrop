@@ -1,10 +1,33 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { parseSubmissionMedia, type SubmissionMedia } from "@/lib/assignments";
-import type {
-  PortfolioEntry,
-  PortfolioGist,
-  StarHubIdentity,
+import {
+  PORTFOLIO_LINK_TYPES,
+  PORTFOLIO_LINKS_MAX,
+  type PortfolioEntry,
+  type PortfolioGist,
+  type PortfolioLink,
+  type StarHubIdentity,
 } from "@/lib/starhub";
+
+/** Best-effort parse of the portfolio_links jsonb column — never throws. */
+function parsePortfolioLinks(raw: unknown): PortfolioLink[] {
+  if (!Array.isArray(raw)) return [];
+  const validTypes = new Set(PORTFOLIO_LINK_TYPES.map((t) => t.type));
+  const out: PortfolioLink[] = [];
+  for (const item of raw) {
+    if (
+      item &&
+      typeof item === "object" &&
+      "type" in item &&
+      "url" in item &&
+      validTypes.has((item as { type: unknown }).type as never) &&
+      typeof (item as { url: unknown }).url === "string"
+    ) {
+      out.push(item as PortfolioLink);
+    }
+  }
+  return out.slice(0, PORTFOLIO_LINKS_MAX);
+}
 
 // Tables touched here that aren't fully in types/database.ts (until a
 // regen runs after the matching migration is applied):
@@ -56,6 +79,10 @@ type UserIdentityRow = {
   bio: string | null;
   studio: string | null;
   portfolio_public: boolean;
+  portfolio_theme: string | null;
+  portfolio_code_theme: string | null;
+  portfolio_banner_url: string | null;
+  portfolio_links: unknown;
 };
 
 type SubmissionPortfolioRow = {
@@ -177,7 +204,7 @@ export async function getStudentIdentityByUsername(
   const admin = createAdminClient();
   const { data } = await shim<UserIdentityRow>(admin, "users")
     .select(
-      "id, username, first_name, last_name, avatar_url, bio, studio, portfolio_public"
+      "id, username, first_name, last_name, avatar_url, bio, studio, portfolio_public, portfolio_theme, portfolio_code_theme, portfolio_banner_url, portfolio_links"
     )
     .eq("username", username)
     .maybeSingle();
@@ -191,7 +218,29 @@ export async function getStudentIdentityByUsername(
     bio: data.bio,
     studio: data.studio,
     portfolioPublic: data.portfolio_public,
+    theme: (data.portfolio_theme ?? "meadow") as StarHubIdentity["theme"],
+    codeTheme: data.portfolio_code_theme ?? "github-light",
+    bannerUrl: data.portfolio_banner_url,
+    links: parsePortfolioLinks(data.portfolio_links),
   };
+}
+
+/** Owner-only: background/accent theme, code snippet theme, and links. */
+export async function updatePortfolioCustomization(
+  userId: string,
+  patch: Partial<{
+    portfolio_theme: string;
+    portfolio_code_theme: string;
+    portfolio_banner_url: string | null;
+    portfolio_links: PortfolioLink[];
+  }>
+): Promise<{ ok: boolean; error?: string }> {
+  const admin = createAdminClient();
+  const { error } = await shim<UserIdentityRow>(admin, "users")
+    .update(patch)
+    .eq("id", userId);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
 }
 
 export async function updateIdentityFields(

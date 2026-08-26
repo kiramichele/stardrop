@@ -3,11 +3,13 @@ import {
   type Highlighter,
   type BundledLanguage,
 } from "shiki";
+import { CODE_THEMES, DEFAULT_CODE_THEME, resolveCodeTheme } from "@/lib/starhub";
 
 // Server-only: syntax-highlights a code string to HTML using Shiki.
 // We cache one Highlighter instance per server module load (warm after
-// the first request). The cool/light VS Code theme harmonises with the
-// new tech palette (light surfaces, deep navy text, emerald accents).
+// the first request), with every student-selectable theme (CODE_THEMES)
+// preloaded so picking a theme is just a render-time option, not a
+// re-init of the highlighter.
 
 const LANGS: BundledLanguage[] = [
   "csharp",
@@ -25,7 +27,7 @@ let _highlighter: Promise<Highlighter> | null = null;
 function getHighlighter(): Promise<Highlighter> {
   if (!_highlighter) {
     _highlighter = createHighlighter({
-      themes: ["github-light"],
+      themes: CODE_THEMES.map((t) => t.id),
       langs: LANGS,
     });
   }
@@ -56,11 +58,12 @@ function resolveLang(lang: string): BundledLanguage {
  */
 export async function highlightCode(
   code: string,
-  language: string
+  language: string,
+  theme: string = DEFAULT_CODE_THEME
 ): Promise<string> {
   const highlighter = await getHighlighter();
   return highlighter.codeToHtml(code, {
     lang: resolveLang(language),
-    theme: "github-light",
+    theme: resolveCodeTheme(theme),
   });
 }

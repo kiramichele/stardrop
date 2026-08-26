@@ -4,6 +4,12 @@
 
 import type { SubmissionMedia } from "@/lib/assignments";
 
+/** One social/portfolio link a student has added to their header. */
+export type PortfolioLink = {
+  type: PortfolioLinkType;
+  url: string;
+};
+
 /** Public identity slice for the StarHub header + entry attribution. */
 export type StarHubIdentity = {
   id: string;
@@ -15,7 +21,131 @@ export type StarHubIdentity = {
   studio: string | null;
   /** Student opted in to a no-login share link at /portfolio/[username]. */
   portfolioPublic: boolean;
+  /** Background/accent preset — see PORTFOLIO_THEMES. */
+  theme: PortfolioThemeId;
+  /** Shiki theme id for this student's code snippets — see CODE_THEMES. */
+  codeTheme: string;
+  bannerUrl: string | null;
+  links: PortfolioLink[];
 };
+
+// =============================================================
+// Portfolio customization: theme, code theme, links
+// =============================================================
+
+/**
+ * Background/accent presets for the portfolio header + page background.
+ * Deliberately just a background + accent (Tailwind classes, not literal
+ * hex) so every preset gets dark-mode support for free from the app's
+ * existing color tokens, and entry cards themselves stay neutral —
+ * cards keep reading cleanly no matter which preset is picked.
+ *
+ * NOTE: the token names (terracotta/sage/honey/wood) don't match their
+ * actual rendered hues after a past rebrand — terracotta renders green,
+ * sage renders teal. Preset ids/labels below describe what actually
+ * shows on screen, not the misleading token name.
+ */
+export type PortfolioThemeId = "meadow" | "tide" | "ember" | "slate";
+
+export interface PortfolioTheme {
+  id: PortfolioThemeId;
+  label: string;
+  /** Small hex used only for the picker's preview swatch. */
+  swatch: string;
+  pageBgClass: string;
+  accentTextClass: string;
+  accentBorderClass: string;
+  chipBgClass: string;
+}
+
+export const PORTFOLIO_THEMES: PortfolioTheme[] = [
+  {
+    id: "meadow",
+    label: "Meadow",
+    swatch: "#10b981",
+    pageBgClass: "bg-terracotta-50",
+    accentTextClass: "text-terracotta-700",
+    accentBorderClass: "border-terracotta-200",
+    chipBgClass: "bg-terracotta-100",
+  },
+  {
+    id: "tide",
+    label: "Tide",
+    swatch: "#14b8a6",
+    pageBgClass: "bg-sage-50",
+    accentTextClass: "text-sage-700",
+    accentBorderClass: "border-sage-200",
+    chipBgClass: "bg-sage-100",
+  },
+  {
+    id: "ember",
+    label: "Ember",
+    swatch: "#f59e0b",
+    pageBgClass: "bg-honey-50",
+    accentTextClass: "text-honey-700",
+    accentBorderClass: "border-honey-200",
+    chipBgClass: "bg-honey-100",
+  },
+  {
+    id: "slate",
+    label: "Slate",
+    swatch: "#4f6c8d",
+    pageBgClass: "bg-wood-50",
+    accentTextClass: "text-wood-700",
+    accentBorderClass: "border-wood-200",
+    chipBgClass: "bg-wood-100",
+  },
+];
+
+const DEFAULT_THEME_ID: PortfolioThemeId = "meadow";
+
+export function resolvePortfolioTheme(id: string | null | undefined): PortfolioTheme {
+  return (
+    PORTFOLIO_THEMES.find((t) => t.id === id) ??
+    PORTFOLIO_THEMES.find((t) => t.id === DEFAULT_THEME_ID)!
+  );
+}
+
+/**
+ * Shiki themes offered for code snippets. Ids must match shiki's bundled
+ * theme names exactly (see lib/code-highlight.ts, which registers all of
+ * these up front).
+ */
+export const CODE_THEMES: { id: string; label: string }[] = [
+  { id: "github-light", label: "GitHub Light" },
+  { id: "github-dark", label: "GitHub Dark" },
+  { id: "dracula", label: "Dracula" },
+  { id: "nord", label: "Nord" },
+  { id: "monokai", label: "Monokai" },
+  { id: "one-dark-pro", label: "One Dark Pro" },
+];
+
+export const DEFAULT_CODE_THEME = "github-light";
+
+export function resolveCodeTheme(id: string | null | undefined): string {
+  return CODE_THEMES.some((t) => t.id === id) ? id! : DEFAULT_CODE_THEME;
+}
+
+/** Fixed set of link types a student can add — keeps the header tidy and
+ * every link recognizable at a glance instead of a free-for-all list. */
+export type PortfolioLinkType = "github" | "itch" | "linkedin" | "website";
+
+export const PORTFOLIO_LINK_TYPES: {
+  type: PortfolioLinkType;
+  label: string;
+  placeholder: string;
+}[] = [
+  { type: "github", label: "GitHub", placeholder: "https://github.com/you" },
+  { type: "itch", label: "itch.io", placeholder: "https://you.itch.io" },
+  {
+    type: "linkedin",
+    label: "LinkedIn",
+    placeholder: "https://linkedin.com/in/you",
+  },
+  { type: "website", label: "Website", placeholder: "https://your-site.com" },
+];
+
+export const PORTFOLIO_LINKS_MAX = PORTFOLIO_LINK_TYPES.length;
 
 /** A free-form code post — the gist-style portfolio entry. */
 export type PortfolioGist = {

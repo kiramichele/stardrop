@@ -11,17 +11,20 @@ export async function CodeBlock({
   code,
   language,
   maxLines,
+  theme,
 }: {
   code: string;
   language: string;
   maxLines?: number;
+  /** Shiki theme id — defaults to GitHub Light when omitted. */
+  theme?: string;
 }) {
   const lines = code.split("\n");
   const truncated = maxLines && lines.length > maxLines;
   const displayCode = truncated
     ? lines.slice(0, maxLines).join("\n")
     : code;
-  const html = await highlightCode(displayCode, language);
+  const html = await highlightCode(displayCode, language, theme);
 
   return (
     <div className="rounded-cozy overflow-hidden border border-wood-100 text-sm">

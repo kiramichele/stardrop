@@ -4,7 +4,7 @@ import {
   getStudentIdentityByUsername,
   getPortfolioEntries,
 } from "@/lib/starhub-server";
-import { entryFilterBucket } from "@/lib/starhub";
+import { entryFilterBucket, resolvePortfolioTheme } from "@/lib/starhub";
 import { IdentityHeader } from "@/components/starhub/IdentityHeader";
 import {
   PortfolioFeed,
@@ -25,6 +25,7 @@ export default async function StarHubProfilePage({
   const isOwner = viewer.id === identity.id;
   const isTeacher = viewer.role === "teacher";
   const canSeePrivate = isOwner || isTeacher;
+  const theme = resolvePortfolioTheme(identity.theme);
 
   const entries = await getPortfolioEntries(identity.id, {
     canSeePrivate,
@@ -41,15 +42,16 @@ export default async function StarHubProfilePage({
           entry={entry}
           isOwner={isOwner}
           isTeacher={isTeacher}
+          codeTheme={identity.codeTheme}
         />
       ),
     }))
   );
 
   return (
-    <>
-      <IdentityHeader identity={identity} isOwner={isOwner} />
+    <div className={`rounded-cozy-lg p-6 sm:p-8 ${theme.pageBgClass}`}>
+      <IdentityHeader identity={identity} isOwner={isOwner} isTeacher={isTeacher} />
       <PortfolioFeed items={items} isOwner={isOwner} />
-    </>
+    </div>
   );
 }

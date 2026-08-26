@@ -35,10 +35,13 @@ export async function EntryCard({
   entry,
   isOwner,
   isTeacher,
+  codeTheme,
 }: {
   entry: PortfolioEntry;
   isOwner: boolean;
   isTeacher: boolean;
+  /** Shiki theme id for this identity's code snippets. */
+  codeTheme?: string;
 }) {
   const canManage = isOwner || isTeacher;
 
@@ -63,7 +66,7 @@ export async function EntryCard({
         </div>
       </div>
 
-      {await renderBody(entry)}
+      {await renderBody(entry, codeTheme)}
 
       {canManage && entry.kind === "gist" && (
         <div className="flex items-center justify-between gap-2 border-t border-wood-100 px-4 py-2">
@@ -112,7 +115,7 @@ function EntryHeader({ entry }: { entry: PortfolioEntry }) {
   );
 }
 
-async function renderBody(entry: PortfolioEntry) {
+async function renderBody(entry: PortfolioEntry, codeTheme?: string) {
   if (entry.kind === "post") {
     return (
       <div className="px-4 pb-4">
@@ -167,6 +170,7 @@ async function renderBody(entry: PortfolioEntry) {
           code={entry.code}
           language={entry.language}
           maxLines={24}
+          theme={codeTheme}
         />
       </div>
     );
@@ -207,7 +211,12 @@ async function renderBody(entry: PortfolioEntry) {
     return (
       <div className="px-4 pb-4">
         {entry.content && entry.content.trim().length > 0 ? (
-          <CodeBlock code={entry.content} language="csharp" maxLines={24} />
+          <CodeBlock
+            code={entry.content}
+            language="csharp"
+            maxLines={24}
+            theme={codeTheme}
+          />
         ) : (
           <p className="text-sm text-wood-500 italic">No code submitted.</p>
         )}

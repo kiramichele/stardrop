@@ -12,9 +12,18 @@ import {
   deletePostRecord,
   setPostPublicRecord,
   setPortfolioPublicRecord,
+  updatePortfolioCustomization,
 } from "@/lib/starhub-server";
 import { setSubmissionPublicRecord } from "@/lib/devlog-wall-server";
 import type { SubmissionMedia } from "@/lib/assignments";
+import {
+  PORTFOLIO_THEMES,
+  CODE_THEMES,
+  PORTFOLIO_LINK_TYPES,
+  PORTFOLIO_LINKS_MAX,
+  type PortfolioLink,
+} from "@/lib/starhub";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const TITLE_MAX = 120;
 const DESCRIPTION_MAX = 600;
@@ -190,6 +199,132 @@ export async function setPortfolioPublic(
     revalidatePath(`/starhub/${user.username}`);
     revalidatePath(`/portfolio/${user.username}`);
   }
+  return result;
+}
+
+// =============================================================
+// Portfolio customization: theme, code theme, banner, links
+// =============================================================
+
+function revalidatePortfolio(username: string) {
+  revalidatePath(`/starhub/${username}`);
+  revalidatePath(`/portfolio/${username}`);
+}
+
+/** Owner-only: background/accent theme preset. */
+export async function setPortfolioTheme(
+  themeId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+  if (!PORTFOLIO_THEMES.some((t) => t.id === themeId)) {
+    return { ok: false, error: "Unknown theme." };
+  }
+  const result = await updatePortfolioCustomization(user.id, {
+    portfolio_theme: themeId,
+  });
+  if (result.ok) revalidatePortfolio(user.username);
+  return result;
+}
+
+/** Owner-only: Shiki theme for code snippets. */
+export async function setPortfolioCodeTheme(
+  themeId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+  if (!CODE_THEMES.some((t) => t.id === themeId)) {
+    return { ok: false, error: "Unknown code theme." };
+  }
+  const result = await updatePortfolioCustomization(user.id, {
+    portfolio_code_theme: themeId,
+  });
+  if (result.ok) revalidatePortfolio(user.username);
+  return result;
+}
+
+/**
+ * Owner-only: the social/portfolio link row. `links` is the full desired
+ * set (one per type at most) — the form always sends its complete state,
+ * same pattern as other settings forms in the app.
+ */
+export async function setPortfolioLinks(
+  links: PortfolioLink[]
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireUser();
+  const validTypes = new Set(PORTFOLIO_LINK_TYPES.map((t) => t.type));
+
+  const cleaned: PortfolioLink[] = [];
+  const seen = new Set<string>();
+  for (const link of Array.isArray(links) ? links : []) {
+    if (!link || !validTypes.has(link.type) || seen.has(link.type)) continue;
+    const url = (link.url ?? "").trim().slice(0, 300);
+    if (!url) continue;
+    if (!/^https?:\/\/.+/i.test(url)) {
+      return {
+        ok: false,
+        error: `That ${link.type} link needs to start with http:// or https://.`,
+      };
+    }
+    seen.add(link.type);
+    cleaned.push({ type: link.type, url });
+  }
+
+  const result = await updatePortfolioCustomization(user.id, {
+    portfolio_links: cleaned.slice(0, PORTFOLIO_LINKS_MAX),
+  });
+  if (result.ok) revalidatePortfolio(user.username);
+  return result;
+}
+
+/** Owner-only: upload a banner image (reuses the `avatars` bucket, keyed
+ * separately from the profile photo). */
+export async function uploadPortfolioBanner(
+  formData: FormData
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  const user = await requireUser();
+  const file = formData.get("banner") as File | null;
+  if (!file || file.size === 0) return { ok: false, error: "No file provided" };
+  if (!file.type.startsWith("image/")) {
+    return { ok: false, error: "Please choose an image file." };
+  }
+
+  const admin = createAdminClient();
+  const key = `banner-${user.id}`;
+  const bytes = await file.arrayBuffer();
+  const { error: uploadError } = await admin.storage
+    .from("avatars")
+    .upload(key, bytes, {
+      contentType: file.type,
+      upsert: true,
+      cacheControl: "3600",
+    });
+  if (uploadError) {
+    return { ok: false, error: `Upload failed: ${uploadError.message}` };
+  }
+
+  const { data: urlData } = admin.storage.from("avatars").getPublicUrl(key);
+  const url = `${urlData.publicUrl}?v=${Date.now()}`;
+
+  const result = await updatePortfolioCustomization(user.id, {
+    portfolio_banner_url: url,
+  });
+  if (!result.ok) return { ok: false, error: result.error ?? "Couldn't save." };
+
+  revalidatePortfolio(user.username);
+  return { ok: true, url };
+}
+
+/** Owner-only: remove the banner image. */
+export async function removePortfolioBanner(): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
+  const user = await requireUser();
+  const admin = createAdminClient();
+  await admin.storage.from("avatars").remove([`banner-${user.id}`]);
+  const result = await updatePortfolioCustomization(user.id, {
+    portfolio_banner_url: null,
+  });
+  if (result.ok) revalidatePortfolio(user.username);
   return result;
 }
 
