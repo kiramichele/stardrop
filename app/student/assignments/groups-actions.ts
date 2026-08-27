@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { requireStudent } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  getOrCreateVoiceRoom,
+  mintMeetingToken,
+  isVoiceChatConfigured,
+} from "@/lib/voice-server";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -244,6 +249,45 @@ export async function reopenGroup(
   if (error) return { ok: false, error: error.message };
   revalidatePath(`/student/assignments/${assignmentId}`);
   return { ok: true };
+}
+
+/**
+ * Get (or lazily create) this group's voice room and a short-lived token
+ * to join it. Membership in the group is the only gate — deliberately not
+ * restricted to "choice" mode groups the way the rest of this file is,
+ * since voice chat should work for random/manual groups too.
+ */
+export async function joinVoiceRoom(
+  groupId: string
+): Promise<
+  { ok: true; roomUrl: string; token: string } | { ok: false; error: string }
+> {
+  if (!isVoiceChatConfigured()) {
+    return { ok: false, error: "Voice chat isn't set up yet." };
+  }
+  const user = await requireStudent();
+  const admin = createAdminClient();
+
+  const { data: membership } = await admin
+    .from("group_members")
+    .select("id")
+    .eq("group_id", groupId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!membership) {
+    return { ok: false, error: "You're not a member of this group." };
+  }
+
+  const room = await getOrCreateVoiceRoom(groupId);
+  if (!room.ok) return room;
+
+  const token = await mintMeetingToken(room.roomName, {
+    id: user.id,
+    name: `${user.first_name} ${user.last_name}`.trim() || user.username,
+  });
+  if (!token.ok) return token;
+
+  return { ok: true, roomUrl: room.roomUrl, token: token.token };
 }
 
 export async function workSolo(assignmentId: string): Promise<Result> {

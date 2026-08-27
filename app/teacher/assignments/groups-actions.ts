@@ -5,6 +5,10 @@ import { requireTeacher } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getEnrolledStudents, getAssignmentGroups } from "@/lib/groups-server";
 import { partitionIntoGroups } from "@/lib/groups";
+import {
+  getVoicePresenceForGroups,
+  type VoicePresenceEntry,
+} from "@/lib/voice-server";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -322,4 +326,33 @@ export async function moveMember(
   }
   revalidateAssignment(assignmentId);
   return { ok: true };
+}
+
+// =============================================================
+// Voice chat activity (live view)
+// =============================================================
+
+export type VoiceActivityRow = {
+  groupId: string;
+  participants: VoicePresenceEntry[];
+};
+
+/**
+ * Who's currently in voice chat, per group, straight from Daily's
+ * presence API — polled by VoiceActivityPanel rather than pushed, so
+ * there's no new realtime infra to run. Groups nobody's ever joined
+ * voice for just don't appear.
+ */
+export async function getVoiceActivity(
+  assignmentId: string
+): Promise<VoiceActivityRow[]> {
+  await requireTeacher();
+  const groups = await getAssignmentGroups(assignmentId);
+  const nonSolo = groups.filter((g) => !g.isSolo);
+  if (nonSolo.length === 0) return [];
+
+  const presence = await getVoicePresenceForGroups(nonSolo.map((g) => g.id));
+  return nonSolo
+    .filter((g) => presence.has(g.id))
+    .map((g) => ({ groupId: g.id, participants: presence.get(g.id)! }));
 }

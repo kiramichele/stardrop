@@ -25,6 +25,7 @@ import { getFeedbackThread } from "@/lib/feedback-server";
 import { getLesson } from "@/lib/lessons";
 import { getUnitySimulationEnabled } from "@/lib/app-settings-server";
 import { isTtsConfigured } from "@/lib/tts";
+import { isVoiceChatConfigured } from "@/lib/voice-server";
 import { readCollabConfig, type AssignmentGroup } from "@/lib/groups";
 import {
   getAssignmentGroups,
@@ -262,6 +263,7 @@ export default async function StudentAssignmentPage({
                       assignmentId={assignment.id}
                       group={myGroup}
                       mode={collab.groupMode}
+                      voiceChatEnabled={isVoiceChatConfigured()}
                     />
                     <CollaborativeCodeEditor
                       groupId={myGroup.id}

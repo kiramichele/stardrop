@@ -38,6 +38,8 @@ import { getRubricsForTeacher } from "@/lib/rubrics-server";
 import { getUnitsForTeacher } from "@/lib/lessons";
 import { AssignmentSettingsForm } from "@/components/assignments/AssignmentSettingsForm";
 import { GroupManager } from "@/components/assignments/GroupManager";
+import { VoiceActivityPanel } from "@/components/assignments/VoiceActivityPanel";
+import { isVoiceChatConfigured } from "@/lib/voice-server";
 import { readCollabConfig } from "@/lib/groups";
 import {
   getAssignmentGroups,
@@ -386,6 +388,10 @@ export default async function AssignmentDetailPage({
                     );
                   })}
                 </div>
+              )}
+
+              {isVoiceChatConfigured() && (
+                <VoiceActivityPanel assignmentId={assignmentId} groups={groups} />
               )}
 
               <GroupManager

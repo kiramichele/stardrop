@@ -21,14 +21,22 @@ import {
   reopenGroup,
   leaveGroup,
 } from "@/app/student/assignments/groups-actions";
+import { VoiceChatPanel } from "@/components/assignments/VoiceChatPanel";
 
 interface GroupPanelProps {
   assignmentId: string;
   group: AssignmentGroup;
   mode: GroupMode;
+  /** Whether Daily.co is configured server-side — hides voice chat entirely when it isn't. */
+  voiceChatEnabled?: boolean;
 }
 
-export function GroupPanel({ assignmentId, group, mode }: GroupPanelProps) {
+export function GroupPanel({
+  assignmentId,
+  group,
+  mode,
+  voiceChatEnabled = false,
+}: GroupPanelProps) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -171,6 +179,10 @@ export function GroupPanel({ assignmentId, group, mode }: GroupPanelProps) {
             {group.isSolo ? "Join a group instead" : "Leave group"}
           </Button>
         </div>
+      )}
+
+      {voiceChatEnabled && !group.isSolo && (
+        <VoiceChatPanel groupId={group.id} />
       )}
 
       <p className="text-xs text-wood-500 mt-3 pt-3 border-t border-wood-100">
