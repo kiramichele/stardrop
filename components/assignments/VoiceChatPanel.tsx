@@ -5,18 +5,30 @@ import { Mic, PhoneOff, Loader2, AlertCircle } from "lucide-react";
 import type { DailyCall } from "@daily-co/daily-js";
 import { Button } from "@/components/ui/Button";
 import { joinVoiceRoom } from "@/app/student/assignments/groups-actions";
+import { joinVoiceRoomAsTeacher } from "@/app/teacher/assignments/groups-actions";
 
 /**
  * Optional voice chat for a group. Off by default — nothing loads (no
- * mic permission prompt, no Daily SDK) until a student clicks "Join
- * voice chat". Camera starts off (this is voice chat, not video call),
- * though Daily's own controls let a student turn it on if they want to.
+ * mic permission prompt, no Daily SDK) until someone clicks "Join voice
+ * chat". Camera starts off (this is voice chat, not video call), though
+ * Daily's own controls let anyone turn it on if they want to.
+ *
+ * `role="teacher"` lets a teacher drop into a group's room too (to check
+ * in, or just to test the feature) — it's a visible join like anyone
+ * else's, not a silent listen-in, since Daily shows every participant's
+ * name in the room.
  *
  * Server-verified join/leave logging happens out-of-band via Daily's
  * webhooks (see app/api/webhooks/daily/route.ts) — this component
  * doesn't need to report anything itself for that to work.
  */
-export function VoiceChatPanel({ groupId }: { groupId: string }) {
+export function VoiceChatPanel({
+  groupId,
+  role = "student",
+}: {
+  groupId: string;
+  role?: "student" | "teacher";
+}) {
   const [status, setStatus] = useState<"idle" | "connecting" | "in-call" | "error">(
     "idle"
   );
@@ -33,7 +45,10 @@ export function VoiceChatPanel({ groupId }: { groupId: string }) {
   async function join() {
     setStatus("connecting");
     setError(null);
-    const result = await joinVoiceRoom(groupId);
+    const result =
+      role === "teacher"
+        ? await joinVoiceRoomAsTeacher(groupId)
+        : await joinVoiceRoom(groupId);
     if (!result.ok) {
       setStatus("error");
       setError(result.error);
@@ -99,8 +114,10 @@ export function VoiceChatPanel({ groupId }: { groupId: string }) {
         )}
       </div>
       <p className="mt-1 text-xs text-wood-500">
-        Optional — join anytime to talk through the assignment with your
-        group. Camera starts off; turn it on in the call if you want.
+        {role === "teacher"
+          ? "Drop in on this group's call — you'll show up as a visible participant, not a silent listener."
+          : "Optional — join anytime to talk through the assignment with your group."}{" "}
+        Camera starts off; turn it on in the call if you want.
       </p>
       {error && (
         <p className="mt-1.5 flex items-center gap-1.5 text-xs text-terracotta-700">

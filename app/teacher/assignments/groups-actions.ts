@@ -7,6 +7,9 @@ import { getEnrolledStudents, getAssignmentGroups } from "@/lib/groups-server";
 import { partitionIntoGroups } from "@/lib/groups";
 import {
   getVoicePresenceForGroups,
+  getOrCreateVoiceRoom,
+  mintMeetingToken,
+  isVoiceChatConfigured,
   type VoicePresenceEntry,
 } from "@/lib/voice-server";
 
@@ -355,4 +358,42 @@ export async function getVoiceActivity(
   return nonSolo
     .filter((g) => presence.has(g.id))
     .map((g) => ({ groupId: g.id, participants: presence.get(g.id)! }));
+}
+
+/**
+ * Let a teacher join a group's voice room too — to check in on a group
+ * that's in a call, or just to test the feature. Confirms the group is
+ * real (the student-side join implicitly gets this from the membership
+ * check; a teacher isn't a member, so this checks group existence
+ * directly instead). Joining is visible like any other participant —
+ * Daily shows every name in the room, this isn't a silent listen-in.
+ */
+export async function joinVoiceRoomAsTeacher(
+  groupId: string
+): Promise<
+  { ok: true; roomUrl: string; token: string } | { ok: false; error: string }
+> {
+  if (!isVoiceChatConfigured()) {
+    return { ok: false, error: "Voice chat isn't set up yet." };
+  }
+  const user = await requireTeacher();
+  const admin = createAdminClient();
+
+  const { data: group } = await admin
+    .from("assignment_groups")
+    .select("id")
+    .eq("id", groupId)
+    .maybeSingle();
+  if (!group) return { ok: false, error: "That group doesn't exist." };
+
+  const room = await getOrCreateVoiceRoom(groupId);
+  if (!room.ok) return room;
+
+  const token = await mintMeetingToken(room.roomName, {
+    id: user.id,
+    name: `${user.first_name} ${user.last_name}`.trim() || user.username,
+  });
+  if (!token.ok) return token;
+
+  return { ok: true, roomUrl: room.roomUrl, token: token.token };
 }
