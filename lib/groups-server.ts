@@ -252,3 +252,51 @@ export async function getEnrolledStudents(
         a.firstName.localeCompare(b.firstName)
     );
 }
+
+// =============================================================
+// Cross-assignment overview (teacher voice-chat page)
+// =============================================================
+
+export type CollaborativeAssignmentGroups = {
+  assignmentId: string;
+  title: string;
+  className: string | null;
+  periodNumber: number | null;
+  groups: AssignmentGroup[];
+};
+
+/**
+ * Every collaborative assignment's non-solo groups, across every class —
+ * the "overall" view for /teacher/voice, as opposed to GroupManager's
+ * per-assignment one. One assignment row per class it's given to (same
+ * per-class-copy storage as everywhere else in the app), so a title can
+ * legitimately appear more than once with different groups underneath.
+ */
+export async function getCollaborativeAssignmentsWithGroups(): Promise<
+  CollaborativeAssignmentGroups[]
+> {
+  const admin = createAdminClient();
+  const { data: assignments } = await admin
+    .from("assignments")
+    .select("id, title, classes(name, period_number)")
+    .eq("collaborative", true)
+    .order("created_at", { ascending: false });
+  if (!assignments || assignments.length === 0) return [];
+
+  const results = await Promise.all(
+    assignments.map(async (a) => {
+      const groups = (await getAssignmentGroups(a.id)).filter(
+        (g) => !g.isSolo
+      );
+      const klass = Array.isArray(a.classes) ? a.classes[0] : a.classes;
+      return {
+        assignmentId: a.id,
+        title: a.title,
+        className: klass?.name ?? null,
+        periodNumber: klass?.period_number ?? null,
+        groups,
+      };
+    })
+  );
+  return results.filter((r) => r.groups.length > 0);
+}

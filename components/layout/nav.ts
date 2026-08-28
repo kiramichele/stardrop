@@ -21,6 +21,7 @@ import {
   Mail,
   Table2,
   BookMarked,
+  Radio,
   type LucideIcon,
 } from "lucide-react";
 
@@ -44,6 +45,7 @@ export const teacherNav: NavItem[] = [
   { label: "Assignments", href: "/teacher/assignments", icon: ClipboardList },
   { label: "Grading", href: "/teacher/grading", icon: ClipboardCheck },
   { label: "Gradebook", href: "/teacher/gradebook", icon: Table2 },
+  { label: "Voice chat", href: "/teacher/voice", icon: Radio },
   { label: "Slideshows", href: "/slideshows", icon: Presentation },
   { label: "StarHub", href: "/starhub", icon: Sparkles },
   { label: "Playground", href: "/playground", icon: Terminal },
