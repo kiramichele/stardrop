@@ -307,6 +307,54 @@ export async function updateAssignment(
   return { ok: true };
 }
 
+/**
+ * Clear the due date (and both extended-time due dates) across every
+ * class this assignment was given to, not just the one currently open —
+ * same sibling-copy lookup as deleteAssignment.
+ */
+export async function clearDueDatesForAllClasses(
+  assignmentId: string
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  await requireFullTeacher();
+  const admin = createAdminClient();
+
+  const { data: a } = await admin
+    .from("assignments")
+    .select("assignment_group_id, title, type, lesson_id, is_unit_quiz")
+    .eq("id", assignmentId)
+    .maybeSingle();
+  if (!a) return { ok: false, error: "Assignment not found." };
+
+  let ids = [assignmentId];
+  let q = admin.from("assignments").select("id");
+  if (a.assignment_group_id) {
+    q = q.eq("assignment_group_id", a.assignment_group_id);
+  } else {
+    q = q
+      .eq("title", a.title)
+      .eq("type", a.type)
+      .eq("is_unit_quiz", a.is_unit_quiz);
+    q = a.lesson_id ? q.eq("lesson_id", a.lesson_id) : q.is("lesson_id", null);
+  }
+  const { data: sibs } = await q;
+  if (sibs && sibs.length > 0) ids = sibs.map((s) => s.id);
+
+  const { error } = await admin
+    .from("assignments")
+    .update({
+      due_date: null,
+      due_date_1_5x: null,
+      due_date_2x: null,
+    } as never)
+    .in("id", ids);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/teacher/assignments");
+  revalidatePath("/student/assignments");
+  for (const id of ids) revalidatePath(`/teacher/assignments/${id}`);
+  return { ok: true, count: ids.length };
+}
+
 export async function deleteAssignment(assignmentId: string) {
   await requireFullTeacher();
   const admin = createAdminClient();

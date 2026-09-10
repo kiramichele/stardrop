@@ -3,12 +3,15 @@
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, AlertCircle } from "lucide-react";
+import { Check, AlertCircle, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input, Label, Textarea, Select, FieldHint } from "@/components/ui/Input";
 import { UnitLessonPicker } from "@/components/assignments/UnitLessonPicker";
 import { CollaborativeFields } from "@/components/assignments/CollaborativeFields";
-import { updateAssignment } from "@/app/teacher/assignments/actions";
+import {
+  updateAssignment,
+  clearDueDatesForAllClasses,
+} from "@/app/teacher/assignments/actions";
 import { rubricMaxPoints, type Rubric } from "@/lib/rubrics";
 import type { CollabConfig } from "@/lib/groups";
 
@@ -90,6 +93,43 @@ export function AssignmentSettingsForm({
     if (ref.current) ref.current.value = "";
   }
 
+  // Separate from the main save transition — this hits every class this
+  // assignment was given to immediately, not just the copy open here, so
+  // it isn't part of the regular Save Changes flow.
+  const [isClearingAll, startClearAll] = useTransition();
+  const [clearAllStatus, setClearAllStatus] = useState<
+    "idle" | "done" | "error"
+  >("idle");
+  const [clearAllResult, setClearAllResult] = useState<string | null>(null);
+
+  function handleClearAllClasses() {
+    if (
+      !confirm(
+        "Clear the due date (and both extended-time due dates) for every class this assignment was given to? This can't be undone."
+      )
+    ) {
+      return;
+    }
+    setClearAllStatus("idle");
+    setClearAllResult(null);
+    startClearAll(async () => {
+      const result = await clearDueDatesForAllClasses(assignmentId);
+      if (result.ok) {
+        clearDateField(dueDateRef);
+        clearDateField(due1_5xRef);
+        clearDateField(due2xRef);
+        setClearAllStatus("done");
+        setClearAllResult(
+          `Cleared for ${result.count} ${result.count === 1 ? "class" : "classes"}.`
+        );
+        router.refresh();
+      } else {
+        setClearAllStatus("error");
+        setClearAllResult(result.error);
+      }
+    });
+  }
+
   function handleSubmit(formData: FormData) {
     setStatus("idle");
     setError(null);
@@ -165,6 +205,31 @@ export function AssignmentSettingsForm({
           needs backspacing) — use Clear above instead if you want no due
           date.
         </FieldHint>
+        <button
+          type="button"
+          onClick={handleClearAllClasses}
+          disabled={isClearingAll}
+          className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-terracotta-700 hover:text-terracotta-800 transition-colors disabled:opacity-60"
+        >
+          <Eraser className="w-3.5 h-3.5" strokeWidth={2} />
+          {isClearingAll
+            ? "Clearing every class…"
+            : "Clear due dates for every class"}
+        </button>
+        {clearAllResult && (
+          <p
+            className={`mt-1 flex items-center gap-1 text-xs ${
+              clearAllStatus === "error" ? "text-terracotta-700" : "text-sage-700"
+            }`}
+          >
+            {clearAllStatus === "error" ? (
+              <AlertCircle className="w-3 h-3 flex-shrink-0" />
+            ) : (
+              <Check className="w-3 h-3 flex-shrink-0" strokeWidth={2.5} />
+            )}
+            {clearAllResult}
+          </p>
+        )}
       </div>
       <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
         <p className="text-sm font-medium text-wood-800 mb-2">
