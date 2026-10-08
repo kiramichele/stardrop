@@ -418,12 +418,21 @@ export default async function StudentAssignmentPage({
           )}
 
           {assignment.type === "unity_upload" && (
-            <UnityUploadAssignment
-              assignmentId={assignment.id}
-              initialMedia={parseSubmissionMedia(submission?.uploaded_files)}
-              initialStatus={submission?.status ?? "draft"}
-              initialSubmissionId={submission?.id ?? null}
-            />
+            <>
+              {assignment.interactive_html_url && (
+                <AssignmentHtmlViewer
+                  assignmentId={assignment.id}
+                  htmlUrl={assignment.interactive_html_url}
+                  ttsEnabled={ttsEnabled}
+                />
+              )}
+              <UnityUploadAssignment
+                assignmentId={assignment.id}
+                initialMedia={parseSubmissionMedia(submission?.uploaded_files)}
+                initialStatus={submission?.status ?? "draft"}
+                initialSubmissionId={submission?.id ?? null}
+              />
+            </>
           )}
 
           {(assignment.type as AssignmentType) === "devlog" && (

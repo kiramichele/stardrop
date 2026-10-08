@@ -196,13 +196,15 @@ export default async function AssignmentDetailPage({
   const isTextual =
     assignment.type === "short_answer" || assignment.type === "discussion";
   const isCode = assignment.type === "code";
-  // Devlog + video_response + code assignments also use the
-  // interactive_html_url column — for them it's an optional rich-HTML
-  // prompt rendered above the recorder / editor.
+  // Devlog + video_response + code + unity_upload assignments also use
+  // the interactive_html_url column — for them it's an optional
+  // rich-HTML prompt rendered above the recorder / editor / uploader.
   const isDevlog = (assignment.type as AssignmentType) === "devlog";
   const isVideoResponse =
     (assignment.type as AssignmentType) === "video_response";
-  const acceptsHtml = isInteractive || isDevlog || isVideoResponse || isCode;
+  const isUnityUpload = (assignment.type as AssignmentType) === "unity_upload";
+  const acceptsHtml =
+    isInteractive || isDevlog || isVideoResponse || isCode || isUnityUpload;
   const hasInteractiveHtml = !!assignment.interactive_html_url;
   const collabConfig = readCollabConfig(assignment);
   // Legacy "both" rows collapse to "unity" — the form no longer offers a
