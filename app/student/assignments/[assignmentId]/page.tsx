@@ -431,6 +431,7 @@ export default async function StudentAssignmentPage({
                 initialMedia={parseSubmissionMedia(submission?.uploaded_files)}
                 initialStatus={submission?.status ?? "draft"}
                 initialSubmissionId={submission?.id ?? null}
+                initialContent={submission?.content ?? ""}
               />
             </>
           )}

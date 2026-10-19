@@ -15,8 +15,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Textarea } from "@/components/ui/Input";
+import { createClient } from "@/lib/supabase/client";
 import {
-  uploadSubmissionMedia,
+  createSubmissionMediaUploadUrl,
+  ensureSubmission,
+  saveDraft,
+  recordSubmissionMedia,
   removeSubmissionMedia,
   submitAssignment,
 } from "@/app/student/assignments/actions";
@@ -27,6 +32,7 @@ interface UnityUploadAssignmentProps {
   initialMedia: SubmissionMedia[];
   initialStatus: "draft" | "submitted" | "graded";
   initialSubmissionId: string | null;
+  initialContent: string;
 }
 
 export function UnityUploadAssignment({
@@ -34,6 +40,7 @@ export function UnityUploadAssignment({
   initialMedia,
   initialStatus,
   initialSubmissionId,
+  initialContent,
 }: UnityUploadAssignmentProps) {
   const [media, setMedia] = useState<SubmissionMedia[]>(initialMedia);
   const [status, setStatus] = useState(initialStatus);
@@ -43,6 +50,14 @@ export function UnityUploadAssignment({
   const [isRecording, setIsRecording] = useState(false);
   const [recordingMs, setRecordingMs] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [answer, setAnswer] = useState(initialContent);
+  const [answerSaveState, setAnswerSaveState] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+  const answerTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Mirrors submissionId so the debounced autosave sees a row created by
+  // an upload that finished after the timer was scheduled.
+  const submissionIdRef = useRef<string | null>(initialSubmissionId);
   const [isUploading, startUpload] = useTransition();
   const [isSubmitting, startSubmit] = useTransition();
 
@@ -65,21 +80,75 @@ export function UnityUploadAssignment({
 
   useEffect(() => () => clearStream(), []);
 
+  useEffect(() => {
+    submissionIdRef.current = submissionId;
+  }, [submissionId]);
+
+  useEffect(
+    () => () => {
+      if (answerTimerRef.current) clearTimeout(answerTimerRef.current);
+    },
+    []
+  );
+
+  async function saveAnswer(text: string) {
+    setAnswerSaveState("saving");
+    try {
+      let sid = submissionIdRef.current;
+      if (!sid) {
+        sid = (await ensureSubmission(assignmentId)).id;
+        submissionIdRef.current = sid;
+        setSubmissionId(sid);
+      }
+      const result = await saveDraft(sid, { content: text });
+      setAnswerSaveState(result.ok ? "saved" : "error");
+    } catch {
+      setAnswerSaveState("error");
+    }
+  }
+
+  function handleAnswerChange(text: string) {
+    setAnswer(text);
+    setAnswerSaveState("idle");
+    if (answerTimerRef.current) clearTimeout(answerTimerRef.current);
+    answerTimerRef.current = setTimeout(() => saveAnswer(text), 1000);
+  }
+
   async function uploadBlob(blob: Blob, kind: "image" | "video") {
-    const form = new FormData();
-    form.set("kind", kind);
-    form.set(
-      "file",
-      new File([blob], `capture.${kind === "image" ? "png" : "webm"}`, {
-        type: blob.type,
-      })
-    );
+    const mime = blob.type || (kind === "video" ? "video/webm" : "image/png");
     startUpload(async () => {
       try {
-        const result = await uploadSubmissionMedia(assignmentId, form);
+        // Upload straight to storage via a signed URL — recordings are often
+        // bigger than a server action request is allowed to be.
+        const signed = await createSubmissionMediaUploadUrl(
+          assignmentId,
+          kind,
+          mime
+        );
+        if (!signed.ok) {
+          setError(signed.error);
+          return;
+        }
+        if (!submissionId) setSubmissionId(signed.submissionId);
+
+        const { error: uploadError } = await createClient()
+          .storage.from("submissions")
+          .uploadToSignedUrl(signed.path, signed.token, blob, {
+            contentType: mime,
+          });
+        if (uploadError) {
+          setError(`Upload failed: ${uploadError.message}`);
+          return;
+        }
+
+        const result = await recordSubmissionMedia(signed.submissionId, {
+          fileId: signed.fileId,
+          storagePath: signed.path,
+          kind,
+          mime,
+        });
         if (result.ok) {
           setMedia((m) => [...m, result.media]);
-          if (!submissionId) setSubmissionId(result.submissionId);
           setError(null);
         } else {
           setError(result.error);
@@ -217,8 +286,12 @@ export function UnityUploadAssignment({
       setError("Capture at least one file before submitting.");
       return;
     }
+    if (answerTimerRef.current) {
+      clearTimeout(answerTimerRef.current);
+      answerTimerRef.current = null;
+    }
     startSubmit(async () => {
-      const result = await submitAssignment(submissionId, {});
+      const result = await submitAssignment(submissionId, { content: answer });
       if (result.ok) {
         setStatus("submitted");
         setError(null);
@@ -318,6 +391,36 @@ export function UnityUploadAssignment({
           </ul>
         </Card>
       )}
+
+      <Card>
+        <div className="flex items-center justify-between gap-3 mb-1">
+          <h3 className="font-display text-lg text-wood-900">
+            Your answers{" "}
+            <span className="text-sm font-sans text-wood-500">(optional)</span>
+          </h3>
+          {answerSaveState === "saving" && (
+            <span className="text-xs text-wood-500">Saving…</span>
+          )}
+          {answerSaveState === "saved" && (
+            <span className="flex items-center gap-1 text-xs text-sage-700">
+              <Check className="w-3 h-3" />
+              Saved
+            </span>
+          )}
+          {answerSaveState === "error" && (
+            <span className="text-xs text-terracotta-700">Couldn&apos;t save</span>
+          )}
+        </div>
+        <p className="text-sm text-wood-500 mb-3">
+          Answer any questions from the assignment here.
+        </p>
+        <Textarea
+          value={answer}
+          onChange={(e) => handleAnswerChange(e.target.value)}
+          rows={6}
+          placeholder="Type your answers…"
+        />
+      </Card>
 
       {error && (
         <div className="flex items-start gap-2 px-3 py-2 rounded-cozy bg-terracotta-50 border border-terracotta-200 text-sm text-terracotta-800">

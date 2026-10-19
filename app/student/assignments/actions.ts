@@ -331,39 +331,39 @@ function extFor(kind: "image" | "video", mime: string): string {
 }
 
 /**
- * Upload one screenshot or video recording to the submissions bucket and
- * append a reference to the submission row. Creates the submission lazily
- * on first upload, matching the same pattern as ensureSubmission().
+ * Mint a one-time signed upload URL for one screenshot or recording. The
+ * browser uploads straight to storage — screen recordings routinely exceed
+ * the hosting platform's request-body cap, which a server action can't
+ * raise. Creates the submission lazily on first upload, matching the same
+ * pattern as ensureSubmission().
  */
-export async function uploadSubmissionMedia(
+export async function createSubmissionMediaUploadUrl(
   assignmentId: string,
-  formData: FormData
+  kind: "image" | "video",
+  mime: string
 ): Promise<
-  | { ok: true; media: SubmissionMedia; submissionId: string }
+  | {
+      ok: true;
+      submissionId: string;
+      fileId: string;
+      path: string;
+      token: string;
+    }
   | { ok: false; error: string }
 > {
   const user = await requireStudent();
-
-  const kindRaw = formData.get("kind")?.toString();
-  const kind: "image" | "video" = kindRaw === "video" ? "video" : "image";
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) return { ok: false, error: "No file provided" };
-
   const supabase = await createClient();
 
-  // Ensure submission row exists (and get its current uploaded_files)
   const { data: existing } = await supabase
     .from("submissions")
-    .select("id, status, uploaded_files")
+    .select("id")
     .eq("assignment_id", assignmentId)
     .eq("user_id", user.id)
     .maybeSingle();
 
   let submissionId: string;
-  let currentList: SubmissionMedia[];
   if (existing) {
     submissionId = existing.id;
-    currentList = parseSubmissionMedia(existing.uploaded_files);
   } else {
     const { data: created, error } = await supabase
       .from("submissions")
@@ -378,36 +378,69 @@ export async function uploadSubmissionMedia(
       return { ok: false, error: error?.message ?? "Failed to create submission" };
     }
     submissionId = created.id;
-    currentList = [];
   }
 
-  // Upload to private bucket via admin client
   const fileId = crypto.randomUUID();
-  const mime = file.type || (kind === "video" ? "video/webm" : "image/png");
-  const storagePath = `${submissionId}/${fileId}.${extFor(kind, mime)}`;
+  const path = `${submissionId}/${fileId}.${extFor(kind, mime)}`;
 
-  const bytes = await file.arrayBuffer();
   const admin = createAdminClient();
-  const { error: uploadError } = await admin.storage
+  const { data, error } = await admin.storage
     .from("submissions")
-    .upload(storagePath, bytes, {
-      contentType: mime,
-      cacheControl: "60",
-      upsert: false,
-    });
-  if (uploadError) {
-    return { ok: false, error: `Upload failed: ${uploadError.message}` };
+    .createSignedUploadUrl(path);
+  if (error || !data) {
+    return { ok: false, error: error?.message ?? "Couldn't prepare the upload." };
+  }
+  return { ok: true, submissionId, fileId, path: data.path, token: data.token };
+}
+
+/**
+ * Append a just-uploaded file to the submission's uploaded_files. The
+ * path must sit under this submission's folder and the file must
+ * actually exist in storage.
+ */
+export async function recordSubmissionMedia(
+  submissionId: string,
+  args: { fileId: string; storagePath: string; kind: "image" | "video"; mime: string }
+): Promise<{ ok: true; media: SubmissionMedia } | { ok: false; error: string }> {
+  const user = await requireStudent();
+  const supabase = await createClient();
+
+  const { data: sub } = await supabase
+    .from("submissions")
+    .select("id, user_id, assignment_id, uploaded_files")
+    .eq("id", submissionId)
+    .maybeSingle();
+  if (!sub || sub.user_id !== user.id) {
+    return { ok: false, error: "Not authorized" };
+  }
+
+  const fileName = args.storagePath.slice(submissionId.length + 1);
+  if (
+    !args.storagePath.startsWith(`${submissionId}/`) ||
+    !fileName.startsWith(`${args.fileId}.`) ||
+    fileName.includes("/")
+  ) {
+    return { ok: false, error: "Invalid upload path" };
+  }
+
+  const admin = createAdminClient();
+  const { data: listed } = await admin.storage
+    .from("submissions")
+    .list(submissionId, { search: fileName });
+  const stored = listed?.find((f) => f.name === fileName);
+  if (!stored) {
+    return { ok: false, error: "Upload didn't finish — please try again." };
   }
 
   const media: SubmissionMedia = {
-    id: fileId,
-    kind,
-    storagePath,
-    mime,
-    size: file.size,
+    id: args.fileId,
+    kind: args.kind === "video" ? "video" : "image",
+    storagePath: args.storagePath,
+    mime: args.mime,
+    size: Number(stored.metadata?.size ?? 0),
     createdAt: new Date().toISOString(),
   };
-  const nextList = [...currentList, media];
+  const nextList = [...parseSubmissionMedia(sub.uploaded_files), media];
 
   const { error: updateError } = await supabase
     .from("submissions")
@@ -415,12 +448,12 @@ export async function uploadSubmissionMedia(
     .eq("id", submissionId);
   if (updateError) {
     // Roll back the storage upload to keep the row and bucket in sync
-    await admin.storage.from("submissions").remove([storagePath]);
+    await admin.storage.from("submissions").remove([args.storagePath]);
     return { ok: false, error: updateError.message };
   }
 
-  revalidatePath(`/student/assignments/${assignmentId}`);
-  return { ok: true, media, submissionId };
+  revalidatePath(`/student/assignments/${sub.assignment_id}`);
+  return { ok: true, media };
 }
 
 /**

@@ -350,6 +350,16 @@ export default async function GradeSubmissionPage({
                   </div>
                 );
               })()}
+              {content.trim().length > 0 && (
+                <div className="mt-6">
+                  <p className="label-eyebrow mb-2">Their answers</p>
+                  <Card>
+                    <p className="whitespace-pre-wrap text-sm text-wood-800 leading-relaxed">
+                      {content}
+                    </p>
+                  </Card>
+                </div>
+              )}
             </div>
           )}
 
