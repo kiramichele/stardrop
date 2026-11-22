@@ -219,6 +219,9 @@ export default async function AssignmentDetailPage({
     (assignment as { auto_publish_to_starhub?: boolean })
       .auto_publish_to_starhub
   );
+  const requireCommit = Boolean(
+    (assignment as { require_commit?: boolean }).require_commit
+  );
 
   const [groups, roster] = collabConfig.collaborative
     ? await Promise.all([
@@ -566,6 +569,7 @@ export default async function AssignmentDetailPage({
               initialCodeRunMode={resolvedCodeRunMode}
               initialIsPractice={assignment.is_practice}
               initialAutoPublishToStarhub={autoPublishToStarhub}
+              initialRequireCommit={requireCommit}
               isInteractive={isInteractive}
               hasInteractiveHtml={hasInteractiveHtml}
               isCode={isCode}

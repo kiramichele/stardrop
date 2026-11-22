@@ -123,6 +123,7 @@ export async function createAssignment(formData: FormData) {
 
   const autoPublishToStarhub =
     formData.get("auto_publish_to_starhub") === "on";
+  const requireCommit = formData.get("require_commit") === "on";
   // Form only offers none / csharp / unity; "both" is a legacy stored
   // value we still accept but never write fresh.
   const codeRunModeRaw =
@@ -193,6 +194,7 @@ export async function createAssignment(formData: FormData) {
         // Cast: columns not in regen'd types until the matching migration lands.
         auto_publish_to_starhub: autoPublishToStarhub,
         code_run_mode: codeRunMode,
+        require_commit: requireCommit,
         collaborative: collab.collaborative,
         group_mode: collab.group_mode,
         max_group_size: collab.max_group_size,
@@ -261,6 +263,7 @@ export async function updateAssignment(
 
   const autoPublishToStarhub =
     formData.get("auto_publish_to_starhub") === "on";
+  const requireCommit = formData.get("require_commit") === "on";
   // Form only offers none / csharp / unity; "both" is a legacy stored
   // value we still accept but never write fresh.
   const codeRunModeRaw =
@@ -293,6 +296,7 @@ export async function updateAssignment(
       is_practice: isPractice,
       auto_publish_to_starhub: autoPublishToStarhub,
       code_run_mode: codeRunMode,
+      require_commit: requireCommit,
       collaborative: collab.collaborative,
       group_mode: collab.group_mode,
       max_group_size: collab.max_group_size,
@@ -513,8 +517,12 @@ export async function copyAssignmentToClasses(
         points: src.points,
         minimum_word_count: src.minimum_word_count,
         rubric_id: src.rubric_id,
+        // Cast: not in regen'd types until the code_commits migration lands.
+        require_commit: Boolean(
+          (src as { require_commit?: boolean }).require_commit
+        ),
         published: false, // copies start as drafts so the teacher can review
-      })
+      } as never)
       .select("id")
       .single();
     if (insertError || !copy) {

@@ -341,6 +341,31 @@ export default async function NewAssignmentPage() {
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
+                id="require_commit"
+                name="require_commit"
+                defaultChecked
+                className="w-4 h-4 mt-0.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
+              />
+              <span>
+                <span className="block text-sm font-medium text-wood-900">
+                  Require a commit before submitting{" "}
+                  <span className="text-wood-500 font-normal">
+                    (code-type assignments)
+                  </span>
+                </span>
+                <span className="block text-xs text-wood-500">
+                  Students can&apos;t submit until they&apos;ve saved at least
+                  one commit (a named version) in their history. Doesn&apos;t
+                  apply to group work.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
                 id="auto_publish_to_starhub"
                 name="auto_publish_to_starhub"
                 className="w-4 h-4 mt-0.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"

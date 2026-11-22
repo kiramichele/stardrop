@@ -40,6 +40,7 @@ interface AssignmentSettingsFormProps {
   initialCodeRunMode: string;
   initialIsPractice: boolean;
   initialAutoPublishToStarhub: boolean;
+  initialRequireCommit: boolean;
   isInteractive: boolean;
   hasInteractiveHtml: boolean;
   isCode: boolean;
@@ -70,6 +71,7 @@ export function AssignmentSettingsForm({
   initialCodeRunMode,
   initialIsPractice,
   initialAutoPublishToStarhub,
+  initialRequireCommit,
   isInteractive,
   hasInteractiveHtml,
   isCode,
@@ -362,6 +364,30 @@ export function AssignmentSettingsForm({
           what the script would do in the Editor.
         </FieldHint>
       </div>
+
+      {isCode && (
+        <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              id="require_commit"
+              name="require_commit"
+              defaultChecked={initialRequireCommit}
+              className="w-4 h-4 mt-0.5 rounded border-wood-300 text-terracotta-500 focus:ring-terracotta-400"
+            />
+            <span>
+              <Label htmlFor="require_commit" className="mb-0 cursor-pointer">
+                Require a commit before submitting
+              </Label>
+              <p className="text-xs text-wood-500 mt-0.5">
+                Students can&apos;t submit until they&apos;ve saved at least
+                one commit (a named version) in their history. Doesn&apos;t
+                apply to group work.
+              </p>
+            </span>
+          </label>
+        </div>
+      )}
 
       <div className="rounded-cozy border border-wood-200 bg-cream-50 p-3">
         <label className="flex items-start gap-2 cursor-pointer">

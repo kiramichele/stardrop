@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/KeyboardShortcuts";
 import { SubmissionStatusBadge } from "@/components/assignments/Badges";
 import { PasteTimeline } from "@/components/assignments/PasteTimeline";
+import { TeacherCommitHistory } from "@/components/assignments/TeacherCommitHistory";
+import { loadCommitHistory } from "@/lib/commits-server";
 import { GradingForm } from "@/components/assignments/GradingForm";
 import { GradingNav } from "@/components/assignments/GradingNav";
 import { RequestRevisionButton } from "@/components/assignments/RequestRevisionButton";
@@ -107,6 +109,10 @@ export default async function GradeSubmissionPage({
 
   const showPasteTimeline = assignmentType === "code";
   const events = showPasteTimeline ? await getSubmissionEvents(submissionId) : [];
+  // Commit history — solo code only (group work has no commits yet).
+  // Null when the table doesn't exist yet / the query fails: hide the card.
+  const commitHistory =
+    assignmentType === "code" ? await loadCommitHistory(submissionId) : null;
 
   const autoGrade =
     assignmentType === "interactive_html"
@@ -467,6 +473,19 @@ export default async function GradeSubmissionPage({
                 entries={feedbackEntries}
                 currentUserRole="teacher"
                 canReply={true}
+              />
+            </Card>
+          )}
+
+          {commitHistory && (
+            <Card>
+              <h3 className="font-display text-lg text-wood-900 mb-4">
+                Commit history
+              </h3>
+              <TeacherCommitHistory
+                commits={commitHistory.commits}
+                headCode={commitHistory.headCode}
+                submittedCode={content}
               />
             </Card>
           )}

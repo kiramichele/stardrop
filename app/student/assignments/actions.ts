@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireStudent } from "@/lib/auth";
+import { submissionHasCommit } from "@/lib/commits-server";
 import { parseSubmissionMedia, type SubmissionMedia } from "@/lib/assignments";
 import type { Database, Json } from "@/types/database";
 
@@ -112,10 +113,25 @@ export async function submitAssignment(
   let autoPublishToStarhub = false;
   const { data: assignmentRow } = await supabase
     .from("assignments")
-    .select("type")
+    .select("*")
     .eq("id", sub.assignment_id)
     .maybeSingle();
   const type = (assignmentRow?.type ?? "") as string;
+
+  // Commit gate: solo code assignments can require at least one commit
+  // before Submit. (Group work submits via submitGroup, never here.)
+  // `require_commit` is read loosely so this is a no-op until the
+  // migration is applied.
+  const requireCommit = Boolean(
+    (assignmentRow as { require_commit?: boolean } | null)?.require_commit
+  );
+  if (type === "code" && requireCommit && !(await submissionHasCommit(sub.id))) {
+    return {
+      ok: false,
+      error: "Make at least one commit before submitting.",
+    };
+  }
+
   if (type !== "devlog" && type !== "video_response") {
     const { data: autoPubRow } = await (
       supabase as unknown as {

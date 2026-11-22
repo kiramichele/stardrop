@@ -8,6 +8,10 @@ import { CodeEditor } from "@/components/editor/CodeEditor";
 import { CodeRunner } from "@/components/playground/CodeRunner";
 import { CheatSheetButton } from "@/components/cheatsheet/CheatSheetButton";
 import {
+  CommitBar,
+  type CommitStatus,
+} from "@/components/assignments/CommitHistory";
+import {
   starterCodeFor,
   resolveRunAs,
   type CodeRunMode,
@@ -33,6 +37,8 @@ interface CodeAssignmentEditorProps {
    * else. Defaults true so the editor still works in isolation.
    */
   unitySimulationEnabled?: boolean;
+  /** Block Submit until the student has made at least one commit. */
+  requireCommit?: boolean;
 }
 
 const AUTOSAVE_DEBOUNCE_MS = 1500;
@@ -45,6 +51,7 @@ export function CodeAssignmentEditor({
   starterCode,
   codeRunMode = "both",
   unitySimulationEnabled = true,
+  requireCommit = false,
 }: CodeAssignmentEditorProps) {
   // Starter for a brand-new submission: explicit prop wins, otherwise
   // derive from the run mode (csharp → console boilerplate, anything
@@ -60,6 +67,11 @@ export function CodeAssignmentEditor({
   );
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSubmitting, startSubmit] = useTransition();
+  const [commitStatus, setCommitStatus] = useState<CommitStatus>({
+    commitCount: 0,
+    hasUncommittedChanges: false,
+  });
+  const needsCommit = requireCommit && commitStatus.commitCount === 0;
   // Grading no longer locks editing — students can turn in a revision any
   // time, so `isLocked` stays false; `isGraded` just drives the copy below.
   const isLocked = false;
@@ -172,6 +184,14 @@ export function CodeAssignmentEditor({
         <CheatSheetButton />
       </div>
 
+      <CommitBar
+        submissionId={submissionId}
+        ensureSubmission={ensureSub}
+        code={code}
+        onRestore={setCode}
+        onStatusChange={setCommitStatus}
+      />
+
       <CodeEditor
         value={code}
         onChange={setCode}
@@ -218,7 +238,12 @@ export function CodeAssignmentEditor({
               {saveError}
             </span>
           )}
-          {saveState === "idle" && status !== "draft" && (
+          {saveState === "idle" && needsCommit && (
+            <span className="text-wood-600">
+              Make at least one commit before you submit.
+            </span>
+          )}
+          {saveState === "idle" && !needsCommit && status !== "draft" && (
             <span className="text-wood-500">
               {status === "graded"
                 ? "Graded — changes are saved as a draft. Click Re-submit to turn it in."
@@ -229,7 +254,8 @@ export function CodeAssignmentEditor({
 
         <Button
           onClick={handleSubmit}
-          disabled={isLocked || isSubmitting}
+          disabled={isLocked || isSubmitting || needsCommit}
+          title={needsCommit ? "Make a commit first" : undefined}
           size="lg"
         >
           <Send className="w-4 h-4" strokeWidth={2} />

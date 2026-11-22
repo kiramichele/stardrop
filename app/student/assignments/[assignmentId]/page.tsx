@@ -305,6 +305,10 @@ export default async function StudentAssignmentPage({
                         | "both"
                     }
                     unitySimulationEnabled={await getUnitySimulationEnabled()}
+                    requireCommit={Boolean(
+                      (assignment as { require_commit?: boolean })
+                        .require_commit
+                    )}
                   />
                 ))}
             </>
