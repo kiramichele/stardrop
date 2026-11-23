@@ -409,7 +409,7 @@ export function UnityLabEditor({
         </div>
 
         {/* Script | Console | Simulation */}
-        <Panel className="h-[320px]">
+        <Panel className="h-[380px]">
           <BottomPanel
             tab={tab}
             onTab={setTab}

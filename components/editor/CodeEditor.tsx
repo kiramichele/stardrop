@@ -100,8 +100,17 @@ export function CodeEditor({
     }
   };
 
+  // height="100%" means "fill my container": stretch the frame and let the
+  // editor take whatever is left under the status bar. Any other value is
+  // the editor area's own fixed height.
+  const fill = height === "100%";
+
   return (
-    <div className="rounded-cozy-lg overflow-hidden border border-wood-200 shadow-cozy bg-cream-50">
+    <div
+      className={`rounded-cozy-lg overflow-hidden border border-wood-200 shadow-cozy bg-cream-50 ${
+        fill ? "h-full flex flex-col" : ""
+      }`}
+    >
       {/* Editor chrome / status bar */}
       <div className="flex items-center justify-between px-4 py-2 bg-cream-100 border-b border-wood-100 text-xs">
         <div className="flex items-center gap-2 text-wood-600">
@@ -124,7 +133,10 @@ export function CodeEditor({
         </div>
       </div>
 
-      <div style={{ height }}>
+      <div
+        className={fill ? "flex-1 min-h-0" : undefined}
+        style={fill ? undefined : { height }}
+      >
         <Editor
           height="100%"
           defaultLanguage="csharp"

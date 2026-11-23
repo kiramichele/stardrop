@@ -135,7 +135,10 @@ function ScriptTab({
           Unity needs a class here, like <code>public class PlayerMove : MonoBehaviour</code>.
         </p>
       )}
-      <div className="flex-1 min-h-0 p-2">
+      {/* Absolutely pinned so the editor gets a definite size from the
+          panel instead of collapsing to its (empty) content height. */}
+      <div className="relative flex-1 min-h-0">
+        <div className="absolute inset-2">
         <CodeEditor
           key={script.id}
           value={script.code}
@@ -145,6 +148,7 @@ function ScriptTab({
           fileName={`${className ?? "Untitled"}.cs`}
           languageLabel={editable ? "C# · MonoBehaviour" : "Read-only during Play"}
         />
+        </div>
       </div>
     </div>
   );
