@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CodeRunner } from "@/components/playground/CodeRunner";
 import { CheatSheetButton } from "@/components/cheatsheet/CheatSheetButton";
-import { resolveRunAs, type CodeRunMode } from "@/lib/playground";
+import type { AssignmentRunMode } from "@/lib/playground";
 import { setupMonaco } from "@/lib/monaco/setup";
 import { createClient } from "@/lib/supabase/client";
 import { SupabaseYjsProvider } from "@/lib/collab/supabase-provider";
@@ -64,8 +64,7 @@ interface CollaborativeCodeEditorProps {
   leaderSubmitsOnly: boolean;
   submitted: boolean;
   graded: boolean;
-  codeRunMode: CodeRunMode;
-  unitySimulationEnabled: boolean;
+  codeRunMode: AssignmentRunMode;
 }
 
 type Peer = { name: string; color: string };
@@ -79,7 +78,6 @@ export function CollaborativeCodeEditor({
   submitted,
   graded,
   codeRunMode,
-  unitySimulationEnabled,
 }: CollaborativeCodeEditorProps) {
   const docRef = useRef<Y.Doc | null>(null);
   const ytextRef = useRef<Y.Text | null>(null);
@@ -221,7 +219,6 @@ export function CollaborativeCodeEditor({
     });
   }
 
-  const runAs = resolveRunAs(codeRunMode);
 
   return (
     <div className="space-y-4">
@@ -270,7 +267,7 @@ export function CollaborativeCodeEditor({
           <div className="flex items-center gap-2 text-wood-600">
             <span className="font-mono">script.cs</span>
             <span className="text-wood-400">·</span>
-            <span>{codeRunMode === "csharp" ? "C#" : "C# · Unity"} · shared</span>
+            <span>C# · shared</span>
           </div>
           <div className="text-wood-500">
             {!ready ? (
@@ -313,13 +310,12 @@ export function CollaborativeCodeEditor({
         </div>
       </div>
 
-      {runAs && (
+      {codeRunMode === "csharp" && (
         <Card>
           <h3 className="font-display text-lg text-wood-900 mb-3">Try it out</h3>
           <CodeRunner
             getCode={() => ytextRef.current?.toString() ?? ""}
-            runAs={runAs}
-            unitySimulationEnabled={unitySimulationEnabled}
+            runAs="csharp"
           />
         </Card>
       )}

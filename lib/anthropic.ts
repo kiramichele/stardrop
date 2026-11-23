@@ -15,6 +15,11 @@ export function isAnthropicConfigured(): boolean {
   return !!process.env.ANTHROPIC_API_KEY;
 }
 
+/** Shared client, or null when ANTHROPIC_API_KEY isn't set. */
+export function getAnthropicClient(): Anthropic | null {
+  return getClient();
+}
+
 function getClient(): Anthropic | null {
   if (!process.env.ANTHROPIC_API_KEY) return null;
   if (!_client) _client = new Anthropic();

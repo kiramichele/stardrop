@@ -67,10 +67,10 @@ export function UnitySimulationToggle({
             </span>
           </div>
           <p className="text-sm text-wood-600 mt-1">
-            When off, the &ldquo;Simulate in Unity&rdquo; button is replaced
-            with a small note in the Playground and on any Unity-type code
-            assignment. Students can still write and save code; they just
-            can&apos;t run the AI simulation until you turn it back on.
+            When off, students can&apos;t run the AI Unity simulation: the
+            &ldquo;Simulate in Unity&rdquo; button in the Playground and the
+            Play button in Unity Lab are paused. They can still build scenes
+            and write and save code until you turn it back on.
           </p>
 
           <div className="flex items-center gap-3 mt-3">

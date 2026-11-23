@@ -26,14 +26,23 @@ export function resolveRunAs(mode: CodeRunMode): RunAs | null {
   return "unity"; // "unity" or legacy "both"
 }
 
-/** Labels for the assignment-form select (the only 3 we offer now). */
-export const CODE_RUN_MODE_LABELS: Record<
-  Exclude<CodeRunMode, "both">,
-  string
-> = {
-  none: "No run button (submission-only)",
+/**
+ * Assignments only offer plain C# now — Unity practice moved to Unity
+ * Lab (the Playground keeps its own Unity simulation). Any stored
+ * 'unity' / legacy 'both' value is treated as C#.
+ */
+export type AssignmentRunMode = "none" | "csharp";
+
+export function resolveAssignmentRunMode(
+  stored: string | null | undefined
+): AssignmentRunMode {
+  return stored === "none" ? "none" : "csharp";
+}
+
+/** Labels for the assignment-form select. */
+export const ASSIGNMENT_RUN_MODE_LABELS: Record<AssignmentRunMode, string> = {
   csharp: "Run as C#",
-  unity: "Simulate in Unity",
+  none: "No run button (submission-only)",
 };
 
 /** A row from playground_programs. */

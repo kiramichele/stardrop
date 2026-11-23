@@ -23,7 +23,7 @@ import {
 } from "@/lib/assignments-server";
 import { getFeedbackThread } from "@/lib/feedback-server";
 import { getLesson } from "@/lib/lessons";
-import { getUnitySimulationEnabled } from "@/lib/app-settings-server";
+import { resolveAssignmentRunMode } from "@/lib/playground";
 import { isTtsConfigured } from "@/lib/tts";
 import { isVoiceChatConfigured } from "@/lib/voice-server";
 import { readCollabConfig, type AssignmentGroup } from "@/lib/groups";
@@ -88,7 +88,7 @@ export default async function StudentAssignmentPage({
   let groupDocState: string | null = null;
   if (collab.collaborative && assignment.type === "code" && myGroup) {
     await maybeAutoSubmitGroup(assignment.id, myGroup.id);
-    const doc = await getOrInitGroupDocument(myGroup.id, assignment.id);
+    const doc = await getOrInitGroupDocument(myGroup.id);
     groupDocState = doc.state;
   }
 
@@ -279,15 +279,9 @@ export default async function StudentAssignmentPage({
                         submission?.status === "graded"
                       }
                       graded={submission?.status === "graded"}
-                      codeRunMode={
-                        ((assignment as { code_run_mode?: string })
-                          .code_run_mode ?? "both") as
-                          | "none"
-                          | "csharp"
-                          | "unity"
-                          | "both"
-                      }
-                      unitySimulationEnabled={await getUnitySimulationEnabled()}
+                      codeRunMode={resolveAssignmentRunMode(
+                        (assignment as { code_run_mode?: string }).code_run_mode
+                      )}
                     />
                   </>
                 ) : (
@@ -296,15 +290,9 @@ export default async function StudentAssignmentPage({
                     initialContent={submission?.content ?? ""}
                     initialStatus={submission?.status ?? "draft"}
                     initialSubmissionId={submission?.id ?? null}
-                    codeRunMode={
-                      ((assignment as { code_run_mode?: string })
-                        .code_run_mode ?? "both") as
-                        | "none"
-                        | "csharp"
-                        | "unity"
-                        | "both"
-                    }
-                    unitySimulationEnabled={await getUnitySimulationEnabled()}
+                    codeRunMode={resolveAssignmentRunMode(
+                      (assignment as { code_run_mode?: string }).code_run_mode
+                    )}
                     requireCommit={Boolean(
                       (assignment as { require_commit?: boolean })
                         .require_commit

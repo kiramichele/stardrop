@@ -11,6 +11,7 @@ import { createNotifications } from "@/lib/notifications-server";
 import { computeAutoGrade, type AssignmentType } from "@/lib/assignments";
 import { asProfile } from "@/lib/profile";
 import type { Json } from "@/types/database";
+import { resolveAssignmentRunMode } from "@/lib/playground";
 
 const VALID_TYPES: AssignmentType[] = [
   "code",
@@ -124,13 +125,11 @@ export async function createAssignment(formData: FormData) {
   const autoPublishToStarhub =
     formData.get("auto_publish_to_starhub") === "on";
   const requireCommit = formData.get("require_commit") === "on";
-  // Form only offers none / csharp / unity; "both" is a legacy stored
-  // value we still accept but never write fresh.
-  const codeRunModeRaw =
-    formData.get("code_run_mode")?.toString() ?? "unity";
-  const codeRunMode = ["none", "csharp", "unity"].includes(codeRunModeRaw)
-    ? codeRunModeRaw
-    : "unity";
+  // Assignments offer only "csharp" or "none" (Unity practice lives in
+  // Unity Lab); anything else is stored as plain C#.
+  const codeRunMode = resolveAssignmentRunMode(
+    formData.get("code_run_mode")?.toString()
+  );
 
   const collab = parseCollabConfig(formData, type);
 
@@ -264,13 +263,11 @@ export async function updateAssignment(
   const autoPublishToStarhub =
     formData.get("auto_publish_to_starhub") === "on";
   const requireCommit = formData.get("require_commit") === "on";
-  // Form only offers none / csharp / unity; "both" is a legacy stored
-  // value we still accept but never write fresh.
-  const codeRunModeRaw =
-    formData.get("code_run_mode")?.toString() ?? "unity";
-  const codeRunMode = ["none", "csharp", "unity"].includes(codeRunModeRaw)
-    ? codeRunModeRaw
-    : "unity";
+  // Assignments offer only "csharp" or "none" (Unity practice lives in
+  // Unity Lab); anything else is stored as plain C#.
+  const codeRunMode = resolveAssignmentRunMode(
+    formData.get("code_run_mode")?.toString()
+  );
 
   // The edit form posts a hidden `type` so we can gate the collaborative
   // config the same way create does.

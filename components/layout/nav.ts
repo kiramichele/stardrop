@@ -22,6 +22,7 @@ import {
   Table2,
   BookMarked,
   Radio,
+  Box,
   type LucideIcon,
 } from "lucide-react";
 
@@ -49,6 +50,7 @@ export const teacherNav: NavItem[] = [
   { label: "Slideshows", href: "/slideshows", icon: Presentation },
   { label: "StarHub", href: "/starhub", icon: Sparkles },
   { label: "Playground", href: "/playground", icon: Terminal },
+  { label: "Unity Lab", href: "/unity-lab", icon: Box },
   { label: "Cheat sheet", href: "/cheatsheet", icon: BookMarked },
   { label: "Showcase", href: "/showcase", icon: Gamepad2 },
   { label: "Devlogs", href: "/devlogs", icon: Video },
@@ -79,6 +81,7 @@ export const studentNav: NavItem[] = [
   { label: "Slideshows", href: "/slideshows", icon: Presentation },
   { label: "StarHub", href: "/starhub", icon: Sparkles },
   { label: "Playground", href: "/playground", icon: Terminal },
+  { label: "Unity Lab", href: "/unity-lab", icon: Box },
   { label: "Cheat sheet", href: "/cheatsheet", icon: BookMarked },
   { label: "Showcase", href: "/showcase", icon: Gamepad2 },
   { label: "Devlogs", href: "/devlogs", icon: Video },

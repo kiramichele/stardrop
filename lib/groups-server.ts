@@ -1,7 +1,7 @@
 import "server-only";
 import * as Y from "yjs";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { starterCodeFor, type CodeRunMode } from "@/lib/playground";
+import { CSHARP_CONSOLE_STARTER } from "@/lib/playground";
 import type { AssignmentGroup, GroupMember, GroupStatus } from "@/lib/groups";
 
 /**
@@ -62,13 +62,12 @@ export async function getAssignmentGroups(
 
 /**
  * Fetch (or lazily create) the shared Yjs document for a group. On first use
- * we seed a Y.Doc server-side with the assignment's starter code and store its
+ * we seed a Y.Doc server-side with the C# console starter and store its
  * encoded state, so every client loads a non-empty base and no two clients
  * race to seed. Returns base64 `state` + plain `content`.
  */
 export async function getOrInitGroupDocument(
-  groupId: string,
-  assignmentId: string
+  groupId: string
 ): Promise<{ state: string; content: string }> {
   const admin = createAdminClient();
 
@@ -81,15 +80,9 @@ export async function getOrInitGroupDocument(
     return { state: existing.state, content: existing.content ?? "" };
   }
 
-  // Seed from the assignment's starter code.
-  const { data: assignment } = await admin
-    .from("assignments")
-    .select("code_run_mode")
-    .eq("id", assignmentId)
-    .maybeSingle();
-  const runMode = ((assignment as { code_run_mode?: string } | null)
-    ?.code_run_mode ?? "unity") as CodeRunMode;
-  const starter = starterCodeFor("csharp", runMode);
+  // Seed with the console starter (assignments are plain C#; Unity
+  // practice lives in Unity Lab).
+  const starter = CSHARP_CONSOLE_STARTER;
 
   const doc = new Y.Doc();
   doc.getText("code").insert(0, starter);

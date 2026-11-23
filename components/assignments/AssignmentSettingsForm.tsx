@@ -353,15 +353,13 @@ export function AssignmentSettingsForm({
           name="code_run_mode"
           defaultValue={initialCodeRunMode}
         >
-          <option value="none">No run button (submission-only)</option>
           <option value="csharp">Run as C#</option>
-          <option value="unity">Simulate in Unity</option>
+          <option value="none">No run button (submission-only)</option>
         </Select>
         <FieldHint>
-          Picks the kind of starter code the student sees AND what the
-          single Run button does. <strong>Run as C#</strong> compiles +
-          executes; <strong>Simulate in Unity</strong> has the AI describe
-          what the script would do in the Editor.
+          <strong>Run as C#</strong> compiles and runs the student&apos;s
+          code. For Unity practice, point students to{" "}
+          <strong>Unity Lab</strong>.
         </FieldHint>
       </div>
 

@@ -12,9 +12,8 @@ import {
   type CommitStatus,
 } from "@/components/assignments/CommitHistory";
 import {
-  starterCodeFor,
-  resolveRunAs,
-  type CodeRunMode,
+  CSHARP_CONSOLE_STARTER,
+  type AssignmentRunMode,
 } from "@/lib/playground";
 import {
   ensureSubmission,
@@ -29,14 +28,8 @@ interface CodeAssignmentEditorProps {
   initialStatus: "draft" | "submitted" | "graded";
   initialSubmissionId: string | null;
   starterCode?: string;
-  /** Which run button the assignment exposes. Default 'both' (legacy). */
-  codeRunMode?: CodeRunMode;
-  /**
-   * Class-wide kill switch for the Unity simulation. False hides the
-   * Run button on unity-mode assignments without changing anything
-   * else. Defaults true so the editor still works in isolation.
-   */
-  unitySimulationEnabled?: boolean;
+  /** Whether the assignment shows a "Run as C#" button. */
+  codeRunMode?: AssignmentRunMode;
   /** Block Submit until the student has made at least one commit. */
   requireCommit?: boolean;
 }
@@ -49,14 +42,12 @@ export function CodeAssignmentEditor({
   initialStatus,
   initialSubmissionId,
   starterCode,
-  codeRunMode = "both",
-  unitySimulationEnabled = true,
+  codeRunMode = "csharp",
   requireCommit = false,
 }: CodeAssignmentEditorProps) {
-  // Starter for a brand-new submission: explicit prop wins, otherwise
-  // derive from the run mode (csharp → console boilerplate, anything
-  // else → MonoBehaviour boilerplate).
-  const resolvedStarter = starterCode ?? starterCodeFor("csharp", codeRunMode);
+  // Starter for a brand-new submission: explicit prop wins, otherwise the
+  // console boilerplate (Unity practice lives in Unity Lab).
+  const resolvedStarter = starterCode ?? CSHARP_CONSOLE_STARTER;
   const [code, setCode] = useState(initialContent || resolvedStarter);
   const [status, setStatus] = useState(initialStatus);
   const [submissionId, setSubmissionId] = useState<string | null>(
@@ -198,25 +189,17 @@ export function CodeAssignmentEditor({
         onPaste={(e) => handlePaste(e.content, e.length)}
         readOnly={isLocked}
         height="60vh"
-        languageLabel={codeRunMode === "csharp" ? "C#" : "C# · Unity"}
+        languageLabel="C#"
       />
 
-      {(() => {
-        const runAs = resolveRunAs(codeRunMode);
-        if (!runAs) return null;
-        return (
-          <Card>
-            <h3 className="font-display text-lg text-wood-900 mb-3">
-              Try it out
-            </h3>
-            <CodeRunner
-              getCode={() => code}
-              runAs={runAs}
-              unitySimulationEnabled={unitySimulationEnabled}
-            />
-          </Card>
-        );
-      })()}
+      {codeRunMode === "csharp" && (
+        <Card>
+          <h3 className="font-display text-lg text-wood-900 mb-3">
+            Try it out
+          </h3>
+          <CodeRunner getCode={() => code} runAs="csharp" />
+        </Card>
+      )}
 
       <div className="flex items-center justify-between gap-4">
         <div className="text-sm text-wood-500 min-h-[1.5rem]">

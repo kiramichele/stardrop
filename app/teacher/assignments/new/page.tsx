@@ -8,7 +8,7 @@ import {
   SUPPORTED_TYPES,
   type AssignmentType,
 } from "@/lib/assignments";
-import { CODE_RUN_MODE_LABELS } from "@/lib/playground";
+import { ASSIGNMENT_RUN_MODE_LABELS } from "@/lib/playground";
 import { getRubricsForTeacher } from "@/lib/rubrics-server";
 import { rubricMaxPoints } from "@/lib/rubrics";
 import { getUnitsForTeacher } from "@/lib/lessons";
@@ -317,23 +317,22 @@ export default async function NewAssignmentPage() {
             <Select
               id="code_run_mode"
               name="code_run_mode"
-              defaultValue="unity"
+              defaultValue="csharp"
             >
               {(
-                Object.keys(CODE_RUN_MODE_LABELS) as Array<
-                  keyof typeof CODE_RUN_MODE_LABELS
+                Object.keys(ASSIGNMENT_RUN_MODE_LABELS) as Array<
+                  keyof typeof ASSIGNMENT_RUN_MODE_LABELS
                 >
               ).map((key) => (
                 <option key={key} value={key}>
-                  {CODE_RUN_MODE_LABELS[key]}
+                  {ASSIGNMENT_RUN_MODE_LABELS[key]}
                 </option>
               ))}
             </Select>
             <FieldHint>
-              Picks the kind of starter code the student sees AND what the
-              single Run button does. <strong>Run as C#</strong> compiles +
-              executes; <strong>Simulate in Unity</strong> has the AI describe
-              what the script would do in the Editor.
+              <strong>Run as C#</strong> compiles and runs the student&apos;s
+              code. For Unity practice, point students to{" "}
+              <strong>Unity Lab</strong>.
             </FieldHint>
           </div>
 

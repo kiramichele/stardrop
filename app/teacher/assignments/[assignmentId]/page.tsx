@@ -46,6 +46,7 @@ import {
   getEnrolledStudents,
 } from "@/lib/groups-server";
 import { deleteAssignment, uploadInteractiveHtml } from "../actions";
+import { resolveAssignmentRunMode } from "@/lib/playground";
 
 export default async function AssignmentDetailPage({
   params,
@@ -207,14 +208,11 @@ export default async function AssignmentDetailPage({
     isInteractive || isDevlog || isVideoResponse || isCode || isUnityUpload;
   const hasInteractiveHtml = !!assignment.interactive_html_url;
   const collabConfig = readCollabConfig(assignment);
-  // Legacy "both" rows collapse to "unity" — the form no longer offers a
-  // "both" option.
-  const storedCodeRunMode = (assignment as { code_run_mode?: string })
-    .code_run_mode;
-  const resolvedCodeRunMode =
-    !storedCodeRunMode || storedCodeRunMode === "both"
-      ? "unity"
-      : storedCodeRunMode;
+  // Only "csharp" / "none" exist for assignments now; legacy Unity values
+  // read as C#.
+  const resolvedCodeRunMode = resolveAssignmentRunMode(
+    (assignment as { code_run_mode?: string }).code_run_mode
+  );
   const autoPublishToStarhub = Boolean(
     (assignment as { auto_publish_to_starhub?: boolean })
       .auto_publish_to_starhub

@@ -46,6 +46,8 @@ export type CodeEditorProps = {
    * assignment), so the label matches what will actually run.
    */
   languageLabel?: string;
+  /** File name in the status bar. Defaults to "script.cs". */
+  fileName?: string;
 };
 
 export function CodeEditor({
@@ -58,6 +60,7 @@ export function CodeEditor({
   readOnly = false,
   height = "500px",
   languageLabel = "C# · Unity",
+  fileName = "script.cs",
 }: CodeEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -102,7 +105,7 @@ export function CodeEditor({
       {/* Editor chrome / status bar */}
       <div className="flex items-center justify-between px-4 py-2 bg-cream-100 border-b border-wood-100 text-xs">
         <div className="flex items-center gap-2 text-wood-600">
-          <span className="font-mono">script.cs</span>
+          <span className="font-mono">{fileName}</span>
           <span className="text-wood-400">·</span>
           <span>{languageLabel}</span>
         </div>
